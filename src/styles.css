@@ -1,0 +1,294 @@
+:root {
+  --bg: #14100c;
+  --text: #f6eedf;
+  --accent: #e8b04b;
+  --panel: rgba(20, 16, 12, 0.82);
+  --err: #ff9b8a;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, 'Segoe UI', Arial, sans-serif;
+}
+
+#scene {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* The video element only feeds the pose detector and the preview canvas. */
+#webcam {
+  position: fixed;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ---------- Overlays ---------- */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 24px;
+  text-align: center;
+  background: rgba(10, 8, 6, 0.72);
+}
+.overlay.translucent {
+  background: rgba(10, 8, 6, 0.25);
+  pointer-events: none;
+}
+.overlay.hidden {
+  display: none;
+}
+
+h1 {
+  margin: 0.1em 0;
+  font-size: clamp(1.8rem, 3.5vw, 3rem);
+  color: var(--accent);
+  text-shadow: 0 3px 0 rgba(0, 0, 0, 0.4);
+}
+h2 {
+  margin: 0;
+  color: var(--accent);
+}
+.hint {
+  max-width: 900px;
+  margin: 0;
+  font-size: clamp(1rem, 1.6vw, 1.4rem);
+  line-height: 1.45;
+}
+.hint.small {
+  font-size: 1rem;
+  opacity: 0.8;
+}
+.hint.big {
+  font-size: clamp(1.4rem, 2.6vw, 2.2rem);
+  font-weight: bold;
+  text-shadow: 0 2px 6px #000;
+}
+.err {
+  color: var(--err);
+}
+
+.camera-slot {
+  width: min(70vw, 960px);
+  aspect-ratio: 16 / 9;
+  max-height: 52vh;
+  border: 3px solid var(--accent);
+  border-radius: 14px;
+  overflow: hidden;
+  background: #000;
+}
+.camera-view {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.slots {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.slot {
+  min-width: 170px;
+  padding: 10px 18px;
+  border-radius: 16px;
+  background: #3a332c;
+  border: 3px solid transparent;
+  opacity: 0.6;
+}
+.slot.on {
+  opacity: 1;
+  border-color: var(--player);
+  background: color-mix(in srgb, var(--player) 30%, #2a241e);
+}
+.slot-name {
+  font-size: 1.3rem;
+  font-weight: bold;
+}
+
+.countdown {
+  font-size: clamp(6rem, 18vw, 14rem);
+  font-weight: 900;
+  color: var(--accent);
+  text-shadow: 0 6px 0 rgba(0, 0, 0, 0.45);
+}
+
+.results {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: min(90vw, 720px);
+}
+.result {
+  display: grid;
+  grid-template-columns: 3rem 1fr auto auto auto;
+  gap: 18px;
+  align-items: center;
+  padding: 10px 20px;
+  border-radius: 14px;
+  font-size: 1.4rem;
+  background: color-mix(in srgb, var(--player) 28%, #2a241e);
+  border-left: 8px solid var(--player);
+}
+.rosette {
+  font-size: 2.2rem;
+}
+.result-name {
+  text-align: left;
+  font-weight: bold;
+}
+
+/* ---------- HUD per viewport ---------- */
+
+#hud {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  pointer-events: none;
+}
+.hud-panel {
+  position: absolute;
+  overflow: hidden;
+}
+.hud-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 14px;
+  background: linear-gradient(rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0));
+  font-size: clamp(1rem, 1.7vw, 1.6rem);
+  font-weight: bold;
+  text-shadow: 0 2px 3px #000;
+}
+.hud-name {
+  color: var(--player);
+}
+.hud-stats {
+  white-space: pre;
+}
+.hud-big {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 28%;
+  text-align: center;
+  font-size: clamp(2.5rem, 6vw, 5rem);
+  font-weight: 900;
+  color: #fff;
+  text-shadow: 0 4px 0 rgba(0, 0, 0, 0.5);
+}
+.hud-big.jump {
+  color: #ffd24a;
+  animation: pulse 0.45s ease-in-out infinite alternate;
+}
+.hud-toast {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 48%;
+  text-align: center;
+  font-size: clamp(1.5rem, 3vw, 2.6rem);
+  font-weight: bold;
+  text-shadow: 0 3px 4px #000;
+  opacity: 0;
+}
+.hud-toast.show {
+  animation: toast 1.2s ease-out forwards;
+}
+.hud-hint {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 34px;
+  text-align: center;
+  font-size: clamp(1.1rem, 2vw, 1.8rem);
+  font-weight: bold;
+  text-shadow: 0 2px 4px #000;
+}
+.hud-hint.warn {
+  color: #ffd24a;
+}
+.hud-progress {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  height: 12px;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+}
+.hud-bar {
+  height: 100%;
+  width: 0;
+  background: var(--player);
+}
+
+@keyframes pulse {
+  from { transform: scale(1); }
+  to { transform: scale(1.15); }
+}
+@keyframes toast {
+  0% { opacity: 0; transform: translateY(10px) scale(0.9); }
+  15% { opacity: 1; transform: translateY(0) scale(1.05); }
+  80% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-20px); }
+}
+
+/* ---------- Debug panel ---------- */
+
+.debug {
+  position: fixed;
+  right: 10px;
+  top: 10px;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 340px;
+  max-height: calc(100vh - 20px);
+  overflow-y: auto;
+  padding: 8px;
+  border-radius: 10px;
+  background: var(--panel);
+}
+.debug.hidden {
+  display: none;
+}
+.debug-camera {
+  aspect-ratio: 16 / 9;
+  background: #000;
+  border-radius: 6px;
+  overflow: hidden;
+}
+.debug-live {
+  margin: 0;
+  font: 11px/1.4 ui-monospace, Consolas, monospace;
+  white-space: pre;
+  overflow-x: auto;
+}
+.debug .lil-gui.root {
+  width: 100% !important;
+}

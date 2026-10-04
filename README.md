@@ -1,0 +1,123 @@
+# Giddy Up! 🐴
+
+A webcam motion game for a kids' birthday party with a horse-show theme.
+Up to four children stand in front of the laptop webcam and ride a parcours
+in first-person view on a split screen – controlled only by their bodies:
+
+| Movement | Effect |
+| --- | --- |
+| Bounce / rock rhythmically | Gallop – the more energetic, the faster |
+| Lean left / right | Steer (needed in curves, otherwise the horse drifts outwards) |
+| Jump up | Horse jumps – inside the jump zone ("HOPP!") the jump is timed automatically |
+| Raise one arm (registration) | Join the game |
+
+Children who do not raise an arm are ignored, so spectators may stand in the picture.
+
+## Running
+
+```bash
+npm install
+npm run dev        # development server with hot reload → http://localhost:5173
+npm run build      # type check + production build → dist/index.html (single file)
+npm run preview    # serve the build → http://localhost:4173
+```
+
+`dist/index.html` is self-contained and can also be opened by double-click
+(Firefox asks for camera permission). The MoveNet model weights are downloaded
+from the internet on start, so an internet connection is required.
+
+## Keys
+
+| Key | Where | Action |
+| --- | --- | --- |
+| Space | Registration | Start the race |
+| Space | Results | Rematch with the same players |
+| Esc | Anywhere | Back to registration |
+| Backspace | Registration | Unregister everyone |
+| T | Registration | Add a keyboard rider (testing without camera) |
+| F | Anywhere | Toggle fullscreen |
+| Ctrl+Alt+D | Anywhere | Toggle debug panel |
+
+Keyboard riders (also usable alongside body control):
+P1 `W` gallop / `A` `D` steer / `S` jump · P2 `I` / `J` `L` / `K` ·
+P3 `↑` / `←` `→` / `↓` · P4 `Num8` / `Num4` `Num6` / `Num5`.
+
+## Tuning on site
+
+Open the debug panel (Ctrl+Alt+D). It shows per player: tracked, steer, drive,
+bounce energy, current and peak upward velocity – plus the camera image with
+skeletons. All thresholds can be adjusted with sliders; changes are saved in
+the browser and survive reloads. "Copy config (JSON)" copies the current values
+so good ones can be transferred into [src/config.ts](src/config.ts).
+
+Typical adjustments:
+- Jumps not detected → lower `jump.upVelocityThreshold` (compare with the `max↑` column).
+- Bouncing gives too little speed → lower `gallop.energyFull`.
+- Horse moves while standing still → raise `gallop.energyMin`.
+- Steering too twitchy / too weak → `steer.gain`, `steer.deadzone`.
+- Curves too hard → lower `horse.driftFactor`.
+
+## Architecture
+
+```
+src/
+  main.ts               entry point, loads saved tuning values
+  app.ts                wires modules together, main loop, keyboard commands
+  config.ts             all tuning knobs
+  core/                 math helpers, config persistence
+  pose/                 camera, MoveNet service (own loop), pose types, PlayerTracker (registration + identity)
+  input/                GestureAnalyzer (lean/bounce/jump → input), keyboard fallback, input merging
+  game/                 course data, track geometry, horse state, race rules/scoring, game phases
+  render/               single-canvas split renderer, world/scenery, horse model, obstacles, cameras, layout
+  ui/                   HUD per viewport, overlay screens, camera preview
+  debug/                debug panel
+tests/                  unit tests (Vitest) – pure logic, no browser needed
+e2e/                    smoke tests (Playwright) – real build in Microsoft Edge with fake webcam
+```
+
+Data flow per frame: `PoseService` (independent detection loop) → `PlayerTracker`
+(who is who) → `GestureAnalyzer` per player → `PlayerInput` (merged with keyboard)
+→ `GameFlow` / `Race` (pure simulation) → `RaceView` + `SplitRenderer` + `Hud`.
+
+Design decisions:
+- **One WebGL canvas, several viewports** (scissor test) instead of four canvases.
+- **three.js layers** give every player their own fences and carrots in a shared scene.
+- **Pose detection decoupled from rendering** – the game renders at full frame rate
+  even if MoveNet only delivers ~20 results per second.
+- **Semi-guided steering**: horses follow the track; curves push outwards and leaning compensates.
+- **Simulation is DOM-free** (game/, input/, pose/playerTracker) and therefore unit-testable.
+
+## Tests
+
+```bash
+npm test           # unit tests (Vitest)
+npm run e2e        # builds, serves and runs smoke tests in Microsoft Edge
+npm run typecheck
+```
+
+The unit tests check the requirements with synthetic poses: leaning steers,
+bouncing/rocking accelerates independent of child size and position, jumps are
+detected via upward velocity but not confused with bouncing, registration needs a
+raised arm, bystanders are ignored, player identities stay stable when someone is
+briefly not detected, curves push horses outwards and leaning keeps them on track,
+the jump zone clears fences, scoring/ranking, game phases and split-screen layout.
+
+## Packages
+
+| Package | Purpose |
+| --- | --- |
+| `three` | 3D rendering (scene, cameras, split-screen viewports) |
+| `@tensorflow/tfjs-core`, `@tensorflow/tfjs-backend-webgl`, `@tensorflow/tfjs-converter` | TensorFlow.js runtime on the GPU, required by the pose model |
+| `@tensorflow-models/pose-detection` | MoveNet MultiPose – detects up to 6 people with 17 keypoints each |
+| `lil-gui` | Sliders in the debug panel |
+| `vite` (dev) | Dev server and build tool |
+| `vite-plugin-singlefile` (dev) | Inlines everything into one `dist/index.html` (works via double-click) |
+| `typescript`, `@types/three`, `@types/node` (dev) | Type checking |
+| `vitest` (dev) | Unit tests |
+| `@playwright/test` (dev) | End-to-end smoke tests in a real browser |
+
+`pose-detection` also imports `@mediapipe/pose` and the WebGPU backend; both are
+replaced by tiny stubs in [src/vendor/](src/vendor/) via aliases in
+[vite.config.ts](vite.config.ts) because only MoveNet on WebGL is used.
+
+The first prototype is kept as [reit-parcours.html](reit-parcours.html) for reference.
