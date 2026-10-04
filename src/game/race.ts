@@ -136,7 +136,9 @@ export class Race {
 
     // --- forward speed ---
     let target = h.finished ? 0 : Math.max(hc.minSpeed, clamp(input.drive, 0, 1) * hc.maxSpeed);
-    if (this.isOffTrack(i)) target *= hc.offTrackSpeedFactor;
+    // The whole sand track is full speed; only grass and rails slow the horse down.
+    if (h.touchingRail) target *= hc.railSpeedFactor;
+    else if (this.isOffTrack(i)) target *= hc.offTrackSpeedFactor;
     if (h.stumble > 0) {
       target *= hc.stumbleSpeedFactor;
       h.stumble = Math.max(0, h.stumble - dt);
@@ -150,7 +152,8 @@ export class Race {
     h.lateralVelocity = damp(h.lateralVelocity, desired, hc.lateralResponse, dt);
     const limit = this.track.railOffset - BODY_HALF_WIDTH;
     h.lateral += h.lateralVelocity * dt;
-    if (Math.abs(h.lateral) > limit) {
+    h.touchingRail = Math.abs(h.lateral) >= limit;
+    if (h.touchingRail) {
       h.lateral = Math.sign(h.lateral) * limit;
       h.lateralVelocity = 0;
     }
@@ -159,7 +162,10 @@ export class Race {
     if (input.jump && !h.air && !h.finished) this.startJump(i, h);
 
     // --- move forward ---
-    h.s += h.speed * dt;
+    // `speed` is the real ground speed. Progress along the center line depends on
+    // the lateral position in curves: the inside line is shorter, the outside longer.
+    const pathScale = Math.max(0.5, 1 - sample.curvature * h.lateral);
+    h.s += (h.speed / pathScale) * dt;
     h.gaitPhase += dt * (2 + h.speed * 0.9);
 
     // --- jump progress ---

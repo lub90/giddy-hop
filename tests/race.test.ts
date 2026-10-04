@@ -36,6 +36,24 @@ describe('Race – speed', () => {
     expect(race.horses[0].s).toBeGreaterThan(3);
   });
 
+  it('is equally fast anywhere on the sand, not only on the center line', () => {
+    const race = new Race(new Track(straight(500)), 3, cfg());
+    [-3.2, 0, 3.2].forEach((l, i) => (race.horses[i].lateral = l));
+    ride(race, 4, () => input({ drive: 1 }));
+    const speeds = race.horses.map((h) => h.speed);
+    expect(speeds[0]).toBeCloseTo(CONFIG.horse.maxSpeed, 1);
+    expect(speeds[1]).toBeCloseTo(speeds[0], 3);
+    expect(speeds[2]).toBeCloseTo(speeds[0], 3);
+  });
+
+  it('is clearly slower when scraping along the rails', () => {
+    const race = new Race(new Track(straight(500)), 2, cfg());
+    race.horses[1].lateral = 4;
+    ride(race, 4, (p) => input({ drive: 1, steer: p === 1 ? 1 : 0 }));
+    expect(race.horses[1].touchingRail).toBe(true);
+    expect(race.horses[1].speed).toBeLessThan(race.horses[0].speed * 0.4);
+  });
+
   it('is slower on the grass shoulder than on the sand', () => {
     const race = new Race(new Track(straight(500)), 2, cfg());
     race.horses[1].lateral = 4.2;
@@ -77,6 +95,20 @@ describe('Race – curves (semi-guided steering)', () => {
       return input({ drive: 1, steer: h.lateral < 0 ? 1 : 0.3 });
     });
     expect(offTrackFrames).toBe(0);
+  });
+
+  it('riding the inside line of a curve is a shortcut, the outside line a detour', () => {
+    const race = new Race(new Track(curve(180)), 3, cfg());
+    // Right-hand curve: inside = right (+), outside = left (−). Hold the line against the drift.
+    const lines = [3, 0, -3];
+    race.horses.forEach((h, i) => (h.lateral = lines[i]));
+    ride(race, 6, (p, r) => {
+      const h = r.horses[p];
+      return input({ drive: 1, steer: Math.max(-1, Math.min(1, (lines[p] - h.lateral) * 2 + 0.6)) });
+    });
+    const [inside, center, outside] = race.horses.map((h) => h.s);
+    expect(inside).toBeGreaterThan(center + 2);
+    expect(center).toBeGreaterThan(outside + 2);
   });
 
   it('cannot leave the track through the rails', () => {
@@ -125,6 +157,18 @@ describe('Race – jumping with jump zone', () => {
     expect(race.horses[0].faults).toBe(1);
     expect(speedAfter).toBeLessThan(CONFIG.horse.maxSpeed * 0.5);
     expect(race.drainEvents().map((e) => e.type)).toContain('fence-fault');
+  });
+
+  it('allows jumping anywhere, also without an obstacle', () => {
+    const race = new Race(new Track(straight(200)), 1, cfg());
+    let maxHeight = 0;
+    ride(race, 3, (p, r) => {
+      maxHeight = Math.max(maxHeight, r.horses[p].height);
+      return input({ drive: 1, jump: r.time > 1 && r.time < 1.02 });
+    });
+    expect(maxHeight).toBeGreaterThan(0.6);
+    expect(race.horses[0].airborne).toBe(false);
+    expect(race.horses[0].faults).toBe(0);
   });
 
   it('a jump far too early (outside the zone) does not help', () => {

@@ -17,6 +17,8 @@ export class Horse {
   /** Height above ground while jumping (m). */
   height = 0;
   air: Airborne | null = null;
+  /** Pressed against the rails (slows the horse down). */
+  touchingRail = false;
   /** Remaining stumble time after hitting an obstacle (s). */
   stumble = 0;
   /** Running gait phase (radians) for the animation. */
