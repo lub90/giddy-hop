@@ -1,0 +1,8 @@
+# Short sprint used by the automated end-to-end tests (?course=test-sprint).
+# Hidden from the course dropdown.
+name:
+  de: Test-Sprint
+  en: Test sprint
+hidden: true
+segments:
+  - straight: 45

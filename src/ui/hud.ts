@@ -161,6 +161,8 @@ class PlayerHud {
     else if (s.jumpZone) big = t('hud.jump');
     setText(this.big, big);
     toggle(this.big, 'jump', s.jumpZone && !s.finished);
+    // "Finish!" fades out after a moment so the celebration stays visible.
+    toggle(this.big, 'finish', s.finished);
 
     const hint = hintFor(s);
     setText(this.hint, hint.text);

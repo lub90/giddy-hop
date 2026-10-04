@@ -87,6 +87,15 @@ export class GameFlow {
     return Math.max(1, Math.ceil(this.cfg.race.countdownSeconds - this.phaseTime));
   }
 
+  /**
+   * Time between the end of the race and the results: at least one full
+   * finish celebration of the last horse (the others had theirs already).
+   */
+  get resultsDelay(): number {
+    const r = this.cfg.race;
+    return Math.max(r.resultsDelaySeconds, r.celebrationDelaySeconds + r.celebrationCycleSeconds);
+  }
+
   /** True during the first moment of the race, while "Los!" is shown. */
   get showGo(): boolean {
     return this.phase === 'race' && this.phaseTime < this.cfg.race.goSeconds;
@@ -102,7 +111,7 @@ export class GameFlow {
       this.race.update(dt, inputs);
       if (this.race.isOver) {
         this.overFor += dt;
-        if (this.overFor >= this.cfg.race.resultsDelaySeconds) this.enter('results');
+        if (this.overFor >= this.resultsDelay) this.enter('results');
       }
     }
   }

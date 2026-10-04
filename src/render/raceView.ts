@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import type { Race } from '../game/race';
 import { RiderCamera } from './cameras';
+import { celebrationPose, type CelebrationTiming } from './celebration';
 import { HorseModel } from './horseModel';
 import { LAYER_OVERVIEW, playerLayer, setLayer } from './layers';
 import { PlayerObstacles } from './obstacleViews';
@@ -19,15 +20,26 @@ export class RaceView {
   private readonly obstacles: PlayerObstacles[];
   private readonly markers: THREE.Mesh[];
   private readonly root = new THREE.Group();
+  /** Wall-clock time when each horse was first seen finished. */
+  private readonly finishedAt: (number | null)[];
+  /** Number of rearing cycles started per horse (for the whinny sound). */
+  private readonly rearCount: number[];
 
+  /**
+   * @param onRear called whenever a horse starts rearing up in its finish celebration.
+   */
   constructor(
     private readonly scene: THREE.Scene,
     private readonly race: Race,
     colors: readonly string[],
     fov: number,
     far: number,
+    private readonly timing: CelebrationTiming,
+    private readonly onRear?: (player: number) => void,
   ) {
     const n = race.horses.length;
+    this.finishedAt = race.horses.map(() => null);
+    this.rearCount = race.horses.map(() => 0);
     this.models = race.horses.map((_, i) => {
       const c = COATS[i % COATS.length];
       const m = new HorseModel(c.coat, c.mane, colors[i]);
@@ -55,8 +67,20 @@ export class RaceView {
     const { race } = this;
     race.horses.forEach((horse, i) => {
       const model = this.models[i];
-      model.sync(horse, race.track);
-      this.cameras[i].sync(horse, model, race.track, time);
+      // Finish celebration runs on wall-clock time, so it continues after the race is over.
+      if (horse.finished && this.finishedAt[i] === null) this.finishedAt[i] = time;
+      const finishedAt = this.finishedAt[i];
+      const celebrating = finishedAt === null ? null : time - finishedAt;
+      const pose = celebrating === null ? null : celebrationPose(celebrating, this.timing);
+      if (celebrating !== null) {
+        const cycle = Math.floor((celebrating - this.timing.delay) / this.timing.cycle);
+        if (celebrating >= this.timing.delay && cycle > this.rearCount[i] - 1) {
+          this.rearCount[i] = cycle + 1;
+          this.onRear?.(i);
+        }
+      }
+      model.sync(horse, race.track, pose);
+      this.cameras[i].sync(horse, model, race.track, time, celebrating);
       this.obstacles[i].update(race.time, time);
       this.markers[i].position.set(model.root.position.x, 14 + Math.sin(time * 3 + i) * 1.5, model.root.position.z);
     });

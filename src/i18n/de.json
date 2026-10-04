@@ -2,6 +2,10 @@
   "title": "Giddy Hop!",
   "subtitle": "Auf die Pferde, fertig, los!",
   "horses": ["Blitz", "Sternchen", "Fridolin", "Luna"],
+  "gate": {
+    "start": "START",
+    "finish": "ZIEL"
+  },
   "startup": {
     "camera": "Kamera wird gestartet …",
     "model": "KI-Modell wird geladen …",
@@ -46,6 +50,11 @@
   },
   "results": {
     "title": "🏆 Siegerehrung",
+    "place": "Platz",
+    "horse": "Pferd",
+    "time": "Zeit",
+    "faults": "Abwürfe",
+    "carrots": "Karotten",
     "ribbon": "Jedes Pferd bekommt eine Schleife – toll geritten! 🎀",
     "keys": "<b>Leertaste</b> = Nochmal reiten · <b>Esc</b> = Neue Anmeldung"
   },

@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import type { Horse } from '../game/horse';
 import type { Track } from '../game/track';
+import { orbitProgress } from './celebration';
 import { HorseModel } from './horseModel';
 import { LAYER_OVERVIEW, playerLayer } from './layers';
 
@@ -13,6 +14,11 @@ export class RiderCamera {
 
   /** Field of view grows by this factor during the carrot turbo (speed feeling). */
   static readonly TURBO_FOV = 1.15;
+  /** Finish celebration: distance and height of the camera in front of the horse (m). */
+  static readonly ORBIT_RADIUS = 7;
+  static readonly ORBIT_HEIGHT = 2.6;
+
+  private readonly focus = new THREE.Vector3();
 
   constructor(
     index: number,
@@ -23,7 +29,11 @@ export class RiderCamera {
     this.camera.layers.enable(playerLayer(index));
   }
 
-  sync(horse: Horse, model: HorseModel, track: Track, time: number): void {
+  /**
+   * @param celebrating seconds since this horse crossed the finish line, or null while racing.
+   *   Then the camera orbits 180° around the horse and looks back along the track.
+   */
+  sync(horse: Horse, model: HorseModel, track: Track, time: number, celebrating: number | null = null): void {
     const dt = this.lastTime === null ? 0 : Math.min(0.1, time - this.lastTime);
     this.lastTime = time;
     const fov = this.baseFov * (horse.boost > 0 ? RiderCamera.TURBO_FOV : 1);
@@ -40,10 +50,32 @@ export class RiderCamera {
     // Look ahead along the track so curves are visible early.
     const ahead = track.toWorld(horse.s + 12, horse.lateral * 0.7);
     this.target.set(ahead.x, 1.9 + horse.height * 0.6, ahead.z);
+
+    if (celebrating !== null) this.orbit(model, celebrating);
     this.camera.lookAt(this.target);
 
     // Shake when the horse is stopped by an obstacle, fading out.
     if (horse.stumble > 0) this.camera.rotation.z += Math.sin(time * 40) * 0.04 * Math.min(1, horse.stumble);
+  }
+
+  /**
+   * Finish celebration: starting at the rider's eye, the camera swings around
+   * the horse (radius grows) until it stands in front of it, looking back at
+   * the horse and the track behind it – where the others are still coming.
+   */
+  private orbit(model: HorseModel, elapsed: number): void {
+    const k = orbitProgress(elapsed);
+    const angle = k * Math.PI;
+    const start = HorseModel.EYE;
+    const r = start.z + (RiderCamera.ORBIT_RADIUS - start.z) * k;
+    const h = start.y + (RiderCamera.ORBIT_HEIGHT - start.y) * k;
+    // Horse space: +z is behind the horse, -z in front of it.
+    this.eye.set(Math.sin(angle) * r, h, Math.cos(angle) * r).applyMatrix4(model.root.matrixWorld);
+    this.camera.position.copy(this.eye);
+    // Turn the view from "ahead along the track" to "at the horse".
+    const w = Math.min(1, k * 1.6);
+    this.focus.set(0, 1.7, 0).applyMatrix4(model.root.matrixWorld);
+    this.target.lerp(this.focus, w);
   }
 }
 

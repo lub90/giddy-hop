@@ -217,25 +217,96 @@ h2 {
   text-shadow: 0 6px 0 rgba(0, 0, 0, 0.45);
 }
 
-.results {
+/* ---------- Award ceremony ---------- */
+
+/* See-through, so the celebrating horses stay visible behind. */
+.overlay.results-screen {
+  background: linear-gradient(rgba(10, 8, 6, 0.15), rgba(10, 8, 6, 0.55) 45%, rgba(10, 8, 6, 0.75));
+  justify-content: flex-start;
+  padding-top: 3vh;
+}
+
+.podium {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 10px;
+  min-height: 34vh;
+}
+.podium-place {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  min-width: min(90vw, 720px);
-}
-.result {
-  display: grid;
-  grid-template-columns: 3rem 1fr auto auto auto;
-  gap: 18px;
   align-items: center;
-  padding: 10px 20px;
+  gap: 10px;
+  width: min(20vw, 220px);
+  animation: podium-in 0.6s ease-out both;
+}
+.podium-place.rank-1 { animation-delay: 0.9s; }
+.podium-place.rank-2 { animation-delay: 0.5s; }
+.podium-place.rank-3 { animation-delay: 0.2s; }
+.podium-name {
+  padding: 10px 16px;
   border-radius: 14px;
-  font-size: 1.4rem;
-  background: color-mix(in srgb, var(--player) 28%, #2a241e);
-  border-left: 8px solid var(--player);
+  font-size: clamp(1rem, 1.9vw, 1.6rem);
+  font-weight: bold;
+  white-space: nowrap;
+  color: #fff;
+  background: color-mix(in srgb, var(--player) 70%, #1c160f);
+  border: 3px solid var(--player);
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.35), 0 0 18px color-mix(in srgb, var(--player) 60%, transparent);
+  text-shadow: 0 2px 2px rgba(0, 0, 0, 0.5);
+}
+.podium-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  width: 100%;
+  padding-top: 8px;
+  border-radius: 10px 10px 0 0;
+  background: linear-gradient(#f4ead8, #cdbb9c);
+  box-shadow: inset 0 -6px 0 rgba(0, 0, 0, 0.15);
+  color: #4a3a22;
+}
+.rank-1 .podium-step { height: 20vh; background: linear-gradient(#ffe37a, #e8b023); }
+.rank-2 .podium-step { height: 14vh; background: linear-gradient(#f3f5f8, #b7bec8); }
+.rank-3 .podium-step { height: 10vh; background: linear-gradient(#f0b27a, #b86b32); }
+.rank-4 .podium-step { height: 6vh; }
+.rank-1 .podium-name { font-size: clamp(1.2rem, 2.4vw, 2rem); }
+.podium-rank {
+  font-size: clamp(1.6rem, 3vw, 2.6rem);
+  font-weight: 900;
+  line-height: 1;
 }
 .rosette {
-  font-size: 2.2rem;
+  font-size: clamp(1.4rem, 2.4vw, 2.2rem);
+}
+@keyframes podium-in {
+  from { opacity: 0; transform: translateY(40px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.results-table {
+  border-collapse: separate;
+  border-spacing: 0 6px;
+  font-size: clamp(1rem, 1.6vw, 1.35rem);
+}
+.results-table th {
+  padding: 0 16px;
+  font-size: 0.85em;
+  font-weight: normal;
+  opacity: 0.75;
+}
+.results-table td {
+  padding: 6px 16px;
+  background: color-mix(in srgb, var(--player) 25%, rgba(30, 24, 18, 0.85));
+}
+.results-table td:first-child {
+  border-radius: 10px 0 0 10px;
+  border-left: 6px solid var(--player);
+}
+.results-table td:last-child {
+  border-radius: 0 10px 10px 0;
 }
 .result-name {
   text-align: left;
@@ -492,4 +563,12 @@ h2 {
   height: 1.3em;
   accent-color: var(--accent);
   cursor: pointer;
+}
+
+.hud-big.finish {
+  animation: finish-fade 2.5s ease-in forwards;
+}
+@keyframes finish-fade {
+  0%, 60% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.3); }
 }

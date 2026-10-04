@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { Sounds } from './audio/sounds';
 import { CONFIG } from './config';
 import { loadSetting, saveSetting } from './core/persist';
 import { currentLanguage, horseName, horseNames, LANGUAGE_SETTING_KEY, matchLanguage, setLanguage, t } from './i18n';
@@ -35,11 +36,21 @@ const now = () => performance.now() / 1000;
 
 const COURSE_SETTING_KEY = 'giddyhop.course';
 
-/** The remembered course, or the first one. */
+/** Voice pitch per player number, so every horse sounds a bit different. */
+const HORSE_VOICES = [1, 0.85, 1.15, 0.95];
+
+/** ?course=<id> in the URL, else the remembered course, else the first visible one. */
 function initialCourse(): CourseInfo {
   if (COURSES.length === 0) throw new Error('No valid course found in courses/*.yaml');
+  const fromUrl = new URLSearchParams(location.search).get('course');
   const saved = loadSetting(COURSE_SETTING_KEY);
-  return COURSES.find((c) => c.id === saved) ?? COURSES[0];
+  const visible = COURSES.filter((c) => !c.hidden);
+  return (
+    COURSES.find((c) => c.id === fromUrl) ??
+    visible.find((c) => c.id === saved) ??
+    visible[0] ??
+    COURSES[0]
+  );
 }
 
 /** Start-screen toggles (cones, carrots) and their localStorage keys. */
@@ -86,6 +97,7 @@ export class App {
   private readonly hud: Hud;
   private readonly screens: Screens;
   private readonly debug: DebugPanel;
+  private readonly sounds = new Sounds(() => CONFIG.audio.volume);
 
   private raceView: RaceView | null = null;
   private scenery: THREE.Group | null = null;
@@ -144,6 +156,8 @@ export class App {
     if (!lang || lang === currentLanguage()) return;
     setLanguage(lang);
     saveSetting(LANGUAGE_SETTING_KEY, lang);
+    // Start/finish banners are part of the scenery.
+    this.buildScenery();
     if (this.flow.phase === 'register') this.showRegistration();
   }
 
@@ -174,6 +188,8 @@ export class App {
   async start(): Promise<void> {
     window.addEventListener('resize', () => this.renderer.resize());
     window.addEventListener('keydown', (e) => this.onKey(e));
+    // Browsers allow audio only after a user interaction.
+    for (const type of ['keydown', 'pointerdown'] as const) window.addEventListener(type, () => this.sounds.unlock());
     // Buttons inside the overlays (re-rendered often, so use event delegation).
     this.el.overlay.addEventListener('click', (e) => {
       const button = (e.target as HTMLElement).closest<HTMLElement>('[data-action="fullscreen"]');
@@ -273,7 +289,15 @@ export class App {
         this.disposeRace();
         for (const s of this.tracker.slots) s.gestures.reset();
         const race = this.flow.race!;
-        this.raceView = new RaceView(this.scene, race, this.playerColors(), CONFIG.render.fov, CONFIG.render.viewDistance);
+        this.raceView = new RaceView(
+          this.scene,
+          race,
+          this.playerColors(),
+          CONFIG.render.fov,
+          CONFIG.render.viewDistance,
+          { delay: CONFIG.race.celebrationDelaySeconds, cycle: CONFIG.race.celebrationCycleSeconds },
+          (player) => this.sounds.whinny(HORSE_VOICES[this.tracker.slots[player]?.number ?? 0]),
+        );
         this.hud.setup(this.playerNames(), this.playerColors());
         this.screens.countdown();
         break;
@@ -282,6 +306,8 @@ export class App {
         this.screens.go();
         break;
       case 'results':
+        // The award ceremony replaces the race HUD; the celebrating horses stay visible behind it.
+        this.hud.clear();
         this.screens.results(this.flow.race!.results(), this.playerNames(), this.playerColors());
         break;
       case 'startup':

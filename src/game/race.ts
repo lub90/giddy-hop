@@ -80,9 +80,11 @@ export class Race {
   }
 
   update(dt: number, inputs: readonly PlayerInput[]): void {
-    if (this.isOver) return;
-    this.time += dt;
-    this.horses.forEach((horse, i) => this.updateHorse(i, horse, inputs[i] ?? NEUTRAL_INPUT, dt));
+    // After the race the horses keep moving (they gallop out and stop), but the
+    // race clock, obstacles and the finish line no longer count.
+    const over = this.isOver;
+    if (!over) this.time += dt;
+    this.horses.forEach((horse, i) => this.updateHorse(i, horse, over ? NEUTRAL_INPUT : (inputs[i] ?? NEUTRAL_INPUT), dt, over));
   }
 
   /** Returns and clears the events since the last call. */
@@ -161,12 +163,12 @@ export class Race {
     return rows;
   }
 
-  private updateHorse(i: number, h: Horse, input: PlayerInput, dt: number): void {
+  private updateHorse(i: number, h: Horse, input: PlayerInput, dt: number, over = false): void {
     const { horse: hc, jumpAssist: ja } = this.cfg;
     const sample = this.track.sample(h.s);
 
     // --- forward speed ---
-    let target = h.finished ? 0 : Math.max(hc.minSpeed, clamp(input.drive, 0, 1) * hc.maxSpeed);
+    let target = h.finished || over ? 0 : Math.max(hc.minSpeed, clamp(input.drive, 0, 1) * hc.maxSpeed);
     let accel = hc.accel;
     // Carrot turbo: faster than usual, even at full speed.
     if (h.boost > 0) {
@@ -182,7 +184,9 @@ export class Race {
       target = 0;
       h.stumble = Math.max(0, h.stumble - dt);
     }
-    h.speed = approach(h.speed, target, (target > h.speed ? accel : hc.decel * (h.stumble > 0 ? 4 : 1)) * dt);
+    // Brake hard after a fault, and after the finish (the horse stops in the run-out to celebrate).
+    const decel = hc.decel * (h.stumble > 0 ? 4 : h.finished ? 2.5 : 1);
+    h.speed = approach(h.speed, target, (target > h.speed ? accel : decel) * dt);
     if (h.air?.kind === 'assisted') h.speed = Math.max(h.speed, ja.minAirSpeed);
 
     // --- sideways: steering against the outward drift in curves ---
@@ -198,7 +202,7 @@ export class Race {
     }
 
     // --- jump start ---
-    if (input.jump && !h.air && !h.finished) this.startJump(i, h);
+    if (input.jump && !h.air && !h.finished && !over) this.startJump(i, h);
 
     // --- move forward ---
     // `speed` is the real ground speed. Progress along the center line depends on
@@ -218,6 +222,7 @@ export class Race {
       if (h.height <= 0) this.land(h);
     }
 
+    if (over) return;
     this.checkObstacles(i, h);
 
     if (!h.finished && h.s >= this.track.length) {

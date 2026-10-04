@@ -160,3 +160,11 @@ segments:
     expect(new Track(course.def).obstacles).toHaveLength(5);
   });
 });
+
+describe('Course format – hidden courses', () => {
+  it('reads the hidden flag (default: visible)', () => {
+    expect(parseCourse('a', 'name: A\nsegments: [{ straight: 10 }]').hidden).toBe(false);
+    expect(parseCourse('b', 'name: B\nhidden: true\nsegments: [{ straight: 10 }]').hidden).toBe(true);
+    expect(() => parseCourse('c', 'name: C\nhidden: yes please\nsegments: [{ straight: 10 }]')).toThrow(/hidden: expected true or false/);
+  });
+});

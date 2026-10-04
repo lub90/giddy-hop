@@ -1,10 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { COURSES } from '../src/game/courses';
-import { Track, rightOf, segmentLength, type CourseDef } from '../src/game/track';
+import { isJump, Track, rightOf, segmentLength, type CourseDef } from '../src/game/track';
 
 describe('Courses – every file in courses/ is a valid, rideable course', () => {
-  it('finds at least two courses', () => {
-    expect(COURSES.length).toBeGreaterThanOrEqual(2);
+  it('finds at least two courses for the menu', () => {
+    expect(COURSES.filter((c) => !c.hidden).length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('the e2e test sprint is hidden from the menu', () => {
+    expect(COURSES.find((c) => c.id === 'test-sprint')?.hidden).toBe(true);
   });
 
   for (const course of COURSES) {
@@ -17,12 +21,17 @@ describe('Courses – every file in courses/ is a valid, rideable course', () =>
         expect(course.name.en).toBeTruthy();
       });
 
-      it('has the expected length and at least one jump', () => {
+      it('has the expected length', () => {
         const sum = def.segments.reduce((a, s) => a + segmentLength(s), 0);
         expect(track.length).toBeCloseTo(sum, 6);
-        expect(track.length).toBeGreaterThan(100);
-        expect(track.obstacles.some((o) => o.type === 'fence')).toBe(true);
       });
+
+      if (!course.hidden) {
+        it('is a real course for the menu: longer than 100 m with at least one jump', () => {
+          expect(track.length).toBeGreaterThan(100);
+          expect(track.obstacles.some((o) => isJump(o.type))).toBe(true);
+        });
+      }
 
       it('places obstacles on the track, sorted by distance, with unique ids', () => {
         for (let i = 0; i < track.obstacles.length; i++) {
@@ -98,8 +107,19 @@ describe('Track – geometry', () => {
     expect(r.x).toBe(1);
   });
 
-  it('clamps samples outside the track', () => {
+  it('clamps samples before the start and after the run-out', () => {
     expect(t.sample(-5)).toEqual(t.sample(0));
-    expect(t.sample(1e6)).toEqual(t.sample(t.length));
+    expect(t.sample(1e6)).toEqual(t.sample(t.totalLength));
+  });
+
+  it('has a straight run-out behind the finish line (finish distance unchanged)', () => {
+    expect(t.length).toBeCloseTo(10 + (Math.PI * 10) / 2, 6);
+    expect(t.totalLength).toBeCloseTo(t.length + Track.RUN_OUT, 6);
+    const finish = t.sample(t.length);
+    const end = t.sample(t.totalLength);
+    // Continues straight in the final heading (here: +x after the right turn).
+    expect(end.heading).toBeCloseTo(finish.heading, 6);
+    expect(end.x - finish.x).toBeCloseTo(Track.RUN_OUT, 1);
+    expect(end.curvature).toBe(0);
   });
 });

@@ -25,6 +25,14 @@ On the course:
 The ranking is the plain finish time – carrots and faults already count during
 the race. Cones and carrots can be switched off on the start screen.
 
+At the finish the camera swings 180° around the horse and looks back along the
+track (riders still coming are visible); the horse rears up, paddles with its
+front hooves, shakes its head and whinnies – repeated until everyone has
+finished and the last horse has celebrated once. Then the award ceremony shows
+a podium with the horse names and a table with time, knock-downs and carrots,
+with the celebrating horses in the background. (Sound is synthesized in the
+browser; browsers only allow it after a key press or click.)
+
 ### Lobby (no keyboard needed)
 
 Every gesture counts after holding it for a moment (progress ring in the camera

@@ -77,7 +77,13 @@ export function segmentLength(def: SegmentDef): number {
 export class Track {
   static readonly STEP = 0.5;
 
+  /** Length of the run-out behind the finish line (m). */
+  static readonly RUN_OUT = 30;
+
+  /** Distance from start to the finish line (m). */
   readonly length: number;
+  /** Length including the run-out behind the finish (m). */
+  readonly totalLength: number;
   readonly halfWidth: number;
   readonly shoulder: number;
   readonly samples: TrackSample[] = [];
@@ -122,13 +128,22 @@ export class Track {
     // The first sample carries the curvature of the first segment.
     if (this.samples.length > 1) this.samples[0].curvature = this.samples[1].curvature;
 
+    // Straight run-out behind the finish line, so horses can gallop out naturally.
+    const runSteps = Math.round(Track.RUN_OUT / step);
+    for (let i = 1; i <= runSteps; i++) {
+      x += Math.sin(heading) * step;
+      z -= Math.cos(heading) * step;
+      this.pushSample(s + i * step, x, z, heading, 0);
+    }
+    this.totalLength = s + runSteps * step;
+
     this.obstacles.sort((a, b) => a.s - b.s);
     this.obstacles.forEach((o, i) => (o.id = i));
   }
 
-  /** Interpolated center-line sample at distance `s` (clamped to the track). */
+  /** Interpolated center-line sample at distance `s` (clamped to start and end of the run-out). */
   sample(s: number): TrackSample {
-    const target = Math.min(Math.max(s, 0), this.length);
+    const target = Math.min(Math.max(s, 0), this.totalLength);
     // Binary search for the last sample with sampleS <= target.
     let lo = 0;
     let hi = this.sampleS.length - 1;

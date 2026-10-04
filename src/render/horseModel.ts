@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { clamp } from '../core/math';
 import type { Horse } from '../game/horse';
 import type { Track } from '../game/track';
+import { MAX_PITCH, type CelebrationPose } from './celebration';
 
 interface Leg {
   pivot: THREE.Group;
@@ -19,6 +20,8 @@ export class HorseModel {
   readonly root = new THREE.Group();
   /** Offset of the rider's eyes relative to `root` (local space, before bobbing). */
   static readonly EYE = new THREE.Vector3(0, 2.95, 0.45);
+  /** Pivot for rearing up: the hind hips (local space). */
+  static readonly HIND_HIP = new THREE.Vector3(0, 1.05, 0.75);
 
   /** Current vertical bob of the body (m), used by the rider camera. */
   bob = 0;
@@ -100,7 +103,7 @@ export class HorseModel {
   }
 
   /** Places and animates the model according to the simulation state. */
-  sync(horse: Horse, track: Track): void {
+  sync(horse: Horse, track: Track, celebration: CelebrationPose | null = null): void {
     const w = track.toWorld(horse.s, horse.lateral);
     // Turn the horse a little in the direction it is moving sideways.
     this.yaw = w.heading + Math.atan2(horse.lateralVelocity, Math.max(horse.speed, 2)) * 0.8;
@@ -110,7 +113,7 @@ export class HorseModel {
     const gait = clamp(horse.speed / 6, 0, 1);
     const phase = horse.gaitPhase;
     this.bob = horse.airborne ? 0 : Math.abs(Math.sin(phase)) * 0.12 * gait;
-    this.body.position.y = this.bob;
+    this.body.position.set(0, this.bob, 0);
     this.body.rotation.x = horse.airborne ? 0.15 * Math.sign(horse.height - 0.5) : Math.sin(phase * 2) * 0.03 * gait;
     this.neck.rotation.x = Math.sin(phase * 2 + 0.6) * 0.08 * gait;
 
@@ -119,5 +122,21 @@ export class HorseModel {
         ? leg.front ? 1.1 : -0.7
         : Math.sin(phase + leg.phase) * 0.7 * gait;
     }
+    this.neck.rotation.y = 0;
+    if (celebration && celebration.pitch > 0.001) this.applyRearing(celebration);
+  }
+
+  /** Rearing up: the body rotates around the hind hips, hind legs stay on the ground. */
+  private applyRearing(p: CelebrationPose): void {
+    const { y: py, z: pz } = HorseModel.HIND_HIP;
+    const c = Math.cos(p.pitch);
+    const s = Math.sin(p.pitch);
+    // Rotate around the hip point instead of the body origin.
+    this.body.rotation.x = p.pitch;
+    this.body.position.set(0, py - (py * c - pz * s), pz - (py * s + pz * c));
+    this.bob = 0;
+    for (const leg of this.legs) leg.pivot.rotation.x = leg.front ? p.frontLegs : -p.pitch;
+    this.neck.rotation.y = p.headShake;
+    this.neck.rotation.x = -0.25 * (p.pitch / MAX_PITCH);
   }
 }

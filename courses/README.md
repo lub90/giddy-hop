@@ -15,6 +15,7 @@ description:          # optional, same rules as name
   de: Lange Strecke mit fünf Sprüngen.
   en: Long track with five jumps.
 order: 1              # optional, position in the course list (lower first)
+hidden: false         # optional, true = not shown in the dropdown (select with index.html?course=<id>)
 
 width: 7              # optional, width of the sand track in m (default 7)
 grass: 4              # optional, grass strip between sand and rails on each side in m (default 4)
@@ -51,3 +52,7 @@ of a curve, on the center line of a straight.
 - The course must not cross itself; `npm test` checks this for every course.
 - Keep the total of all curve angles in mind: the start and finish gates are
   placed at the ends of the track, wherever they end up.
+- A straight 30 m run-out is added automatically behind the finish line (for the
+  finish celebration) – leave room for it so it does not cross the course.
+- To try out a course directly, open `index.html?course=<file name without .yaml>`.
+- `test-sprint.yaml` is a hidden 45 m sprint used by the automated browser tests.

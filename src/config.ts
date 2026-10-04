@@ -138,8 +138,17 @@ export const CONFIG = {
     /** How long "Los!" is shown at the start of the race (s). */
     goSeconds: 1,
     timeoutSeconds: 150,
-    /** Wait this long after the race ends before showing the results. */
+    /** Wait at least this long after the race ends before showing the results. */
     resultsDelaySeconds: 2,
+    /** Finish celebration: delay after crossing the line before the horse rears (s). */
+    celebrationDelaySeconds: 1.2,
+    /** Finish celebration: one rearing cycle (s). Results wait until the last horse finished one. */
+    celebrationCycleSeconds: 2.6,
+  },
+
+  audio: {
+    /** Volume of the sound effects (0 = off … 1). */
+    volume: 0.5,
   },
 
   hud: {

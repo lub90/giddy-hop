@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import type { Track } from '../game/track';
+import { t } from '../i18n';
 import { bannerTexture, checkerTexture, chevronTexture } from './textures';
 
 export const SKY_COLOR = '#9fd3f0';
@@ -97,7 +98,7 @@ export function disposeTree(root: THREE.Object3D): void {
 function addRails(scene: THREE.Object3D, track: Track): void {
   const spacing = 3;
   const offset = track.railOffset + 0.2;
-  const count = Math.floor(track.length / spacing) + 1;
+  const count = Math.floor(track.totalLength / spacing) + 1;
   const mat = new THREE.MeshLambertMaterial({ color: '#ffffff' });
   const posts = new THREE.InstancedMesh(new THREE.BoxGeometry(0.12, 1.0, 0.12), mat, count * 2);
   const rails = new THREE.InstancedMesh(new THREE.BoxGeometry(0.06, 0.1, 1), mat, count * 4);
@@ -168,17 +169,21 @@ function addGates(scene: THREE.Object3D, track: Track): void {
       post.position.set(side * (width / 2 + 0.2), 2.4, 0);
       g.add(post);
     }
-    const banner = new THREE.Mesh(
-      new THREE.PlaneGeometry(width, 1.3),
-      new THREE.MeshBasicMaterial({ map: bannerTexture(text, bg, '#ffffff'), side: THREE.DoubleSide }),
-    );
-    banner.position.y = 4.3;
-    g.add(banner);
+    // Two one-sided planes back to back, so the text is readable from both sides
+    // (the finish celebration camera looks at the finish gate from behind).
+    const bannerGeo = new THREE.PlaneGeometry(width, 1.3);
+    const bannerMat = new THREE.MeshBasicMaterial({ map: bannerTexture(text, bg, '#ffffff') });
+    for (const turn of [0, Math.PI]) {
+      const banner = new THREE.Mesh(bannerGeo, bannerMat);
+      banner.position.y = 4.3;
+      banner.rotation.y = turn;
+      g.add(banner);
+    }
     placeAcross(g, track, s);
     scene.add(g);
   };
-  gate(2, 'START', '#2f7d32');
-  gate(track.length, 'ZIEL', '#c0392b');
+  gate(2, t('gate.start'), '#2f7d32');
+  gate(track.length, t('gate.finish'), '#c0392b');
 
   const line = new THREE.Mesh(
     new THREE.PlaneGeometry(track.halfWidth * 2, 1),

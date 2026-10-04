@@ -27,6 +27,15 @@ export function slotStatus(slot: PlayerSlot | undefined): SlotStatus {
   return { text: t('slot.registered'), state: 'registered' };
 }
 
+/**
+ * Order of the places on the podium from left to right: 2nd, 1st, 3rd, then 4th
+ * (as on a real winners' podium). Places that do not exist are left out.
+ */
+export function podiumOrder<T extends { rank: number }>(results: readonly T[]): T[] {
+  const byRank = new Map(results.map((r) => [r.rank, r]));
+  return [2, 1, 3, 4].map((rank) => byRank.get(rank)).filter((r): r is T => r !== undefined);
+}
+
 /** Description and key facts of a course in the current language. */
 export function courseInfoText(course: CourseInfo): string {
   const s = courseStats(course.def);
@@ -86,7 +95,10 @@ export class Screens {
       `<label class="toggle"><input type="checkbox" data-action="${key}"${options[key] ? ' checked' : ''} tabindex="-1"> ${t(`register.${key}`)}</label>`;
     const option = (value: string, label: string, isSelected: boolean) =>
       `<option value="${escapeHtml(value)}"${isSelected ? ' selected' : ''}>${escapeHtml(label)}</option>`;
-    const courseOptions = courses.map((c) => option(c.id, localized(c.name), c.id === selected.id)).join('');
+    const courseOptions = courses
+      .filter((c) => !c.hidden || c.id === selected.id)
+      .map((c) => option(c.id, localized(c.name), c.id === selected.id))
+      .join('');
     const lang = currentLanguage();
     const languageOptions = LANGUAGES.map((l) => option(l, LANGUAGE_NAMES[l], l === lang)).join('');
     this.show(
@@ -177,23 +189,42 @@ export class Screens {
     this.show('go', `<div class="countdown go">${t('countdown.go')}</div>`, 'overlay translucent');
   }
 
+  /**
+   * Award ceremony: podium with the horse names on top, the table with time,
+   * knock-downs and carrots below. The background stays see-through so the
+   * celebrating horses remain visible.
+   */
   results(results: readonly RaceResult[], names: readonly string[], colors: readonly string[]): void {
+    const rosette = (rank: number) => ROSETTES[Math.min(rank - 1, ROSETTES.length - 1)];
+    const podium = podiumOrder(results)
+      .map(
+        (r) => `<div class="podium-place rank-${r.rank}">
+          <div class="podium-name" style="--player:${colors[r.player]}">🐴 ${escapeHtml(names[r.player])}</div>
+          <div class="podium-step"><span class="rosette">${rosette(r.rank)}</span><span class="podium-rank">${r.rank}</span></div>
+        </div>`,
+      )
+      .join('');
     const rows = [...results]
       .sort((a, b) => a.rank - b.rank)
       .map(
-        (r) => `<div class="result" style="--player:${colors[r.player]}">
-          <span class="rosette">${ROSETTES[Math.min(r.rank - 1, ROSETTES.length - 1)]}</span>
-          <span class="result-name">${r.rank}. ${escapeHtml(names[r.player])}</span>
-          <span>⏱ ${formatTime(r.time)}</span><span>🥕 ${r.carrots}</span><span>❌ ${r.faults}</span>
-        </div>`,
+        (r) => `<tr style="--player:${colors[r.player]}">
+          <td>${rosette(r.rank)} ${r.rank}.</td><td class="result-name">${escapeHtml(names[r.player])}</td>
+          <td>⏱ ${formatTime(r.time)}</td><td>❌ ${r.faults}</td><td>🥕 ${r.carrots}</td>
+        </tr>`,
       )
       .join('');
     this.show(
       'results',
       `<h1>${t('results.title')}</h1>
-       <div class="results">${rows}</div>
+       <div class="podium">${podium}</div>
+       <table class="results-table">
+         <thead><tr><th>${t('results.place')}</th><th>${t('results.horse')}</th><th>${t('results.time')}</th>
+         <th>${t('results.faults')}</th><th>${t('results.carrots')}</th></tr></thead>
+         <tbody>${rows}</tbody>
+       </table>
        <p class="hint">${t('results.ribbon')}</p>
        <p class="hint small">${t('results.keys')}</p>`,
+      'overlay results-screen',
     );
   }
 

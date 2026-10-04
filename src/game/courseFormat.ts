@@ -17,6 +17,8 @@ export interface CourseInfo {
   id: string;
   name: Localized;
   description: Localized;
+  /** Not offered in the course dropdown (still selectable with ?course=<id>, e.g. for tests). */
+  hidden: boolean;
   /** Sort order in the course list (lower first). */
   order: number;
   def: CourseDef;
@@ -68,6 +70,11 @@ class Reader {
     return n;
   }
 
+  boolean(v: unknown): boolean {
+    if (typeof v !== 'boolean') this.fail('expected true or false');
+    return v;
+  }
+
   oneOf<T extends string>(v: unknown, options: readonly T[]): T {
     if (typeof v !== 'string' || !options.includes(v as T)) this.fail(`expected one of: ${options.join(', ')}`);
     return v as T;
@@ -92,7 +99,7 @@ class Reader {
   }
 }
 
-const TOP_KEYS = ['name', 'description', 'order', 'width', 'grass', 'segments'] as const;
+const TOP_KEYS = ['name', 'description', 'order', 'hidden', 'width', 'grass', 'segments'] as const;
 const STRAIGHT_KEYS = ['straight', 'carrots', 'obstacles'] as const;
 const CURVE_KEYS = ['curve', 'angle', 'radius', 'carrots', 'obstacles'] as const;
 const OBSTACLE_KEYS = ['at', 'type', 'lateral'] as const;
@@ -161,6 +168,7 @@ export function courseFromData(id: string, data: unknown): CourseInfo {
   const name = r.at('name').localized(top.name);
   const description = top.description === undefined ? { de: '', en: '' } : r.at('description').localized(top.description);
   const order = top.order === undefined ? 100 : r.at('order').number(top.order, -1e6, 1e6);
+  const hidden = top.hidden === undefined ? false : r.at('hidden').boolean(top.hidden);
   const width = top.width === undefined ? 7 : r.at('width').number(top.width, 3, 20);
   const grass = top.grass === undefined ? 4 : r.at('grass').number(top.grass, 0, 15);
   const halfWidth = width / 2;
@@ -170,7 +178,7 @@ export function courseFromData(id: string, data: unknown): CourseInfo {
   if (list.length === 0) r.at('segments').fail('needs at least one segment');
   const segments = list.map((raw, i) => readSegment(r.at('segments').at(i), raw, halfWidth, railOffset));
 
-  return { id, name, description, order, def: { halfWidth, shoulder: grass, segments } };
+  return { id, name, description, order, hidden, def: { halfWidth, shoulder: grass, segments } };
 }
 
 function readSegment(r: Reader, raw: unknown, halfWidth: number, railOffset: number): SegmentDef {

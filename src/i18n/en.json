@@ -2,6 +2,10 @@
   "title": "Giddy Hop!",
   "subtitle": "On your horses, get set, go!",
   "horses": ["Flash", "Twinkle", "Freddie", "Luna"],
+  "gate": {
+    "start": "START",
+    "finish": "FINISH"
+  },
   "startup": {
     "camera": "Starting the camera …",
     "model": "Loading the AI model …",
@@ -46,6 +50,11 @@
   },
   "results": {
     "title": "🏆 Award ceremony",
+    "place": "Place",
+    "horse": "Horse",
+    "time": "Time",
+    "faults": "Knock-downs",
+    "carrots": "Carrots",
     "ribbon": "Every horse gets a ribbon – well ridden! 🎀",
     "keys": "<b>Space</b> = ride again · <b>Esc</b> = new registration"
   },

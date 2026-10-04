@@ -247,3 +247,45 @@ test('cones and carrots can be switched off on the start screen', async ({ page 
   await expect(page.locator('#overlay h1')).toContainText('Laden');
   expect(errors).toEqual([]);
 });
+
+test('finish celebration, then the award ceremony with podium and table', async ({ page }) => {
+  test.setTimeout(120_000);
+  const errors = trackErrors(page);
+  await page.goto('/?course=test-sprint');
+  await expectStartScreen(page, 'Auf die Pferde');
+  // Hidden course: not in the dropdown for normal use, but selected via the URL.
+  await expect(page.locator('select[data-action="course"]')).toHaveValue('test-sprint');
+
+  await page.keyboard.press('t');
+  await page.keyboard.press('t');
+  await page.keyboard.press('Space');
+  await page.keyboard.press('Space');
+  await expect(page.locator('#overlay')).toHaveClass(/hidden/, { timeout: 6_000 });
+  await page.keyboard.down('KeyW');
+  await page.waitForTimeout(2_000);
+  await page.keyboard.down('KeyI');
+
+  // Player 1 finishes first; the results wait for player 2's celebration.
+  await expect(page.locator('.hud-big').first()).toContainText('ZIEL', { timeout: 15_000 });
+  await expect(page.locator('.podium')).toHaveCount(0);
+  await expect(page.locator('.podium')).toBeVisible({ timeout: 20_000 });
+  await page.keyboard.up('KeyW');
+  await page.keyboard.up('KeyI');
+
+  // Podium: 2nd left, 1st middle; the race HUD is gone.
+  const names = await page.locator('.podium-name').allTextContents();
+  expect(names.map((n) => n.replace('🐴', '').trim())).toEqual(['Sternchen', 'Blitz']);
+  await expect(page.locator('.podium-place.rank-1 .podium-rank')).toHaveText('1');
+  await expect(page.locator('.hud-panel')).toHaveCount(0);
+
+  // Table with time, knock-downs and carrots.
+  await expect(page.locator('.results-table thead th')).toHaveText(['Platz', 'Pferd', 'Zeit', 'Abwürfe', 'Karotten']);
+  await expect(page.locator('.results-table tbody tr')).toHaveCount(2);
+  await expect(page.locator('.results-table tbody tr').first()).toContainText('Blitz');
+  await page.screenshot({ path: 'test-results/12-award-ceremony.png' });
+
+  // Space = ride again with the same players.
+  await page.keyboard.press('Space');
+  await expect(page.locator('.countdown')).toBeVisible();
+  expect(errors).toEqual([]);
+});
