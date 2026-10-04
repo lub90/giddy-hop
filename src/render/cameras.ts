@@ -9,13 +9,29 @@ export class RiderCamera {
   readonly camera: THREE.PerspectiveCamera;
   private readonly eye = new THREE.Vector3();
   private readonly target = new THREE.Vector3();
+  private lastTime: number | null = null;
 
-  constructor(index: number, fov: number, far: number) {
-    this.camera = new THREE.PerspectiveCamera(fov, 1, 0.1, far);
+  /** Field of view grows by this factor during the carrot turbo (speed feeling). */
+  static readonly TURBO_FOV = 1.15;
+
+  constructor(
+    index: number,
+    private readonly baseFov: number,
+    far: number,
+  ) {
+    this.camera = new THREE.PerspectiveCamera(baseFov, 1, 0.1, far);
     this.camera.layers.enable(playerLayer(index));
   }
 
   sync(horse: Horse, model: HorseModel, track: Track, time: number): void {
+    const dt = this.lastTime === null ? 0 : Math.min(0.1, time - this.lastTime);
+    this.lastTime = time;
+    const fov = this.baseFov * (horse.boost > 0 ? RiderCamera.TURBO_FOV : 1);
+    if (Math.abs(this.camera.fov - fov) > 0.01) {
+      this.camera.fov += (fov - this.camera.fov) * (1 - Math.exp(-6 * dt));
+      this.camera.updateProjectionMatrix();
+    }
+
     model.root.updateMatrixWorld();
     this.eye.copy(HorseModel.EYE).applyMatrix4(model.root.matrixWorld);
     this.eye.y += model.bob * 0.8;
@@ -26,8 +42,8 @@ export class RiderCamera {
     this.target.set(ahead.x, 1.9 + horse.height * 0.6, ahead.z);
     this.camera.lookAt(this.target);
 
-    // Small shake when stumbling over an obstacle.
-    if (horse.stumble > 0) this.camera.rotation.z += Math.sin(time * 40) * 0.04 * horse.stumble;
+    // Shake when the horse is stopped by an obstacle, fading out.
+    if (horse.stumble > 0) this.camera.rotation.z += Math.sin(time * 40) * 0.04 * Math.min(1, horse.stumble);
   }
 }
 

@@ -388,6 +388,18 @@ h2 {
 .hud-gauge.slowed .gauge-fill {
   background: #ff9a3c;
 }
+/* Carrot turbo: golden, glowing gauge */
+.hud-gauge.boost .gauge-fill {
+  background: linear-gradient(to top, #ffb347, #fff3a0);
+}
+.hud-gauge.boost .gauge-track {
+  border-color: #ffd24a;
+  animation: turbo-glow 0.35s ease-in-out infinite alternate;
+}
+@keyframes turbo-glow {
+  from { box-shadow: 0 0 6px #ffb347; }
+  to { box-shadow: 0 0 22px #ffd24a; }
+}
 .gauge-tick {
   position: absolute;
   left: 0;

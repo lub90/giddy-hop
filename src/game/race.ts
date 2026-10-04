@@ -167,14 +167,22 @@ export class Race {
 
     // --- forward speed ---
     let target = h.finished ? 0 : Math.max(hc.minSpeed, clamp(input.drive, 0, 1) * hc.maxSpeed);
+    let accel = hc.accel;
+    // Carrot turbo: faster than usual, even at full speed.
+    if (h.boost > 0) {
+      target *= hc.boostFactor;
+      accel *= hc.boostAccelFactor;
+      h.boost = Math.max(0, h.boost - dt);
+    }
     // The whole sand track is full speed; only grass and rails slow the horse down.
     if (h.touchingRail) target *= hc.railSpeedFactor;
     else if (this.isOffTrack(i)) target *= hc.offTrackSpeedFactor;
+    // After a fault the horse stands still for a moment.
     if (h.stumble > 0) {
-      target *= hc.stumbleSpeedFactor;
+      target = 0;
       h.stumble = Math.max(0, h.stumble - dt);
     }
-    h.speed = approach(h.speed, target, (target > h.speed ? hc.accel : hc.decel) * dt);
+    h.speed = approach(h.speed, target, (target > h.speed ? accel : hc.decel * (h.stumble > 0 ? 4 : 1)) * dt);
     if (h.air?.kind === 'assisted') h.speed = Math.max(h.speed, ja.minAirSpeed);
 
     // --- sideways: steering against the outward drift in curves ---
@@ -262,6 +270,7 @@ export class Race {
         result = Math.abs(h.lateral - d.lateral) < oc.carrotPickRadius ? 'collected' : 'missed';
         if (result === 'collected') {
           h.carrots++;
+          h.boost = this.cfg.horse.boostSeconds;
           this.emit(i, 'carrot', d.type);
         }
       }
@@ -270,9 +279,11 @@ export class Race {
     }
   }
 
+  /** Fault: the horse is jolted almost to a halt, stands for a moment and loses any turbo. */
   private stumble(h: Horse): void {
-    h.stumble = this.cfg.horse.stumbleSeconds;
-    h.speed *= this.cfg.horse.stumbleSpeedFactor;
+    h.stumble = this.cfg.horse.faultStopSeconds;
+    h.speed *= this.cfg.horse.faultImpactFactor;
+    h.boost = 0;
   }
 
   private emit(player: number, type: RaceEventType, obstacle?: ObstacleType): void {

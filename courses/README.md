@@ -38,7 +38,7 @@ segments:             # the track, from start to finish
 | Field | Meaning |
 | --- | --- |
 | `at` | Distance from the start of the segment (m) |
-| `type` | Jumps: `fence` (striped poles), `wall` (brick wall), `hedge`, `water` (water ditch) – all behave the same, they only look different. Others: `cone` (steer around it), `carrot` (collect it) |
+| `type` | Jumps: `fence` (striped poles), `wall` (brick wall), `hedge`, `water` (water ditch) – all behave the same, they only look different. Others: `cone` (steer around it – hitting it stops the horse), `carrot` (collect it for a short turbo) |
 | `lateral` | Sideways position in m, negative = left, positive = right, 0 = center (default). Ignored for jumps, which span the whole track. |
 
 `carrots: n` on a segment places `n` carrots evenly along it – on the inner side

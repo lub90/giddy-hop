@@ -36,6 +36,7 @@ const base: HudState = {
   time: 0,
   progress: 0,
   speed: 0.5,
+  boosting: false,
   slowdown: null,
   jumpZone: false,
   lostTracking: false,
@@ -90,7 +91,7 @@ describe('HUD toasts', () => {
   it('celebrates clean jumps and reports faults', () => {
     expect(toastFor({ type: 'jump-cleared', obstacle: 'wall' })).toContain('Super Sprung');
     expect(toastFor({ type: 'jump-fault', obstacle: 'fence' })).toContain('Abwurf');
-    expect(toastFor({ type: 'carrot', obstacle: 'carrot' })).toContain('🥕');
+    expect(toastFor({ type: 'carrot', obstacle: 'carrot' })).toContain('Turbo');
   });
 
   it('a fault at the water ditch makes a splash', () => {

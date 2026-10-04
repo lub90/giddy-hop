@@ -60,7 +60,7 @@ describe('Translations', () => {
     expect(currentLanguage()).toBe('en');
     expect(t('hud.finish')).toContain('FINISH');
     expect(toastFor({ type: 'jump-fault', obstacle: 'water' })).toContain('Splash');
-    expect(hintFor({ position: 1, riders: 1, carrots: 0, faults: 0, time: 0, progress: 0, speed: 0, slowdown: 'grass', jumpZone: false, lostTracking: false, steerHint: -1, finished: false }).text).toBe('🌱 Grass! ⬅️ lean left');
+    expect(hintFor({ position: 1, riders: 1, carrots: 0, faults: 0, time: 0, progress: 0, speed: 0, boosting: false, slowdown: 'grass', jumpZone: false, lostTracking: false, steerHint: -1, finished: false }).text).toBe('🌱 Grass! ⬅️ lean left');
     expect(slotStatus(undefined).text).toBe('free');
     setLanguage('de');
     expect(t('hud.finish')).toContain('ZIEL');

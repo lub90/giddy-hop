@@ -92,8 +92,16 @@ export const CONFIG = {
     offTrackSpeedFactor: 0.5,
     /** Speed factor while scraping along the rails. */
     railSpeedFactor: 0.35,
-    stumbleSpeedFactor: 0.35,
-    stumbleSeconds: 0.8,
+    /** Knocking down a jump or hitting a cone: speed right after the impact (factor). */
+    faultImpactFactor: 0.15,
+    /** …then the horse stands still this long before it can run again (s). */
+    faultStopSeconds: 1.2,
+    /** Carrot turbo: speed factor on top of the normal speed – also above the maximum. */
+    boostFactor: 1.3,
+    /** Carrot turbo duration (s). */
+    boostSeconds: 2.5,
+    /** Extra acceleration while the turbo kicks in (factor on accel). */
+    boostAccelFactor: 2.5,
   },
 
   jumpAssist: {
@@ -115,9 +123,12 @@ export const CONFIG = {
     carrotPickRadius: 1.1,
   },
 
+  // Carrots (turbo) and faults (stop) already act during the race, so by default
+  // the ranking is the plain finish time – what the kids saw is what counts.
+  // Set these to add hidden time penalties/bonuses on top.
   scoring: {
-    faultPenaltySeconds: 4,
-    carrotBonusSeconds: 1,
+    faultPenaltySeconds: 0,
+    carrotBonusSeconds: 0,
   },
 
   race: {

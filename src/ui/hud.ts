@@ -14,8 +14,10 @@ export interface HudState {
   time: number;
   /** 0..1 */
   progress: number;
-  /** Current horse speed as a fraction of the maximum speed (0..1). */
+  /** Current horse speed as a fraction of the maximum speed (0..1, above 1 with turbo). */
   speed: number;
+  /** Carrot turbo active. */
+  boosting: boolean;
   /** Why the horse is slowed down by the track (grass / rail), if at all. */
   slowdown: SlowdownReason;
   jumpZone: boolean;
@@ -90,9 +92,10 @@ class SpeedGauge {
     for (const g of GAITS) this.labels.set(g, this.el.querySelector(`[data-gait="${g}"]`)!);
   }
 
-  update(speed: number, gait: Gait, slowed: boolean): void {
+  update(speed: number, gait: Gait, slowed: boolean, boosting: boolean): void {
     this.fill.style.height = `${(Math.min(1, Math.max(0, speed)) * 100).toFixed(1)}%`;
     toggle(this.el, 'slowed', slowed);
+    toggle(this.el, 'boost', boosting);
     for (const [g, label] of this.labels) toggle(label, 'active', g === gait);
   }
 }
@@ -151,7 +154,7 @@ class PlayerHud {
     const sec = Math.floor(s.time % 60).toString().padStart(2, '0');
     setText(this.stats, `🥕 ${s.carrots}   ❌ ${s.faults}   ⏱ ${m}:${sec}`);
     this.bar.style.width = `${(s.progress * 100).toFixed(1)}%`;
-    this.gauge.update(s.speed, gaitOf(s.speed, this.thresholds), s.slowdown !== null);
+    this.gauge.update(s.speed, gaitOf(s.speed, this.thresholds), s.slowdown !== null, s.boosting);
 
     let big = '';
     if (s.finished) big = t('hud.finish');

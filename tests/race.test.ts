@@ -290,3 +290,74 @@ describe('Race – live placement (shown top left)', () => {
     expect([...race.positions()].sort()).toEqual([1, 2, 3, 4]);
   });
 });
+
+describe('Race – carrot turbo and stopping faults', () => {
+  const H = CONFIG.horse;
+
+  /** Rides at full drive and records the speed over time. */
+  function speeds(course: CourseDef, seconds: number, drive = 1) {
+    const race = new Race(new Track(course), 1, cfg());
+    race.horses[0].speed = H.maxSpeed * drive;
+    const samples: { t: number; v: number }[] = [];
+    ride(race, seconds, (p, r) => {
+      samples.push({ t: r.time, v: r.horses[p].speed });
+      return input({ drive });
+    });
+    return { race, samples };
+  }
+
+  it('a carrot makes the horse faster than its maximum for a few seconds', () => {
+    const { race, samples } = speeds(straight(300, [{ at: 20, type: 'carrot', lateral: 0 }]), 8);
+    const top = Math.max(...samples.map((s) => s.v));
+    expect(top).toBeCloseTo(H.maxSpeed * H.boostFactor, 1);
+    expect(race.horses[0].carrots).toBe(1);
+    // …and afterwards back to normal.
+    expect(samples.at(-1)!.v).toBeCloseTo(H.maxSpeed, 1);
+  });
+
+  it('the turbo also works when not at full speed (+X % on the current speed)', () => {
+    const { samples } = speeds(straight(300, [{ at: 12, type: 'carrot', lateral: 0 }]), 4, 0.5);
+    const top = Math.max(...samples.map((s) => s.v));
+    expect(top).toBeCloseTo(H.maxSpeed * 0.5 * H.boostFactor, 1);
+  });
+
+  it('the turbo kicks in quickly', () => {
+    const { samples, race } = speeds(straight(300, [{ at: 20, type: 'carrot', lateral: 0 }]), 5);
+    const collectedAt = samples.find((s) => s.v > H.maxSpeed + 0.01)!.t;
+    const boosted = samples.find((s) => s.v >= H.maxSpeed * H.boostFactor - 0.05)!.t;
+    expect(boosted - collectedAt).toBeLessThan(0.5);
+    expect(race.horses[0].boost).toBe(0);
+  });
+
+  it('knocking down a jump really stops the horse for a moment, then it runs again', () => {
+    const { samples, race } = speeds(straight(300, [{ at: 30, type: 'wall' }]), 10);
+    const hitAt = race.obstacles[0][0].changedAt;
+    const standing = samples.filter((s) => s.t > hitAt + 0.3 && s.t < hitAt + H.faultStopSeconds - 0.05);
+    expect(standing.length).toBeGreaterThan(10);
+    expect(Math.max(...standing.map((s) => s.v))).toBeLessThan(0.3);
+    expect(samples.at(-1)!.v).toBeCloseTo(H.maxSpeed, 1);
+  });
+
+  it('hitting a cone also stops the horse', () => {
+    const { samples, race } = speeds(straight(300, [{ at: 30, type: 'cone', lateral: 0 }]), 6);
+    const hitAt = race.obstacles[0][0].changedAt;
+    const after = samples.find((s) => s.t > hitAt + 0.4)!;
+    expect(after.v).toBeLessThan(0.3);
+  });
+
+  it('a fault ends a running turbo', () => {
+    const { race } = speeds(straight(300, [{ at: 20, type: 'carrot', lateral: 0 }, { at: 25, type: 'fence' }]), 3.5);
+    expect(race.horses[0].faults).toBe(1);
+    expect(race.horses[0].boost).toBe(0);
+  });
+
+  it('by default the ranking is the plain finish time (no hidden bonus or penalty)', () => {
+    const race = new Race(new Track(straight(60)), 2, cfg());
+    ride(race, 30, (p) => input({ drive: [1, 0.8][p] }));
+    race.horses[1].carrots = 10;
+    race.horses[0].faults = 3;
+    const res = race.results();
+    expect(res[0].score).toBe(res[0].time);
+    expect(res[0].rank).toBe(1);
+  });
+});

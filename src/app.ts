@@ -359,6 +359,7 @@ export class App {
       steerHint: h.lateral > edge ? -1 : h.lateral < -edge ? 1 : 0,
       finished: h.finished,
       speed: h.speed / CONFIG.horse.maxSpeed,
+      boosting: h.boost > 0,
       slowdown: race.slowdownReason(i),
     };
   }

@@ -19,8 +19,10 @@ export class Horse {
   air: Airborne | null = null;
   /** Pressed against the rails (slows the horse down). */
   touchingRail = false;
-  /** Remaining stumble time after hitting an obstacle (s). */
+  /** Remaining stand-still time after a fault (s). */
   stumble = 0;
+  /** Remaining carrot turbo time (s). */
+  boost = 0;
   /** Running gait phase (radians) for the animation. */
   gaitPhase = 0;
 

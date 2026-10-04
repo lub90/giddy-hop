@@ -14,6 +14,17 @@ in first-person view on a split screen – controlled only by their bodies:
 
 Children who do not raise an arm are ignored, so spectators may stand in the picture.
 
+On the course:
+
+| | |
+| --- | --- |
+| 🥕 Carrot | Turbo: +30 % speed for 2.5 s – even above the normal top speed |
+| Jump without jumping (fence, wall, hedge, water) / hitting a cone | The horse stops for a moment and has to run up again |
+| Grass strip / rails | Slower until back on the sand |
+
+The ranking is the plain finish time – carrots and faults already count during
+the race. Cones and carrots can be switched off on the start screen.
+
 ### Lobby (no keyboard needed)
 
 Every gesture counts after holding it for a moment (progress ring in the camera
