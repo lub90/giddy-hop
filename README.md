@@ -54,7 +54,7 @@ Typical adjustments:
 - Jumps not detected → lower `jump.upVelocityThreshold` (compare with the `max↑` column).
 - Bouncing gives too little speed → lower `gallop.energyFull`.
 - Horse moves while standing still → raise `gallop.energyMin`.
-- Steering too twitchy / too weak → `steer.gain`, `steer.deadzone`.
+- Steering too twitchy → raise `steer.fullLeanDegrees` / `steer.deadzoneDegrees` (compare with the `lean°` column).
 - Curves too hard → lower `horse.driftFactor`.
 
 ## Architecture

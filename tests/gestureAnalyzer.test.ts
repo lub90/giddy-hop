@@ -23,26 +23,53 @@ const bounce = (amp: number, hz = 2, torso = 120, x = 640) => (t: number): Perso
   hipY: 450 + Math.sin(t * 2 * Math.PI * hz) * amp * torso,
 });
 
+/** A person tilting their upper body sideways by `degrees` (positive = to their right). */
+const tilted = (degrees: number, torso = 120, extra: Partial<PersonSpec> = {}) => (): PersonSpec => ({
+  x: 640,
+  torso,
+  lean: Math.tan((degrees * Math.PI) / 180) * torso,
+  ...extra,
+});
+
 describe('GestureAnalyzer – steering by leaning sideways', () => {
   it('steers right when leaning right', () => {
-    const { g } = run(1, () => ({ x: 640, lean: 30 }));
+    const { g } = run(1, tilted(20));
     expect(g.steer).toBeGreaterThan(0.5);
+    expect(g.leanDegrees).toBeCloseTo(20, 0);
   });
 
   it('steers left when leaning left', () => {
-    const { g } = run(1, () => ({ x: 640, lean: -30 }));
+    const { g } = run(1, tilted(-20));
     expect(g.steer).toBeLessThan(-0.5);
   });
 
-  it('goes straight when standing upright (dead zone absorbs small noise)', () => {
-    const { g } = run(1, (t) => ({ x: 640, lean: Math.sin(t * 13) * 2 }));
-    expect(Math.abs(g.steer)).toBeLessThan(0.05);
+  it('goes straight when standing upright (dead zone absorbs small wobbles)', () => {
+    const { g } = run(1, (t) => tilted(Math.sin(t * 13) * 4)());
+    expect(Math.abs(g.steer)).toBeLessThan(0.02);
   });
 
-  it('is independent of where the child stands in the picture', () => {
-    const left = run(1, () => ({ x: 200, lean: 25 })).g.steer;
-    const right = run(1, () => ({ x: 1100, lean: 25 })).g.steer;
+  it('reaches full lock at the configured angle, not before', () => {
+    expect(run(1, tilted(CONFIG.steer.fullLeanDegrees + 2)).g.steer).toBeGreaterThan(0.95);
+    expect(run(1, tilted(CONFIG.steer.fullLeanDegrees - 8)).g.steer).toBeLessThan(0.8);
+  });
+
+  it('is independent of where the person stands in the picture', () => {
+    const left = run(1, tilted(15, 120, { x: 200 })).g.steer;
+    const right = run(1, tilted(15, 120, { x: 1100 })).g.steer;
     expect(left).toBeCloseTo(right, 5);
+  });
+
+  it('steers the same for a small child far away and an adult close to the camera', () => {
+    const child = run(1, tilted(15, 60)).g.steer;
+    const adult = run(1, tilted(15, 220)).g.steer;
+    expect(child).toBeGreaterThan(0.2);
+    expect(child).toBeCloseTo(adult, 2);
+  });
+
+  it('does not depend on body proportions (narrow vs. broad shoulders)', () => {
+    const narrow = run(1, tilted(15, 120, { shoulderRatio: 0.55 })).g.steer;
+    const broad = run(1, tilted(15, 120, { shoulderRatio: 1.1 })).g.steer;
+    expect(narrow).toBeCloseTo(broad, 2);
   });
 });
 

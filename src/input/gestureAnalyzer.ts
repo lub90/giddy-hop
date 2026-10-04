@@ -19,17 +19,19 @@ const MAX_VELOCITY_GAP = 0.3;
 
 /**
  * Translates a player's body posture into game input:
- *  - Steer:  sideways lean = offset of shoulder center vs. hip center
+ *  - Steer:  sideways tilt angle of the upper body (shoulder center vs. hip center)
  *  - Speed:  "bounce energy" = vertical distance travelled by the torso per second.
  *            Works for rocking back and forth as well as for hopping.
  *  - Jump:   fast upward movement of the torso above a threshold
  *
- * All quantities are measured in torso lengths, so they do not depend on how
- * tall a child is or how far away from the camera they stand.
+ * All quantities are angles or measured in torso lengths, so they do not depend
+ * on how tall a person is (child or adult) or how far from the camera they stand.
  */
 export class GestureAnalyzer {
   steer = 0;
   drive = 0;
+  /** Current sideways tilt of the upper body in degrees (positive = right). */
+  leanDegrees = 0;
   /** Bounce energy in torso lengths per second (for debug display and tuning). */
   energy = 0;
   /** Latest upward velocity in torso lengths per second. */
@@ -67,7 +69,9 @@ export class GestureAnalyzer {
     this.lastSeen = t;
     this.torso = this.torso === null ? m.torsoLength : lerp(this.torso, m.torsoLength, 0.1);
 
-    this.updateSteer((m.shoulderMid.x - m.hipMid.x) / m.shoulderWidth);
+    // Tilt angle of the upper body: horizontal shoulder offset vs. vertical torso extent.
+    const tilt = (Math.atan2(m.shoulderMid.x - m.hipMid.x, m.torsoLength) * 180) / Math.PI;
+    this.updateSteer(tilt);
 
     const y = (m.shoulderMid.y + m.hipMid.y) / 2 / this.torso;
     this.updateJump(y, dt, t);
@@ -100,9 +104,11 @@ export class GestureAnalyzer {
   }
 
   private updateSteer(lean: number): void {
-    const { gain, deadzone, smoothing } = this.cfg.steer;
-    const beyond = Math.max(0, Math.abs(lean) - deadzone);
-    const target = clamp(Math.sign(lean) * beyond * gain, -1, 1);
+    const { deadzoneDegrees, fullLeanDegrees, smoothing } = this.cfg.steer;
+    this.leanDegrees = lean;
+    const range = Math.max(1, fullLeanDegrees - deadzoneDegrees);
+    const beyond = Math.max(0, Math.abs(lean) - deadzoneDegrees);
+    const target = clamp((Math.sign(lean) * beyond) / range, -1, 1);
     this.steer = lerp(this.steer, target, smoothing);
   }
 

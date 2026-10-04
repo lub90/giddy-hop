@@ -36,9 +36,13 @@ export const CONFIG = {
   },
 
   steer: {
-    /** Lean (shoulder vs. hip center, in shoulder widths) → steer value. */
-    gain: 2.5,
-    deadzone: 0.06,
+    // Steering uses the sideways tilt angle of the upper body (shoulder center vs.
+    // hip center). An angle is independent of body size and camera distance, so
+    // kids and adults steer the same way.
+    /** Tilt below this angle (degrees) counts as standing upright. */
+    deadzoneDegrees: 6,
+    /** Tilt at which steering reaches full lock (degrees). */
+    fullLeanDegrees: 25,
     /** Smoothing per pose frame (0 = sluggish, 1 = immediate). */
     smoothing: 0.35,
   },

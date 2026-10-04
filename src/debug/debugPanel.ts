@@ -17,7 +17,7 @@ type Range = [min: number, max: number, step?: number];
 
 /** Tunable parameters shown in the panel, grouped like CONFIG. */
 const TUNABLES: Record<string, Record<string, Range>> = {
-  steer: { gain: [0.5, 6], deadzone: [0, 0.3, 0.01], smoothing: [0.05, 1, 0.05] },
+  steer: { deadzoneDegrees: [0, 20, 0.5], fullLeanDegrees: [5, 45, 0.5], smoothing: [0.05, 1, 0.05] },
   gallop: {
     windowSeconds: [0.3, 2, 0.05],
     energyMin: [0, 1.5, 0.05],
@@ -117,11 +117,11 @@ export class DebugPanel {
     const lines = [
       `Render ${stats.renderFps.toFixed(0)} fps · Pose ${stats.poseFps.toFixed(1)} fps · people ${stats.people}`,
       '',
-      ' #  tracked  steer   drive  energy   up↑    max↑',
+      ' #  tracked  lean°   steer   drive  energy   up↑    max↑',
       ...stats.slots.map((s, i) => {
         const g = s.gestures;
         const seen = s.kind === 'keyboard' ? 'keyboard' : g.tracked ? 'yes    ' : 'NO     ';
-        return ` ${i + 1}  ${seen}  ${f(g.steer)}  ${g.drive.toFixed(2)}  ${f(g.energy)}   ${f(g.upVelocity, 1)}  ${g.peakUpVelocity.toFixed(1)}`;
+        return ` ${i + 1}  ${seen}  ${f(g.leanDegrees, 1).padStart(6)}  ${f(g.steer)}  ${g.drive.toFixed(2)}  ${f(g.energy)}   ${f(g.upVelocity, 1)}  ${g.peakUpVelocity.toFixed(1)}`;
       }),
       '',
       `jump threshold: ${CONFIG.jump.upVelocityThreshold.toFixed(1)} · energy full: ${CONFIG.gallop.energyFull.toFixed(2)}`,

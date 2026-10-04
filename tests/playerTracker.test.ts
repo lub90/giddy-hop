@@ -115,7 +115,7 @@ describe('PlayerTracker – stable identity during the race', () => {
 
   it('feeds each player’s own movements into their gesture analyzer', () => {
     const { tr, t } = registered([300, 980]);
-    feed(tr, 1, () => [{ x: 300, lean: 30, trackId: 1 }, { x: 980, lean: -30, trackId: 2 }], false, t);
+    feed(tr, 1, () => [{ x: 300, lean: 50, trackId: 1 }, { x: 980, lean: -50, trackId: 2 }], false, t);
     expect(tr.slots[0].gestures.steer).toBeGreaterThan(0.5);
     expect(tr.slots[1].gestures.steer).toBeLessThan(-0.5);
   });

@@ -12,6 +12,8 @@ export interface PersonSpec {
   hipY?: number;
   /** Shoulder–hip distance in pixels (≈ how close the child stands). */
   torso?: number;
+  /** Shoulder width relative to the torso length (children ≈ 0.6, adults ≈ 0.8–1). */
+  shoulderRatio?: number;
   /** Sideways shoulder shift relative to the hips in pixels (positive = leaning right). */
   lean?: number;
   /** Extra vertical shoulder offset in pixels (simulates rocking towards the camera). */
@@ -26,7 +28,7 @@ export function makePose(spec: PersonSpec): DetectedPose {
   const hipY = spec.hipY ?? 450;
   const lean = spec.lean ?? 0;
   const shY = hipY - torso + (spec.shoulderDrop ?? 0);
-  const sw = torso * 0.75;
+  const sw = torso * (spec.shoulderRatio ?? 0.75);
   const x = spec.x;
   const wristUpY = shY - torso;
   const kp = (name: string, px: number, py: number) => ({ name, x: px, y: py, score: 0.9 });
