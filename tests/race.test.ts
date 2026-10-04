@@ -483,3 +483,65 @@ describe('Race – double jumps (two obstacles right after each other)', () => {
     expect(race.obstacles[0].map((o) => o.result)).toEqual(['cleared', 'hit']);
   });
 });
+
+describe('Race – speed is kept over a jump (the child stops bouncing to jump)', () => {
+  const fenceAt = 40;
+  const JA = CONFIG.jumpAssist;
+
+  /** Gallops at `drive`, jumps `early` m before the fence, then stops bouncing completely. */
+  function jumpAndStop(type: 'fence' | 'none', drive = 1) {
+    const obstacles = type === 'none' ? [] : [{ at: fenceAt, type: 'fence' as const }];
+    const race = new Race(new Track(straight(200, obstacles)), 1, cfg());
+    race.horses[0].speed = CONFIG.horse.maxSpeed * drive;
+    let jumpedAt = -1;
+    let landedAt = -1;
+    const speeds: { t: number; v: number }[] = [];
+    ride(race, 8, (p, r) => {
+      const h = r.horses[p];
+      const jump = jumpedAt < 0 && fenceAt - h.s <= 6;
+      if (jump) jumpedAt = r.time;
+      if (jumpedAt >= 0 && landedAt < 0 && r.time > jumpedAt + 0.2 && !h.airborne && h.pendingJump === null) landedAt = r.time;
+      speeds.push({ t: r.time, v: h.speed });
+      return input({ drive: jumpedAt >= 0 ? 0 : drive, jump });
+    });
+    return { race, speeds, jumpedAt, landedAt };
+  }
+
+  it('keeps the speed from the jump until landing and a moment after', () => {
+    const { speeds, jumpedAt, landedAt } = jumpAndStop('fence');
+    const during = speeds.filter((s) => s.t >= jumpedAt && s.t <= landedAt + JA.holdAfterLandingSeconds - 0.05);
+    expect(during.length).toBeGreaterThan(20);
+    expect(Math.min(...during.map((s) => s.v))).toBeCloseTo(CONFIG.horse.maxSpeed, 1);
+  });
+
+  it('afterwards the speed depends on bouncing again', () => {
+    const { speeds, landedAt } = jumpAndStop('fence');
+    const later = speeds.filter((s) => s.t > landedAt + JA.holdAfterLandingSeconds + 1.5);
+    expect(Math.max(...later.map((s) => s.v))).toBeLessThan(CONFIG.horse.maxSpeed * 0.7);
+  });
+
+  it('also for a slower horse and for a hop without obstacle', () => {
+    const slow = jumpAndStop('fence', 0.6);
+    const during = slow.speeds.filter((s) => s.t >= slow.jumpedAt && s.t <= slow.landedAt + 0.5);
+    expect(Math.min(...during.map((s) => s.v))).toBeCloseTo(CONFIG.horse.maxSpeed * 0.6, 1);
+
+    const hop = jumpAndStop('none');
+    const afterHop = hop.speeds.filter((s) => s.t >= hop.jumpedAt && s.t <= hop.jumpedAt + 1);
+    expect(Math.min(...afterHop.map((s) => s.v))).toBeCloseTo(CONFIG.horse.maxSpeed, 1);
+  });
+
+  it('a knocked-down obstacle ends the held speed', () => {
+    const race = new Race(new Track(straight(200, [{ at: fenceAt, type: 'wall' }])), 1, cfg());
+    race.horses[0].speed = CONFIG.horse.maxSpeed;
+    // A hop far before the zone, then the wall is hit without a jump.
+    let hopped = false;
+    ride(race, 6, (p, r) => {
+      const h = r.horses[p];
+      const jump = !hopped && fenceAt - h.s <= 15;
+      if (jump) hopped = true;
+      return input({ drive: 1, jump });
+    });
+    expect(race.horses[0].faults).toBe(1);
+    expect(race.horses[0].heldSpeed).toBeNull();
+  });
+});

@@ -25,6 +25,13 @@ export class Horse {
    * and takes off by itself at the right distance in front of it.
    */
   pendingJump: number | null = null;
+  /**
+   * Speed held during a jump (from the jump request through the flight and a
+   * moment after landing), because the child stops bouncing to jump. null = none.
+   */
+  heldSpeed: number | null = null;
+  /** Remaining hold time after landing (s). */
+  holdAfterLanding = 0;
   /** Pressed against the rails (slows the horse down). */
   touchingRail = false;
   /** Remaining stand-still time after a fault (s). */

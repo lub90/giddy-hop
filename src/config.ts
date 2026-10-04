@@ -110,6 +110,11 @@ export const CONFIG = {
      * and the horse takes off by itself at the right spot.
      */
     zoneBefore: 9,
+    /**
+     * The speed at the moment of a jump is held through the flight and this long
+     * after landing – children stop bouncing to jump and need a moment to start again (s).
+     */
+    holdAfterLandingSeconds: 1.2,
     /** Flight time of a jump over an obstacle (s). */
     airTime: 0.8,
     height: 1.6,
@@ -153,7 +158,7 @@ export const CONFIG = {
     /** Volume of the sound effects (0 = off … 1). */
     volume: 0.5,
     /** Hoofbeats relative to the other sounds (0 = off … 1). */
-    hoofVolume: 1.5,
+    hoofVolume: 3,
     /** Whinny and snort of the finish celebration relative to the other sounds. */
     whinnyVolume: 0.5,
   },

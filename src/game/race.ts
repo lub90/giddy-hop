@@ -167,9 +167,24 @@ export class Race {
     const { horse: hc, jumpAssist: ja } = this.cfg;
     const sample = this.track.sample(h.s);
 
+    // --- jump start (before the speed, so the speed at the moment of the jump is held) ---
+    if (input.jump && h.pendingJump === null && !h.finished && !over) {
+      if (!h.air) this.requestJump(i, h);
+      // Double jumps: a jump while still in the air is remembered for the next obstacle.
+      else if (h.air.kind === 'assisted') this.rememberNextJump(i, h, h.air.obstacleId);
+    }
+    if (h.pendingJump !== null && !h.air) this.takeOffIfReady(i, h);
+
     // --- forward speed ---
     let target = h.finished || over ? 0 : Math.max(hc.minSpeed, clamp(input.drive, 0, 1) * hc.maxSpeed);
     let accel = hc.accel;
+    // Jumping: keep the speed even though the child stopped bouncing to jump.
+    if (h.heldSpeed !== null) {
+      const jumping = h.air !== null || h.pendingJump !== null;
+      if (!jumping) h.holdAfterLanding -= dt;
+      if (h.finished || over || (!jumping && h.holdAfterLanding <= 0)) h.heldSpeed = null;
+      else target = Math.max(target, h.heldSpeed);
+    }
     // Carrot turbo: faster than usual, even at full speed.
     if (h.boost > 0) {
       target *= hc.boostFactor;
@@ -201,14 +216,6 @@ export class Race {
       h.lateral = Math.sign(h.lateral) * limit;
       h.lateralVelocity = 0;
     }
-
-    // --- jump start ---
-    if (input.jump && h.pendingJump === null && !h.finished && !over) {
-      if (!h.air) this.requestJump(i, h);
-      // Double jumps: a jump while still in the air is remembered for the next obstacle.
-      else if (h.air.kind === 'assisted') this.rememberNextJump(i, h, h.air.obstacleId);
-    }
-    if (h.pendingJump !== null && !h.air) this.takeOffIfReady(i, h);
 
     // --- move forward ---
     // `speed` is the real ground speed. Progress along the center line depends on
@@ -244,6 +251,7 @@ export class Race {
    * takes off by itself at the right spot; elsewhere it hops right away.
    */
   private requestJump(i: number, h: Horse): void {
+    this.holdSpeed(h);
     const next = this.nextJump(i);
     if (next && next.distance >= 0 && next.distance <= this.cfg.jumpAssist.zoneBefore) {
       h.pendingJump = next.state.def.id;
@@ -265,7 +273,10 @@ export class Race {
     // The zone counts from where the horse will land.
     const remainingFlight = h.air?.kind === 'assisted' ? h.air.speed * (h.air.duration - h.air.elapsed) : 0;
     const distance = next.def.s - h.s;
-    if (distance >= 0 && distance <= this.cfg.jumpAssist.zoneBefore + remainingFlight) h.pendingJump = next.def.id;
+    if (distance >= 0 && distance <= this.cfg.jumpAssist.zoneBefore + remainingFlight) {
+      h.pendingJump = next.def.id;
+      this.holdSpeed(h);
+    }
   }
 
   /** Takes off for a remembered jump once the obstacle is close enough. */
@@ -285,6 +296,12 @@ export class Race {
     h.air = { kind: 'assisted', elapsed: 0, duration: ja.airTime, speed, obstacleId: state.def.id };
     h.pendingJump = null;
     this.emit(i, 'jump');
+  }
+
+  /** Starts (or extends) holding the current speed for a jump. */
+  private holdSpeed(h: Horse): void {
+    h.heldSpeed = Math.max(h.heldSpeed ?? 0, h.speed);
+    h.holdAfterLanding = this.cfg.jumpAssist.holdAfterLandingSeconds;
   }
 
   private land(h: Horse): void {
@@ -332,6 +349,7 @@ export class Race {
     h.stumble = this.cfg.horse.faultStopSeconds;
     h.speed *= this.cfg.horse.faultImpactFactor;
     h.boost = 0;
+    h.heldSpeed = null;
   }
 
   private emit(player: number, type: RaceEventType, obstacle?: ObstacleType): void {
