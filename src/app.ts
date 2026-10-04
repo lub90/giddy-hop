@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { HoofbeatPlayer } from './audio/hoofbeatPlayer';
 import { Sounds } from './audio/sounds';
 import { CONFIG } from './config';
 import { loadSetting, saveSetting } from './core/persist';
@@ -97,7 +98,11 @@ export class App {
   private readonly hud: Hud;
   private readonly screens: Screens;
   private readonly debug: DebugPanel;
-  private readonly sounds = new Sounds(() => CONFIG.audio.volume);
+  private readonly sounds: Sounds = new Sounds(
+    () => CONFIG.audio.volume,
+    () => CONFIG.audio.hoofVolume,
+  );
+  private readonly hoofbeats = new HoofbeatPlayer(this.sounds);
 
   private raceView: RaceView | null = null;
   private scenery: THREE.Group | null = null;
@@ -286,6 +291,7 @@ export class App {
         this.screens.loading();
         break;
       case 'countdown': {
+        this.hoofbeats.reset();
         this.disposeRace();
         for (const s of this.tracker.slots) s.gestures.reset();
         const race = this.flow.race!;
@@ -329,6 +335,9 @@ export class App {
     if (this.raceView && race) {
       this.raceView.update(t);
       const layout = splitLayout(race.horses.length, width, height);
+      // Each horse sounds from the side of the screen where its rider sees it.
+      const pans = layout.players.map((r) => ((r.x + r.w / 2) / width) * 2 - 1);
+      this.hoofbeats.update(race.horses, CONFIG.horse.maxSpeed, pans, race.horses.map((_, i) => race.isOffTrack(i)));
       layout.players.forEach((rect, i) => views.push({ camera: this.raceView!.cameras[i].camera, rect }));
       if (layout.spare) {
         this.overview.topDown();

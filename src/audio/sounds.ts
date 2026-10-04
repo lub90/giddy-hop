@@ -7,8 +7,14 @@
 export class Sounds {
   private ctx: AudioContext | null = null;
 
-  /** @param volume read on every sound, so changes in the debug panel apply immediately. */
-  constructor(private readonly volume: () => number) {}
+  /**
+   * @param volume master volume, @param hoofVolume relative volume of the hoofbeats –
+   *   both read on every sound, so changes in the debug panel apply immediately.
+   */
+  constructor(
+    private readonly volume: () => number,
+    private readonly hoofVolume: () => number = () => 1,
+  ) {}
 
   /** Creates/resumes the audio context; must run inside a user gesture. */
   unlock(): void {
@@ -75,6 +81,65 @@ export class Sounds {
     lfo.stop(t0 + dur + 0.05);
 
     this.snort(ctx, out, t0 + dur + 0.05);
+  }
+
+  /**
+   * One hoof hitting the ground: a short knock (filtered noise) with a dull
+   * thump below. Softer and duller on grass than on sand.
+   * @param intensity 0..1 (speed), @param pan -1 = left … 1 = right
+   */
+  hoof(intensity: number, pan: number, surface: 'sand' | 'grass', accent = false): void {
+    const ctx = this.ctx;
+    const volume = this.volume() * this.hoofVolume();
+    if (!ctx || ctx.state !== 'running' || volume <= 0 || intensity <= 0) return;
+    const t = ctx.currentTime + 0.005;
+    const gain = volume * (0.35 + 0.65 * intensity) * (accent ? 1.2 : 1);
+
+    const out = ctx.createGain();
+    out.gain.value = gain;
+    const panner = ctx.createStereoPanner();
+    panner.pan.value = Math.max(-1, Math.min(1, pan));
+    out.connect(panner).connect(ctx.destination);
+
+    // Knock: very short noise burst through a band-pass.
+    const len = Math.floor(ctx.sampleRate * 0.06);
+    const buffer = this.noiseBuffer(ctx, len);
+    const noise = ctx.createBufferSource();
+    noise.buffer = buffer;
+    noise.playbackRate.value = 0.85 + Math.random() * 0.3;
+    const band = ctx.createBiquadFilter();
+    band.type = 'bandpass';
+    band.frequency.value = surface === 'grass' ? 700 : 1600;
+    band.Q.value = 1.4;
+    const knockEnv = ctx.createGain();
+    knockEnv.gain.setValueAtTime(surface === 'grass' ? 0.5 : 0.9, t);
+    knockEnv.gain.exponentialRampToValueAtTime(0.001, t + 0.06);
+    noise.connect(band).connect(knockEnv).connect(out);
+    noise.start(t);
+
+    // Thump: low sine with a quick pitch drop.
+    const thump = ctx.createOscillator();
+    thump.frequency.setValueAtTime(140, t);
+    thump.frequency.exponentialRampToValueAtTime(60, t + 0.08);
+    const thumpEnv = ctx.createGain();
+    thumpEnv.gain.setValueAtTime(0.8, t);
+    thumpEnv.gain.exponentialRampToValueAtTime(0.001, t + 0.09);
+    thump.connect(thumpEnv).connect(out);
+    thump.start(t);
+    thump.stop(t + 0.1);
+  }
+
+  private noise: AudioBuffer | null = null;
+
+  /** Reused white-noise buffer (creating one per hoofbeat would be wasteful). */
+  private noiseBuffer(ctx: AudioContext, minLength: number): AudioBuffer {
+    if (!this.noise || this.noise.length < minLength) {
+      const len = Math.max(minLength, Math.floor(ctx.sampleRate * 0.3));
+      this.noise = ctx.createBuffer(1, len, ctx.sampleRate);
+      const data = this.noise.getChannelData(0);
+      for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
+    }
+    return this.noise;
   }
 
   /** Short breathy noise burst. */

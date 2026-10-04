@@ -53,7 +53,7 @@ const TUNABLES: Record<string, Record<string, Range>> = {
   detection: { minKeypointScore: [0.1, 0.8, 0.05] },
   race: { timeoutSeconds: [30, 300, 5] },
   render: { pixelRatio: [0.5, 2, 0.25] },
-  audio: { volume: [0, 1, 0.05] },
+  audio: { volume: [0, 1, 0.05], hoofVolume: [0, 1, 0.05] },
 };
 
 /**
