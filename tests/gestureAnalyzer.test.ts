@@ -66,9 +66,9 @@ describe('GestureAnalyzer – steering by leaning sideways', () => {
 
   it('follows a soft curve: little response at small tilts, then rising smoothly', () => {
     const steerAt = (deg: number) => run(1.5, tilted(deg)).g.steer;
-    const values = [0, 3, 6, 9, 12, 16, 20, 24, 28].map(steerAt);
+    const values = [0, 3, 6, 9, 12, 15, 18, 21, 24].map(steerAt);
     expect(steerAt(6)).toBeLessThan(0.1);
-    expect(steerAt(14)).toBeLessThan(0.35);
+    expect(steerAt(12)).toBeLessThan(0.3);
     // Strictly increasing and without a sudden step anywhere.
     for (let i = 1; i < values.length; i++) {
       expect(values[i]).toBeGreaterThan(values[i - 1]);
@@ -134,6 +134,43 @@ describe('GestureAnalyzer – speed by bounce cadence', () => {
       if (t > 3) drives.push(g.drive);
     });
     expect(Math.max(...drives) - Math.min(...drives)).toBeLessThan(0.1);
+  });
+
+  /**
+   * Realistic, irregular bouncing like a real child: each half cycle varies in
+   * duration (±15 %) and height (±30 %), every 9th bounce is a lazy small one,
+   * plus keypoint jitter.
+   */
+  function humanBounce(hz: number, amp: number, seed: number, torso = 120) {
+    const r = noise(seed);
+    const turns: { t: number; y: number }[] = [{ t: 0, y: 0 }];
+    for (let k = 1; turns[turns.length - 1].t < 30; k++) {
+      const half = (0.5 / hz) * (1 + r() * 0.3);
+      const size = amp * (1 + r() * 0.6) * (k % 9 === 0 ? 0.3 : 1);
+      turns.push({ t: turns[turns.length - 1].t + half, y: (k % 2 ? 1 : -1) * size * torso });
+    }
+    return (t: number): PersonSpec => {
+      let i = 0;
+      while (turns[i + 1].t < t) i++;
+      const a = turns[i];
+      const b = turns[i + 1];
+      const p = (t - a.t) / (b.t - a.t);
+      const y = a.y + (b.y - a.y) * (1 - Math.cos(p * Math.PI)) / 2;
+      return { x: 640 + r() * 3, torso, hipY: 450 + y + r() * 3 };
+    };
+  }
+
+  it('keeps a consistent speed with realistic, irregular bouncing', () => {
+    for (const seed of [11, 23, 42]) {
+      const drives: number[] = [];
+      run(12, humanBounce(1.6, 0.07, seed), undefined, 0, (g, t) => {
+        if (t > 4) drives.push(g.drive);
+      });
+      const expected = (1.6 - CONFIG.gallop.cadenceMin) / (CONFIG.gallop.cadenceFull - CONFIG.gallop.cadenceMin);
+      const mean = drives.reduce((a, b) => a + b, 0) / drives.length;
+      expect(Math.max(...drives) - Math.min(...drives), `seed ${seed}`).toBeLessThan(0.13);
+      expect(mean, `seed ${seed}`).toBeCloseTo(expected, 1);
+    }
   });
 
   it('also reacts to rocking forward and back (shoulders dip towards the camera)', () => {

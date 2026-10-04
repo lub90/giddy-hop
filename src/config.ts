@@ -40,28 +40,32 @@ export const CONFIG = {
     // hip center). An angle is independent of body size and camera distance, so
     // kids and adults steer the same way.
     /** Tilt at which steering reaches full lock (degrees). */
-    fullLeanDegrees: 28,
+    fullLeanDegrees: 24,
     /**
      * Shape of the response curve: steer = (tilt / fullLean) ^ exponent.
-     * 1 = linear, 2 = small tilts count very little (6° → 5 %, 14° → 25 %, 20° → 51 %).
+     * 1 = linear, 2 = small tilts count very little (6° → 6 %, 12° → 25 %, 18° → 56 %).
      */
     curveExponent: 2,
     /** Smoothing per pose frame (0 = sluggish, 1 = immediate). */
-    smoothing: 0.35,
+    smoothing: 0.45,
   },
 
   gallop: {
     // Speed is driven by the bounce cadence (cycles per second), not by how big the bounce is.
-    /** Up/down movement smaller than this (torso lengths) is treated as noise. */
+    /** Up/down movement smaller than this (torso lengths) is always treated as noise. */
     minAmplitude: 0.03,
+    /** Additionally ignore wiggles smaller than this fraction of the player's own recent bounce size. */
+    adaptiveHysteresis: 0.35,
+    /** Number of recent half cycles whose median gives the cadence (more = steadier, slower to react). */
+    halfCyclesAveraged: 6,
     /** Cadence (Hz) at which the horse starts to speed up. */
     cadenceMin: 0.6,
     /** Cadence (Hz) for full speed. */
-    cadenceFull: 2.4,
+    cadenceFull: 2.2,
     /** Smoothing of the vertical position against measurement noise. */
     positionSmoothing: 0.5,
-    /** How fast the drive value follows the cadence (per second). Lower = smoother. */
-    responsePerSecond: 3,
+    /** How fast the drive value follows the cadence (per second). Lower = steadier. */
+    responsePerSecond: 1.8,
   },
 
   jump: {

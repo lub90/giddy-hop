@@ -15,10 +15,18 @@ interface HeightSample {
   shoulder: number;
 }
 
-/** Number of recent bounce half-cycles averaged for the cadence. */
-const CADENCE_HALF_CYCLES = 4;
 /** Without a new bounce for this long, the cadence counts as zero. */
 const CADENCE_TIMEOUT = 1.5;
+/** A pause longer than this many typical half cycles counts as slowing down / stopping. */
+const PAUSE_HALF_CYCLES = 2;
+/** How fast the remembered bounce size fades when bounces get smaller (per second). */
+const SWING_DECAY = 0.7;
+
+const median = (values: number[]): number => {
+  const s = [...values].sort((a, b) => a - b);
+  const m = s.length >> 1;
+  return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+};
 
 /**
  * Translates a player's body posture into game input:
@@ -53,6 +61,10 @@ export class GestureAnalyzer {
   private direction: 1 | -1 = 1;
   private extremeY = 0;
   private extremeT = 0;
+  /** Height of the previous turning point (to measure the swing of a half cycle). */
+  private turnY = 0;
+  /** Typical swing of recent half cycles in pixels (for the adaptive noise threshold). */
+  private swing = 0;
   private turns: number[] = [];
 
   // Jump: recent heights and trigger state.
@@ -88,7 +100,7 @@ export class GestureAnalyzer {
     // (Dividing absolute positions by a torso length that changes while rocking
     // would make a resting hip look like it moves.)
     this.updateJump(m.hipMid.y, m.shoulderMid.y, this.torso, t);
-    this.trackBounce((m.hipMid.y + m.shoulderMid.y) / 2, this.torso, t);
+    this.trackBounce((m.hipMid.y + m.shoulderMid.y) / 2, this.torso, t, dt);
     this.updateDrive(t, dt);
   }
 
@@ -111,6 +123,7 @@ export class GestureAnalyzer {
     this.rise = 0;
     this.peakRise = 0;
     this.smoothY = null;
+    this.swing = 0;
     this.turns = [];
     this.heights = [];
     this.framesAbove = 0;
@@ -130,24 +143,28 @@ export class GestureAnalyzer {
 
   /**
    * Detects turning points of the vertical movement with hysteresis. Every
-   * turning point is half a bounce cycle; small jitter below `minAmplitude`
-   * is ignored.
+   * turning point is half a bounce cycle. The noise threshold adapts to the
+   * player's own bounce size, so jitter cannot create extra turning points.
    */
-  private trackBounce(y: number, torso: number, t: number): void {
+  private trackBounce(y: number, torso: number, t: number, dt: number): void {
     const g = this.cfg.gallop;
     if (this.smoothY === null) {
       this.smoothY = y;
       this.extremeY = y;
       this.extremeT = t;
+      this.turnY = y;
       return;
     }
     this.smoothY = lerp(this.smoothY, y, g.positionSmoothing);
+    this.swing *= Math.exp(-SWING_DECAY * dt);
     const v = this.smoothY;
-    const h = g.minAmplitude * torso;
+    const h = Math.max(g.minAmplitude * torso, g.adaptiveHysteresis * this.swing);
     const reversed = this.direction === 1 ? v < this.extremeY - h : v > this.extremeY + h;
     if (reversed) {
+      this.swing = lerp(this.swing, Math.abs(this.extremeY - this.turnY), 0.5);
+      this.turnY = this.extremeY;
       this.turns.push(this.extremeT);
-      if (this.turns.length > CADENCE_HALF_CYCLES + 1) this.turns.shift();
+      if (this.turns.length > g.halfCyclesAveraged + 1) this.turns.shift();
       this.direction = this.direction === 1 ? -1 : 1;
       this.extremeY = v;
       this.extremeT = t;
@@ -157,16 +174,23 @@ export class GestureAnalyzer {
     }
   }
 
-  /** Cadence → drive, smoothed. Without new bounces the cadence fades out on its own. */
+  /**
+   * Cadence → drive. The cadence is the median of the recent half cycles, so a
+   * single missed or extra turning point does not change the speed. Only a clear
+   * pause (much longer than a typical half cycle) lets the cadence fade out.
+   */
   private updateDrive(t: number, dt: number): void {
     const g = this.cfg.gallop;
     const last = this.turns[this.turns.length - 1];
     let cadence = 0;
     if (this.turns.length >= 2 && t - last < CADENCE_TIMEOUT) {
-      const avgHalf = (last - this.turns[0]) / (this.turns.length - 1);
-      cadence = 0.5 / Math.max(avgHalf, 0.05);
-      // While no new turning point arrives, the current half cycle is at least this long.
-      cadence = Math.min(cadence, 0.5 / Math.max(t - last, 1e-3));
+      const halves = this.turns.slice(1).map((turn, i) => turn - this.turns[i]);
+      const typicalHalf = Math.max(median(halves), 0.05);
+      cadence = 0.5 / typicalHalf;
+      // Continuous fade-out once the pause is clearly longer than usual.
+      const pauseLimit = PAUSE_HALF_CYCLES * typicalHalf;
+      const elapsed = t - last;
+      if (elapsed > pauseLimit) cadence *= pauseLimit / elapsed;
     }
     if (this.turns.length > 0 && t - last >= CADENCE_TIMEOUT) this.turns = [];
     this.cadence = cadence;

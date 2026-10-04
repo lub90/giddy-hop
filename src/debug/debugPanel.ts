@@ -20,6 +20,8 @@ const TUNABLES: Record<string, Record<string, Range>> = {
   steer: { fullLeanDegrees: [5, 45, 0.5], curveExponent: [1, 3, 0.1], smoothing: [0.05, 1, 0.05] },
   gallop: {
     minAmplitude: [0.005, 0.15, 0.005],
+    adaptiveHysteresis: [0, 0.8, 0.05],
+    halfCyclesAveraged: [2, 12, 1],
     cadenceMin: [0, 2, 0.05],
     cadenceFull: [0.8, 4, 0.05],
     positionSmoothing: [0.1, 1, 0.05],
