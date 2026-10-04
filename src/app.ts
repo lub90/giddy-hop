@@ -18,7 +18,7 @@ import { PoseService } from './pose/poseService';
 import { OverviewCamera } from './render/cameras';
 import { splitLayout } from './render/layout';
 import { buildStaticObstacles } from './render/obstacleViews';
-import { RaceView } from './render/raceView';
+import { COATS, RaceView } from './render/raceView';
 import { SplitRenderer, type View } from './render/splitRenderer';
 import { buildCourseScenery, disposeTree, setupEnvironment } from './render/world';
 import { CameraView } from './ui/cameraView';
@@ -304,7 +304,11 @@ export class App {
           { delay: CONFIG.race.celebrationDelaySeconds, cycle: CONFIG.race.celebrationCycleSeconds },
           (player) => this.sounds.whinny(HORSE_VOICES[this.tracker.slots[player]?.number ?? 0]),
         );
-        this.hud.setup(this.playerNames(), this.playerColors());
+        this.hud.setup(
+          this.playerNames(),
+          this.playerColors(),
+          race.horses.map((_, i) => COATS[i % COATS.length]),
+        );
         this.screens.countdown();
         break;
       }
@@ -377,6 +381,16 @@ export class App {
     );
   }
 
+  /** Drawn own horse in the rider view: bounce from the 3D gait, tilt when steering. */
+  private egoState(i: number): HudState['ego'] {
+    const view = this.raceView;
+    const h = this.flow.race!.horses[i];
+    if (!view) return { visible: false, bob: 0, tilt: 0 };
+    const { visible, bob } = view.ego(i);
+    const tilt = Math.max(-8, Math.min(8, h.lateralVelocity * 3));
+    return { visible, bob, tilt };
+  }
+
   private hudState(i: number, t: number, position: number): HudState {
     const race = this.flow.race!;
     const h = race.horses[i];
@@ -397,6 +411,7 @@ export class App {
       speed: h.speed / CONFIG.horse.maxSpeed,
       boosting: h.boost > 0,
       slowdown: race.slowdownReason(i),
+      ego: this.egoState(i),
     };
   }
 

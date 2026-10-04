@@ -2,6 +2,7 @@ import { gaitOf, type Gait, type GaitThresholds } from '../game/gait';
 import { t } from '../i18n';
 import type { RaceEvent, RaceEventType, SlowdownReason } from '../game/race';
 import type { Rect } from '../render/layout';
+import { EgoHorse } from './egoHorse';
 
 export interface HudState {
   /** Live placement, 1 = leading. */
@@ -25,6 +26,13 @@ export interface HudState {
   /** Suggests leaning: -1 = lean left, +1 = lean right, 0 = fine. */
   steerHint: -1 | 0 | 1;
   finished: boolean;
+  /** Drawn own horse: shown while riding, with gait bounce (m) and steering tilt (degrees). */
+  ego: { visible: boolean; bob: number; tilt: number };
+}
+
+export interface HorseCoat {
+  coat: string;
+  mane: string;
 }
 
 export interface Hint {
@@ -109,9 +117,16 @@ class PlayerHud {
   private readonly hint: HTMLElement;
   private readonly bar: HTMLElement;
   private readonly gauge: SpeedGauge;
+  private readonly ego: EgoHorse | null;
+  private height = 1;
   private toastUntil = 0;
 
-  constructor(name: string, color: string, private readonly thresholds: GaitThresholds) {
+  constructor(
+    name: string,
+    color: string,
+    private readonly thresholds: GaitThresholds,
+    coat?: HorseCoat,
+  ) {
     this.el.className = 'hud-panel';
     this.el.style.setProperty('--player', color);
     this.el.innerHTML = `
@@ -129,10 +144,16 @@ class PlayerHud {
     this.bar = this.el.querySelector('.hud-bar')!;
     this.gauge = new SpeedGauge(thresholds);
     this.el.appendChild(this.gauge.el);
+    // Drawn horse of the rider's own view, behind all texts.
+    this.ego = coat ? new EgoHorse(coat.coat, coat.mane, color) : null;
+    if (this.ego) this.el.prepend(this.ego.el);
   }
 
   place(r: Rect): void {
     Object.assign(this.el.style, { left: `${r.x}px`, top: `${r.y}px`, width: `${r.w}px`, height: `${r.h}px` });
+    this.height = r.h;
+    // Same size relation in tall halves and in flat quadrants: at most 40 % wide, ~45 % high.
+    if (this.ego) this.ego.el.style.width = `${Math.min(r.w * 0.4, r.h * 0.6)}px`;
   }
 
   showToast(text: string, now: number): void {
@@ -145,6 +166,7 @@ class PlayerHud {
   }
 
   update(s: HudState, now: number): void {
+    this.ego?.update(s.ego.visible, s.ego.bob, s.ego.tilt, this.height);
     const showPos = s.riders > 1;
     setText(this.pos, showPos ? `${s.position}.` : '');
     toggle(this.pos, 'hidden', !showPos);
@@ -181,9 +203,10 @@ export class Hud {
     private readonly thresholds: GaitThresholds,
   ) {}
 
-  setup(names: readonly string[], colors: readonly string[]): void {
+  /** @param coats per player: colors of the drawn horse in the rider view */
+  setup(names: readonly string[], colors: readonly string[], coats: readonly HorseCoat[] = []): void {
     this.clear();
-    this.panels = names.map((n, i) => new PlayerHud(n, colors[i], this.thresholds));
+    this.panels = names.map((n, i) => new PlayerHud(n, colors[i], this.thresholds, coats[i]));
     for (const p of this.panels) this.container.appendChild(p.el);
   }
 

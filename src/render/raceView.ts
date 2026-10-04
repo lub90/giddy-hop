@@ -3,10 +3,11 @@ import type { Race } from '../game/race';
 import { RiderCamera } from './cameras';
 import { celebrationPose, type CelebrationTiming } from './celebration';
 import { HorseModel } from './horseModel';
-import { LAYER_OVERVIEW, playerLayer, setLayer } from './layers';
+import { horseLayers, LAYER_OVERVIEW, playerLayer, setLayer, setLayers } from './layers';
 import { PlayerObstacles } from './obstacleViews';
 
-const COATS = [
+/** Coat and mane colors per player (also used for the drawn rider-view overlay). */
+export const COATS = [
   { coat: '#8b5a2b', mane: '#2b1a0e' },
   { coat: '#efe9dc', mane: '#b8ab95' },
   { coat: '#2e2620', mane: '#111111' },
@@ -43,6 +44,8 @@ export class RaceView {
     this.models = race.horses.map((_, i) => {
       const c = COATS[i % COATS.length];
       const m = new HorseModel(c.coat, c.mane, colors[i]);
+      // In its own rider view the horse is a drawn overlay (cheaper and prettier than the boxes).
+      setLayers(m.root, horseLayers(i, n, false));
       this.root.add(m.root);
       return m;
     });
@@ -68,7 +71,11 @@ export class RaceView {
     race.horses.forEach((horse, i) => {
       const model = this.models[i];
       // Finish celebration runs on wall-clock time, so it continues after the race is over.
-      if (horse.finished && this.finishedAt[i] === null) this.finishedAt[i] = time;
+      if (horse.finished && this.finishedAt[i] === null) {
+        this.finishedAt[i] = time;
+        // The celebration camera flies around the horse: now its own view needs the 3D model.
+        setLayers(model.root, horseLayers(i, race.horses.length, true));
+      }
       const finishedAt = this.finishedAt[i];
       const celebrating = finishedAt === null ? null : time - finishedAt;
       const pose = celebrating === null ? null : celebrationPose(celebrating, this.timing);
@@ -84,6 +91,11 @@ export class RaceView {
       this.obstacles[i].update(race.time, time);
       this.markers[i].position.set(model.root.position.x, 14 + Math.sin(time * 3 + i) * 1.5, model.root.position.z);
     });
+  }
+
+  /** Data for the drawn horse overlay in the rider view of `player`. */
+  ego(player: number): { visible: boolean; bob: number } {
+    return { visible: this.finishedAt[player] === null, bob: this.models[player].bob };
   }
 
   dispose(): void {

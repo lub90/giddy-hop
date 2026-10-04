@@ -42,6 +42,7 @@ const base: HudState = {
   lostTracking: false,
   steerHint: 0,
   finished: false,
+  ego: { visible: true, bob: 0, tilt: 0 },
 };
 
 describe('HUD hint line', () => {

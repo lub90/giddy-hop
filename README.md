@@ -154,6 +154,9 @@ Data flow per frame: `PoseService` (independent detection loop) → `PlayerTrack
 Design decisions:
 - **One WebGL canvas, several viewports** (scissor test) instead of four canvases.
 - **three.js layers** give every player their own fences and carrots in a shared scene.
+- **Own horse as a drawing**: in the rider view the own horse is an SVG overlay (neck,
+  mane, ears, bridle) instead of the box model – prettier and costs no 3D rendering.
+  Other riders and the overview still see the 3D horse; it returns for the finish celebration.
 - **Pose detection decoupled from rendering** – the game renders at full frame rate
   even if MoveNet only delivers ~20 results per second.
 - **Semi-guided steering**: horses follow the track; curves push outwards and leaning compensates.

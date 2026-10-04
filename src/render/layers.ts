@@ -15,3 +15,22 @@ export const playerLayer = (index: number): number => 1 + index;
 export function setLayer(root: Object3D, layer: number): void {
   root.traverse((o) => o.layers.set(layer));
 }
+
+/** Makes a subtree visible exactly to the cameras that have one of the given layers. */
+export function setLayers(root: Object3D, layers: readonly number[]): void {
+  root.traverse((o) => {
+    o.layers.disableAll();
+    for (const l of layers) o.layers.enable(l);
+  });
+}
+
+/**
+ * Layers on which the horse of `player` is visible: everyone else's rider view and
+ * the overview – but not its own rider view, where a drawn overlay is shown instead
+ * (unless `includeOwn`, e.g. during the finish celebration when the camera flies around it).
+ */
+export function horseLayers(player: number, playerCount: number, includeOwn: boolean): number[] {
+  const layers = [LAYER_OVERVIEW];
+  for (let j = 0; j < playerCount; j++) if (j !== player || includeOwn) layers.push(playerLayer(j));
+  return layers;
+}
