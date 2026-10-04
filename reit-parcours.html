@@ -1,0 +1,449 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Reit-Parcours – Webcam-Bewegungsspiel</title>
+<style>
+  html,body{margin:0;height:100%;background:#120f0c;color:#f3ead9;font-family:system-ui,Arial,sans-serif;overflow:hidden}
+  #stage{position:fixed;inset:0;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:2px;background:#000}
+  .cell{position:relative;overflow:hidden}
+  .cell canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+  #camwrap{position:fixed;right:10px;bottom:10px;z-index:20;width:260px}
+  #cam{width:100%;transform:scaleX(-1);border:2px solid #c0662b;border-radius:8px;opacity:.92;background:#000}
+  #skel{position:absolute;inset:0;width:100%;height:100%}
+  #overlay{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+           text-align:center;background:rgba(10,8,6,.78);z-index:30;padding:24px;gap:14px}
+  h1{color:#e8b04b;margin:.2em 0;font-size:2.2rem}
+  h2{color:#e8b04b;margin:.2em 0}
+  .hint{opacity:.85;max-width:720px;line-height:1.45}
+  button{font-size:1.15rem;padding:12px 24px;background:#c0662b;color:#fff;border:0;border-radius:10px;cursor:pointer}
+  button:disabled{opacity:.5;cursor:default}
+  .pills{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+  .pill{padding:8px 16px;border-radius:999px;background:#3a332c;font-weight:bold;min-width:120px}
+  .pill.on{background:#4c8b2f;color:#fff}
+  .err{color:#ff9b8a}
+  code{background:#2a241e;padding:2px 6px;border-radius:4px}
+  .countdown{font-size:7rem;color:#e8b04b;font-weight:bold}
+</style>
+</head>
+<body>
+<div id="stage">
+  <div class="cell"><canvas data-p="0"></canvas></div>
+  <div class="cell"><canvas data-p="1"></canvas></div>
+  <div class="cell"><canvas data-p="2"></canvas></div>
+  <div class="cell"><canvas data-p="3"></canvas></div>
+</div>
+
+<div id="camwrap">
+  <div style="position:relative">
+    <video id="cam" autoplay playsinline muted></video>
+    <canvas id="skel"></canvas>
+  </div>
+</div>
+
+<div id="overlay">
+  <h1>🐴 Reit-Parcours</h1>
+  <div id="ovContent"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection@2.1.3/dist/pose-detection.min.js"></script>
+<script>
+/* =======================================================================
+   REIT-PARCOURS – Webcam-Bewegungsspiel für bis zu 4 Kinder
+   -----------------------------------------------------------------------
+   Steuerung (pro Spielerin, frontale Webcam):
+     - TEMPO:   auf der Stelle wippen/hüpfen (Auf-und-ab-Bewegung)
+     - LENKEN:  mit dem Oberkörper nach links/rechts lehnen
+     - SPRINGEN: echter Hochsprung  (oder beide Arme hoch strecken)
+   Registrierung: Arm heben, bis die Spielerin "bereit" ist, dann Leertaste.
+
+   Starten:  Lokalen Server nötig (Kamera braucht localhost/https):
+             python3 -m http.server 8000   →   http://localhost:8000
+   ======================================================================= */
+
+const CONFIG = {
+  maxPlayers: 4,
+  minKeypointScore: 0.35,     // ab welcher Konfidenz ein Gelenk zählt
+  // Steuerung
+  steerGain: 2.6,             // wie stark Lehnen lenkt
+  steerSmooth: 0.18,
+  speedGain: 9.0,             // wie stark Wippen Tempo macht
+  speedSmooth: 0.08,
+  idleDecay: 0.96,
+  jumpUpThreshold: 0.09,      // Hüft-Aufwärts-Tempo (normiert) für Sprungauslösung
+  armsUpJump: true,           // Sprung auch durch Arme-hoch
+  jumpCooldown: 0.6,          // s
+  // Spiel / Strecke
+  trackLength: 140,           // "Meter" bis Ziel
+  maxSpeed: 14,
+  jumpVel: 7.2,
+  gravity: 20,
+  jumpClear: 1.4,             // ab dieser Sprunghöhe ist ein Zaun übersprungen
+  laneHitWidth: 0.38,         // wie nah an einem Hütchen = Kollision
+};
+
+// ---- Pose-Keypoint-Namen (MoveNet) ----
+const KP = {}; // name -> kp (je Frame neu gesetzt pro Person über Helfer
+
+// ---------------------------------------------------------------------
+// Grundgerüst / DOM
+// ---------------------------------------------------------------------
+const video = document.getElementById('cam');
+const skel = document.getElementById('skel');
+const skelCtx = skel.getContext('2d');
+const overlay = document.getElementById('overlay');
+const ov = document.getElementById('ovContent');
+const cellCanvases = [...document.querySelectorAll('#stage canvas')];
+const cellCtx = cellCanvases.map(c => c.getContext('2d'));
+
+let detector = null;
+let phase = 'loading';        // loading | register | countdown | play | finish
+let players = [];             // aktive Spielerinnen (konfiguriert bei Start)
+let activeCount = 0;          // in Registrierung: wie viele gerade den Arm heben
+let lastTime = performance.now();
+let countdownUntil = 0;
+let finishOrder = [];
+
+// ---------------------------------------------------------------------
+// Kamera + Modell initialisieren
+// ---------------------------------------------------------------------
+async function init(){
+  setOverlay(`<div class="hint">Lade Kamera und KI-Modell …</div>`);
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { width: 1280, height: 720, facingMode: 'user' }, audio: false
+    });
+    video.srcObject = stream;
+    await new Promise(r => video.onloadedmetadata = r);
+    await video.play();
+  } catch (e) {
+    setOverlay(`<h2 class="err">Kamera nicht verfügbar</h2>
+      <div class="hint err">${e.message}</div>
+      <div class="hint">Bitte die Seite über <code>http://localhost</code> öffnen
+      (z. B. <code>python3 -m http.server 8000</code>), nicht per Doppelklick –
+      Browser erlauben die Kamera nur in sicherem Kontext.</div>`);
+    return;
+  }
+
+  try {
+    await tf.setBackend('webgl'); await tf.ready();
+    detector = await poseDetection.createDetector(
+      poseDetection.SupportedModels.MoveNet,
+      { modelType: poseDetection.movenet.modelType.MULTIPOSE_LIGHTNING,
+        enableTracking: true,
+        trackerType: poseDetection.TrackerType.BoundingBox }
+    );
+  } catch (e) {
+    setOverlay(`<h2 class="err">Modell-Fehler</h2><div class="hint err">${e.message}</div>`);
+    return;
+  }
+
+  sizeCanvases();
+  window.addEventListener('resize', sizeCanvases);
+  window.addEventListener('keydown', onKey);
+  phase = 'register';
+  requestAnimationFrame(loop);
+}
+
+function sizeCanvases(){
+  for (const c of cellCanvases){ c.width = c.clientWidth; c.height = c.clientHeight; }
+  skel.width = video.clientWidth; skel.height = video.clientHeight;
+}
+
+function setOverlay(html){ ov.innerHTML = html; overlay.style.display = 'flex'; }
+function hideOverlay(){ overlay.style.display = 'none'; }
+
+function onKey(e){
+  if (e.code === 'Space'){
+    if (phase === 'register' && activeCount >= 1) startCountdown();
+  }
+  if (e.key === 'r' || e.key === 'R'){ if (phase === 'finish') resetGame(); }
+}
+
+// ---------------------------------------------------------------------
+// Helfer für Keypoints einer Person
+// ---------------------------------------------------------------------
+function kpMap(pose){
+  const m = {};
+  for (const k of pose.keypoints){ if (k.score >= CONFIG.minKeypointScore) m[k.name] = k; }
+  return m;
+}
+function mid(a,b){ if(a&&b) return {x:(a.x+b.x)/2,y:(a.y+b.y)/2}; return a||b||null; }
+function bboxOf(pose){
+  let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9,n=0;
+  for (const k of pose.keypoints){ if(k.score>=CONFIG.minKeypointScore){x0=Math.min(x0,k.x);y0=Math.min(y0,k.y);x1=Math.max(x1,k.x);y1=Math.max(y1,k.y);n++;} }
+  if(n<3) return null;
+  return {x0,y0,x1,y1,cx:(x0+x1)/2,cy:(y0+y1)/2,w:x1-x0,h:y1-y0};
+}
+
+// Rohwerte (Lenken / Wippen / Sprung) aus einer Person ziehen
+function readControls(pose){
+  const m = kpMap(pose);
+  const lsh=m['left_shoulder'], rsh=m['right_shoulder'], lhip=m['left_hip'], rhip=m['right_hip'];
+  const sh = mid(lsh,rsh), hip = mid(lhip,rhip);
+  const nose = m['nose'];
+  const lwr=m['left_wrist'], rwr=m['right_wrist'];
+  if(!sh || !hip) return null;
+  const torsoH = Math.max(40, Math.abs(hip.y - sh.y));           // Normierung (skaleninvariant)
+  const shoulderW = Math.max(40, (lsh&&rsh)?Math.abs(lsh.x-rsh.x):torsoH);
+  // Lenken: Versatz Schultermitte gegen Hüftmitte (seitliches Lehnen)
+  const steerRaw = (sh.x - hip.x) / shoulderW;                   // >0 = nach rechts gelehnt
+  // Vertikalposition (für Wippen/Sprung), normiert
+  const yNorm = hip.y / torsoH;
+  // Arme hoch?
+  const armsUp = CONFIG.armsUpJump && nose && lwr && rwr && lwr.y < nose.y && rwr.y < nose.y;
+  return { steerRaw, yNorm, armsUp, bbox: bboxOf(pose) };
+}
+
+// ---------------------------------------------------------------------
+// Spielzustand
+// ---------------------------------------------------------------------
+function makePlayer(i){
+  return { idx:i, dist:0, speed:0, lane:0, laneTarget:0,
+           jy:0, jvy:0, grounded:true, jumpTimer:0,
+           yHist:[], activity:0, crashFlash:0, score:0,
+           finished:false, obstacles:buildTrack(i) };
+}
+function buildTrack(seed){
+  // gleiche Strecke für alle (fairer Wettlauf), deterministisch
+  const obs=[]; let z=14; let r=seed*0+12345;
+  const rnd=()=>{ r=(r*1103515245+12345)&0x7fffffff; return r/0x7fffffff; };
+  while(z < CONFIG.trackLength-6){
+    const t=rnd();
+    if(t<0.45) obs.push({z, type:'fence'});                          // überspringen
+    else if(t<0.8) obs.push({z, type:'cone', lane:(rnd()<.5?-0.6:0.6)}); // ausweichen
+    else obs.push({z, type:'carrot', lane:(rnd()<.5?-0.6:0.6)});     // einsammeln
+    z += 7 + rnd()*5;
+  }
+  return obs;
+}
+
+function startCountdown(){
+  players = [];
+  for(let i=0;i<Math.min(activeCount, CONFIG.maxPlayers); i++) players.push(makePlayer(i));
+  finishOrder = [];
+  phase='countdown'; countdownUntil = performance.now()+3200;
+}
+function resetGame(){ phase='register'; hideOverlay(); }
+
+// ---------------------------------------------------------------------
+// Hauptschleife
+// ---------------------------------------------------------------------
+async function loop(){
+  const now = performance.now();
+  let dt = (now - lastTime)/1000; lastTime = now; dt = Math.min(dt, 0.05);
+
+  let poses = [];
+  if (detector && video.readyState >= 2){
+    poses = await detector.estimatePoses(video, { flipHorizontal: true, maxPoses: CONFIG.maxPlayers+2 });
+  }
+  // nach x sortieren -> stabile Zuordnung links→rechts
+  poses = poses.filter(p=>bboxOf(p)).sort((a,b)=> bboxOf(a).cx - bboxOf(b).cx);
+
+  if (phase === 'register') doRegister(poses);
+  else if (phase === 'countdown'){ doPlayStep(poses, 0); // nur anzeigen, kein Fortschritt
+    const left = countdownUntil - now;
+    if (left <= 0){ phase='play'; hideOverlay(); }
+    else setOverlay(`<div class="countdown">${Math.ceil(left/1000)}</div>
+                     <div class="hint">Wippen = schneller · Lehnen = lenken · Springen = Sprung</div>`);
+  }
+  else if (phase === 'play') doPlayStep(poses, dt);
+  else if (phase === 'finish') { /* overlay steht */ }
+
+  drawSkeletonsPreview(poses);
+  requestAnimationFrame(loop);
+}
+
+// ---- Registrierung: Arm heben ----
+function doRegister(poses){
+  activeCount = 0;
+  const marks = [];
+  for (const p of poses.slice(0, CONFIG.maxPlayers)){
+    const c = readControls(p);
+    const up = c && c.armsUpRegister !== undefined ? c.armsUpRegister : armRaised(p);
+    marks.push(up); if(up) activeCount++;
+  }
+  const pills = [];
+  for(let i=0;i<CONFIG.maxPlayers;i++){
+    const on = marks[i];
+    pills.push(`<div class="pill ${on?'on':''}">Spieler ${i+1}${on?' ✋ bereit':' …'}</div>`);
+  }
+  setOverlay(`<h2>Wer spielt mit?</h2>
+    <div class="hint">Stellt euch nebeneinander vor die Kamera (Abstand ca. 2–3 m, ganzer Körper im Bild).
+    Zum Anmelden <b>einen Arm hochhalten</b>.</div>
+    <div class="pills">${pills.join('')}</div>
+    <div class="hint">Erkannt: <b>${activeCount}</b> Spielerin(nen). Dann <b>Leertaste</b> zum Start.</div>
+    <button ${activeCount<1?'disabled':''} onclick="window.__start()">Start (${activeCount})</button>`);
+}
+window.__start = ()=>{ if(phase==='register'&&activeCount>=1) startCountdown(); };
+
+function armRaised(pose){
+  const m = kpMap(pose); const nose=m['nose'];
+  const lwr=m['left_wrist'], rwr=m['right_wrist'];
+  if(!nose) return false;
+  return (lwr && lwr.y < nose.y) || (rwr && rwr.y < nose.y);
+}
+
+// ---- Spielschritt für alle Spielerinnen ----
+function doPlayStep(poses, dt){
+  for (let i=0;i<players.length;i++){
+    const pl = players[i];
+    const pose = poses[i];                        // i-te Person von links
+    if (pose){ updateControls(pl, pose, dt); }
+    else { pl.speed *= CONFIG.idleDecay; }        // niemand erkannt -> ausrollen
+    if (dt>0 && !pl.finished) updatePhysics(pl, dt);
+    renderPlayer(pl, cellCtx[i], cellCanvases[i]);
+  }
+  // leere Quadranten (keine Spielerin) leeren
+  for (let i=players.length;i<4;i++){ clearIdleCell(cellCtx[i], cellCanvases[i], i); }
+
+  // Ziel erreicht?
+  if (phase==='play' && players.every(p=>p.finished)) finishGame();
+}
+
+function updateControls(pl, pose, dt){
+  const c = readControls(pose); if(!c) return;
+  // Lenken
+  pl.laneTarget = Math.max(-1, Math.min(1, c.steerRaw * CONFIG.steerGain));
+  pl.lane += (pl.laneTarget - pl.lane) * CONFIG.steerSmooth;
+  // Wippen -> Aktivität (Bewegungsenergie der Hüfte in Y)
+  pl.yHist.push(c.yNorm); if(pl.yHist.length>8) pl.yHist.shift();
+  let act=0; for(let k=1;k<pl.yHist.length;k++) act += Math.abs(pl.yHist[k]-pl.yHist[k-1]);
+  pl.activity = act;
+  const speedTarget = Math.min(CONFIG.maxSpeed, act * CONFIG.speedGain);
+  pl.speed += (speedTarget - pl.speed) * CONFIG.speedSmooth;
+  if (speedTarget < pl.speed) pl.speed *= CONFIG.idleDecay;
+  // Springen: schnelle Aufwärtsbewegung der Hüfte ODER Arme hoch
+  const prevY = pl._prevY!==undefined?pl._prevY:c.yNorm;
+  const upVel = prevY - c.yNorm;                 // >0 = nach oben
+  pl._prevY = c.yNorm;
+  pl.jumpTimer -= dt;
+  if (pl.grounded && pl.jumpTimer<=0 && (upVel > CONFIG.jumpUpThreshold || c.armsUp)){
+    pl.jvy = CONFIG.jumpVel; pl.grounded=false; pl.jumpTimer = CONFIG.jumpCooldown;
+  }
+}
+
+function updatePhysics(pl, dt){
+  // Vorwärts
+  pl.dist += pl.speed * dt;
+  // Sprung
+  if(!pl.grounded){
+    pl.jy += pl.jvy * dt; pl.jvy -= CONFIG.gravity * dt;
+    if (pl.jy <= 0){ pl.jy=0; pl.jvy=0; pl.grounded=true; }
+  }
+  if (pl.crashFlash>0) pl.crashFlash -= dt;
+  // Kollisionen / Einsammeln
+  for (const o of pl.obstacles){
+    if (o.done) continue;
+    const rel = o.z - pl.dist;
+    if (rel < 0.6 && rel > -0.6){
+      if (o.type==='fence'){
+        if (pl.jy < CONFIG.jumpClear){ pl.speed *= 0.35; pl.crashFlash=0.4; }
+        o.done=true;
+      } else if (o.type==='cone'){
+        if (Math.abs(pl.lane - o.lane) < CONFIG.laneHitWidth && pl.jy < 0.8){ pl.speed*=0.5; pl.crashFlash=0.4; o.done=true; }
+        else if (rel < -0.3) o.done=true;
+      } else if (o.type==='carrot'){
+        if (Math.abs(pl.lane - o.lane) < 0.45){ pl.score++; o.done=true; }
+        else if (rel < -0.3) o.done=true;
+      }
+    }
+  }
+  if (!pl.finished && pl.dist >= CONFIG.trackLength){
+    pl.finished=true; pl.speed=0; finishOrder.push(pl.idx);
+  }
+}
+
+function finishGame(){
+  phase='finish';
+  const place = finishOrder.map((idx,i)=>`<div class="pill on">${i+1}. Platz: Spieler ${idx+1} 🏅 (${players[idx].score} 🥕)</div>`).join('');
+  setOverlay(`<h1>🏁 Ziel!</h1><div class="pills">${place}</div>
+     <div class="hint">Taste <b>R</b> für neue Runde.</div>
+     <button onclick="window.__reset()">Neue Runde (R)</button>`);
+}
+window.__reset = ()=>{ if(phase==='finish') resetGame(); };
+
+// ---------------------------------------------------------------------
+// Rendering: Ego-Pseudo-3D pro Quadrant
+// ---------------------------------------------------------------------
+function renderPlayer(pl, ctx, cv){
+  const w=cv.width, h=cv.height, horizon=h*0.40;
+  // Himmel
+  ctx.fillStyle='#8ec9e8'; ctx.fillRect(0,0,w,horizon);
+  // Wiese
+  ctx.fillStyle='#6fae45'; ctx.fillRect(0,horizon,w,h-horizon);
+  // Strecke (Trapez)
+  const roadNearW=w*0.7, roadFarW=w*0.06;
+  ctx.fillStyle='#caa26a';
+  ctx.beginPath();
+  ctx.moveTo(w/2-roadNearW/2,h); ctx.lineTo(w/2-roadFarW/2,horizon);
+  ctx.lineTo(w/2+roadFarW/2,horizon); ctx.lineTo(w/2+roadNearW/2,h); ctx.closePath(); ctx.fill();
+
+  const focal=6, viewDist=34, lanePx=roadNearW*0.5;
+  // Hindernisse sortiert von fern nach nah
+  const vis = pl.obstacles.map(o=>({o, rel:o.z-pl.dist})).filter(d=>d.rel>-0.5 && d.rel<viewDist).sort((a,b)=>b.rel-a.rel);
+  for (const {o,rel} of vis){
+    if (o.done && o.type!=='fence') continue;
+    const persp = focal/(rel+focal);                 // 1 nah ... 0 fern
+    const sy = horizon + (h-horizon)*persp;
+    const sx = w/2 + (((o.lane||0) - pl.lane) * lanePx) * persp;
+    const s = persp;
+    if (o.type==='fence' && !o.done){
+      ctx.fillStyle='#7a4a24'; const fw=roadNearW*persp*0.95, fh=26*s+4;
+      ctx.fillRect(w/2-fw/2, sy-fh, fw, fh);
+      ctx.fillStyle='#9c6a3a'; ctx.fillRect(w/2-fw/2, sy-fh*0.6, fw, fh*0.18);
+    } else if (o.type==='cone'){
+      ctx.fillStyle='#e8622b'; const cs=22*s+3;
+      ctx.beginPath(); ctx.moveTo(sx, sy-cs*1.6); ctx.lineTo(sx-cs, sy); ctx.lineTo(sx+cs, sy); ctx.closePath(); ctx.fill();
+    } else if (o.type==='carrot'){
+      ctx.fillStyle='#ff9b2e'; const cs=12*s+2; ctx.beginPath(); ctx.arc(sx,sy-cs,cs,0,7); ctx.fill();
+      ctx.fillStyle='#3f8f3f'; ctx.fillRect(sx-2, sy-cs*2.4, 4, cs*1.2);
+    }
+  }
+  // "Pferd" (Spielerin) unten mittig + Sprunghöhe
+  const jOff = pl.jy * 42;
+  ctx.font = `${Math.round(h*0.16)}px serif`; ctx.textAlign='center';
+  ctx.fillText('🐴', w/2 + pl.lane*lanePx*0.25, h*0.93 - jOff);
+
+  // HUD
+  if (pl.crashFlash>0){ ctx.fillStyle=`rgba(200,40,20,${pl.crashFlash})`; ctx.fillRect(0,0,w,h); }
+  ctx.fillStyle='rgba(0,0,0,.45)'; ctx.fillRect(0,0,w,34);
+  ctx.fillStyle='#fff'; ctx.textAlign='left'; ctx.font='bold 18px system-ui';
+  ctx.fillText(`Spieler ${pl.idx+1}`, 10, 24);
+  ctx.textAlign='right'; ctx.fillText(`${pl.score} 🥕`, w-10, 24);
+  // Fortschrittsbalken
+  const prog=Math.min(1, pl.dist/CONFIG.trackLength);
+  ctx.fillStyle='#2a241e'; ctx.fillRect(10, h-16, w-20, 8);
+  ctx.fillStyle='#e8b04b'; ctx.fillRect(10, h-16, (w-20)*prog, 8);
+  if (pl.finished){ ctx.fillStyle='rgba(0,0,0,.5)'; ctx.fillRect(0,0,w,h);
+    ctx.fillStyle='#e8b04b'; ctx.textAlign='center'; ctx.font=`bold ${Math.round(h*0.12)}px system-ui`;
+    ctx.fillText('ZIEL! 🏁', w/2, h/2); }
+}
+
+function clearIdleCell(ctx, cv, i){
+  const w=cv.width,h=cv.height;
+  ctx.fillStyle='#211b15'; ctx.fillRect(0,0,w,h);
+  ctx.fillStyle='#6b5d4c'; ctx.textAlign='center'; ctx.font='20px system-ui';
+  ctx.fillText(`Platz ${i+1} frei`, w/2, h/2);
+}
+
+// ---- kleines Skelett-Preview im Kamerafenster ----
+function drawSkeletonsPreview(poses){
+  const sw=skel.width, sh=skel.height;
+  skelCtx.clearRect(0,0,sw,sh);
+  if(!video.videoWidth) return;
+  const fx=sw/video.videoWidth, fy=sh/video.videoHeight;
+  const colors=['#ffd24a','#4ad2ff','#ff7a4a','#9bff6a'];
+  poses.slice(0,4).forEach((p,i)=>{
+    skelCtx.fillStyle=colors[i%4];
+    for(const k of p.keypoints){ if(k.score>=CONFIG.minKeypointScore){
+      skelCtx.beginPath(); skelCtx.arc(k.x*fx,k.y*fy,4,0,7); skelCtx.fill(); } }
+  });
+}
+
+init();
+</script>
+</body>
+</html>
