@@ -3,6 +3,10 @@ import type { RaceEvent, RaceEventType, SlowdownReason } from '../game/race';
 import type { Rect } from '../render/layout';
 
 export interface HudState {
+  /** Live placement, 1 = leading. */
+  position: number;
+  /** Number of riders; the placement is only shown with more than one. */
+  riders: number;
   carrots: number;
   faults: number;
   /** Seconds shown in the timer. */
@@ -93,6 +97,7 @@ class SpeedGauge {
 
 class PlayerHud {
   readonly el = document.createElement('div');
+  private readonly pos: HTMLElement;
   private readonly stats: HTMLElement;
   private readonly big: HTMLElement;
   private readonly toast: HTMLElement;
@@ -105,12 +110,13 @@ class PlayerHud {
     this.el.className = 'hud-panel';
     this.el.style.setProperty('--player', color);
     this.el.innerHTML = `
-      <div class="hud-top"><span class="hud-name"></span><span class="hud-stats"></span></div>
+      <div class="hud-top"><span class="hud-left"><span class="hud-pos"></span><span class="hud-name"></span></span><span class="hud-stats"></span></div>
       <div class="hud-big"></div>
       <div class="hud-toast"></div>
       <div class="hud-hint"></div>
       <div class="hud-progress"><div class="hud-bar"></div></div>`;
     this.el.querySelector<HTMLElement>('.hud-name')!.textContent = `🐴 ${name}`;
+    this.pos = this.el.querySelector('.hud-pos')!;
     this.stats = this.el.querySelector('.hud-stats')!;
     this.big = this.el.querySelector('.hud-big')!;
     this.toast = this.el.querySelector('.hud-toast')!;
@@ -134,6 +140,11 @@ class PlayerHud {
   }
 
   update(s: HudState, now: number): void {
+    const showPos = s.riders > 1;
+    setText(this.pos, showPos ? `${s.position}.` : '');
+    toggle(this.pos, 'hidden', !showPos);
+    for (const [cls, p] of [['gold', 1], ['silver', 2], ['bronze', 3]] as const) toggle(this.pos, cls, s.position === p);
+
     const m = Math.floor(s.time / 60);
     const sec = Math.floor(s.time % 60).toString().padStart(2, '0');
     setText(this.stats, `🥕 ${s.carrots}   ❌ ${s.faults}   ⏱ ${m}:${sec}`);

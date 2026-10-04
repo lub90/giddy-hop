@@ -268,3 +268,25 @@ describe('Race – finish and ranking', () => {
     expect(lat[0] + lat[3]).toBeCloseTo(0, 6);
   });
 });
+
+describe('Race – live placement (shown top left)', () => {
+  it('ranks by distance while riding', () => {
+    const race = new Race(new Track(straight(500)), 3, cfg());
+    ride(race, 3, (p) => input({ drive: [0.3, 1, 0.6][p] }));
+    expect(race.positions()).toEqual([3, 1, 2]);
+  });
+
+  it('finished riders rank by finish time ahead of everyone still riding', () => {
+    const race = new Race(new Track(straight(40)), 3, cfg());
+    ride(race, 30, (p) => input({ drive: [0.7, 1, 0][p] }));
+    race.horses[2].finished = false;
+    race.horses[2].finishTime = null;
+    race.horses[2].s = 39;
+    expect(race.positions()).toEqual([2, 1, 3]);
+  });
+
+  it('is unique for every rider, even side by side at the start', () => {
+    const race = new Race(new Track(straight(100)), 4, cfg());
+    expect([...race.positions()].sort()).toEqual([1, 2, 3, 4]);
+  });
+});

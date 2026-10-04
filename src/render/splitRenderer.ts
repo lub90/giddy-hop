@@ -4,6 +4,8 @@ import type { Rect } from './layout';
 export interface View {
   camera: THREE.PerspectiveCamera;
   rect: Rect;
+  /** Render without the scene fog (e.g. the overview from high above). */
+  noFog?: boolean;
 }
 
 /**
@@ -40,7 +42,9 @@ export class SplitRenderer {
     r.setClearColor('#14100c');
     r.clear();
     r.setScissorTest(true);
-    for (const { camera, rect } of views) {
+    const fog = scene.fog;
+    for (const { camera, rect, noFog } of views) {
+      scene.fog = noFog ? null : fog;
       // three.js viewports start bottom left, our rects top left.
       const y = this.height - rect.y - rect.h;
       r.setViewport(rect.x, y, rect.w, rect.h);
@@ -52,6 +56,7 @@ export class SplitRenderer {
       }
       r.render(scene, camera);
     }
+    scene.fog = fog;
     r.setScissorTest(false);
   }
 }

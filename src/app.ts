@@ -250,12 +250,12 @@ export class App {
       layout.players.forEach((rect, i) => views.push({ camera: this.raceView!.cameras[i].camera, rect }));
       if (layout.spare) {
         this.overview.topDown();
-        views.push({ camera: this.overview.camera, rect: layout.spare });
+        views.push({ camera: this.overview.camera, rect: layout.spare, noFog: true });
       }
       this.hud.layout(layout.players);
     } else {
       this.overview.orbit(t);
-      views.push({ camera: this.overview.camera, rect: { x: 0, y: 0, w: width, h: height } });
+      views.push({ camera: this.overview.camera, rect: { x: 0, y: 0, w: width, h: height }, noFog: true });
     }
     this.renderer.render(this.scene, views);
   }
@@ -276,7 +276,8 @@ export class App {
 
     if (race && (phase === 'countdown' || phase === 'race' || phase === 'results')) {
       for (const e of race.drainEvents()) this.hud.event(e, t);
-      this.hud.update(race.horses.map((_, i) => this.hudState(i, t)), t);
+      const positions = race.positions();
+      this.hud.update(race.horses.map((_, i) => this.hudState(i, t, positions[i])), t);
     }
 
     this.debug.update(
@@ -285,12 +286,14 @@ export class App {
     );
   }
 
-  private hudState(i: number, t: number): HudState {
+  private hudState(i: number, t: number, position: number): HudState {
     const race = this.flow.race!;
     const h = race.horses[i];
     const slot = this.tracker.slots[i];
     const edge = race.track.halfWidth * 0.75;
     return {
+      position,
+      riders: race.horses.length,
       carrots: h.carrots,
       faults: h.faults,
       time: h.finishTime ?? race.time,

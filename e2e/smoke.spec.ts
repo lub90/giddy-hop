@@ -148,3 +148,27 @@ test('course selection on the start screen', async ({ page }) => {
   await page.screenshot({ path: 'test-results/08-pony-loop.png' });
   expect(errors).toEqual([]);
 });
+
+test('live placement is shown top left', async ({ page }) => {
+  const errors = trackErrors(page);
+  await page.goto('/');
+  await expect(page.locator('#overlay h1')).toContainText('Reitturnier', { timeout: 60_000 });
+  for (let i = 0; i < 3; i++) await page.keyboard.press('t');
+  await page.keyboard.press('Space');
+  await page.keyboard.press('Space');
+  await expect(page.locator('#overlay')).toHaveClass(/hidden/, { timeout: 6_000 });
+  // Player 2 gallops and must lead.
+  await page.keyboard.down('KeyI');
+  await page.waitForTimeout(2_500);
+  const positions = await page.locator('.hud-pos').allTextContents();
+  expect(positions[1]).toBe('1.');
+  expect([...positions].sort()).toEqual(['1.', '2.', '3.']);
+  await expect(page.locator('.hud-pos').nth(1)).toHaveClass(/gold/);
+  // The badge sits left of the horse name, in the top-left corner of the viewport.
+  const badge = await page.locator('.hud-pos').nth(0).boundingBox();
+  const panel = await page.locator('.hud-panel').nth(0).boundingBox();
+  expect(badge!.x - panel!.x).toBeLessThan(40);
+  expect(badge!.y - panel!.y).toBeLessThan(40);
+  await page.screenshot({ path: 'test-results/09-placement.png' });
+  expect(errors).toEqual([]);
+});

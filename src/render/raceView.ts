@@ -42,7 +42,7 @@ export class RaceView {
     });
     // Big colored pins so the horses can be found in the overview.
     this.markers = Array.from({ length: n }, (_, i) => {
-      const pin = new THREE.Mesh(new THREE.ConeGeometry(2.2, 5, 10), new THREE.MeshBasicMaterial({ color: colors[i] }));
+      const pin = new THREE.Mesh(new THREE.ConeGeometry(4.5, 10, 10), new THREE.MeshBasicMaterial({ color: colors[i] }));
       pin.rotation.x = Math.PI;
       setLayer(pin, LAYER_OVERVIEW);
       this.root.add(pin);
@@ -58,7 +58,7 @@ export class RaceView {
       model.sync(horse, race.track);
       this.cameras[i].sync(horse, model, race.track, time);
       this.obstacles[i].update(race.time, time);
-      this.markers[i].position.set(model.root.position.x, 9 + Math.sin(time * 3 + i) * 0.8, model.root.position.z);
+      this.markers[i].position.set(model.root.position.x, 14 + Math.sin(time * 3 + i) * 1.5, model.root.position.z);
     });
   }
 

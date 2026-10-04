@@ -28,6 +28,8 @@ describe('Speed gauge – Schritt / Trab / Galopp', () => {
 });
 
 const base: HudState = {
+  position: 1,
+  riders: 2,
   carrots: 0,
   faults: 0,
   time: 0,

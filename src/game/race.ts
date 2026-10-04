@@ -121,6 +121,24 @@ export class Race {
     return null;
   }
 
+  /**
+   * Live placement per player (1 = leading): finished horses by finish time,
+   * then the others by distance ridden.
+   */
+  positions(): number[] {
+    const order = this.horses
+      .map((h, player) => ({ player, h }))
+      .sort((a, b) => {
+        if (a.h.finishTime !== null && b.h.finishTime !== null) return a.h.finishTime - b.h.finishTime;
+        if (a.h.finishTime !== null) return -1;
+        if (b.h.finishTime !== null) return 1;
+        return b.h.s - a.h.s || a.player - b.player;
+      });
+    const positions: number[] = [];
+    order.forEach(({ player }, i) => (positions[player] = i + 1));
+    return positions;
+  }
+
   results(): RaceResult[] {
     const { faultPenaltySeconds, carrotBonusSeconds } = this.cfg.scoring;
     const rows = this.horses.map((h, player) => ({
