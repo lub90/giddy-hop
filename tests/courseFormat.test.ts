@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { courseStats, parseCourse } from '../src/game/courseFormat';
+import { applyCourseOptions, courseStats, parseCourse } from '../src/game/courseFormat';
+import { Track } from '../src/game/track';
 import { loadCourses } from '../src/game/courses';
 
 const minimal = `
@@ -123,5 +124,39 @@ segments:
 `);
     expect(c.def.segments[0].obstacles!.map((o) => o.type)).toEqual(['fence', 'wall', 'hedge', 'water']);
     expect(courseStats(c.def).jumps).toBe(4);
+  });
+});
+
+describe('Start-screen options: cones and carrots on/off', () => {
+  const course = parseCourse('t', `
+name: X
+segments:
+  - straight: 60
+    carrots: 2
+    obstacles:
+      - { at: 10, type: fence }
+      - { at: 30, type: cone, lateral: 1 }
+  - straight: 20
+    obstacles:
+      - { at: 5, type: cone }
+`);
+  const types = (o: { cones: boolean; carrots: boolean }) =>
+    new Track(applyCourseOptions(course.def, o)).obstacles.map((x) => x.type).sort();
+
+  it('keeps everything when both are on', () => {
+    expect(types({ cones: true, carrots: true })).toEqual(['carrot', 'carrot', 'cone', 'cone', 'fence']);
+  });
+
+  it('removes only the cones', () => {
+    expect(types({ cones: false, carrots: true })).toEqual(['carrot', 'carrot', 'fence']);
+  });
+
+  it('removes only the carrots', () => {
+    expect(types({ cones: true, carrots: false })).toEqual(['cone', 'cone', 'fence']);
+  });
+
+  it('never removes jumps, and does not change the course file data', () => {
+    expect(types({ cones: false, carrots: false })).toEqual(['fence']);
+    expect(new Track(course.def).obstacles).toHaveLength(5);
   });
 });

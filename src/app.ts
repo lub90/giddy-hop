@@ -3,7 +3,7 @@ import { CONFIG } from './config';
 import { loadSetting, saveSetting } from './core/persist';
 import { currentLanguage, horseName, horseNames, LANGUAGE_SETTING_KEY, matchLanguage, setLanguage, t } from './i18n';
 import { DebugPanel } from './debug/debugPanel';
-import type { CourseInfo } from './game/courseFormat';
+import { applyCourseOptions, DEFAULT_COURSE_OPTIONS, type CourseInfo, type CourseOptions } from './game/courseFormat';
 import { COURSES } from './game/courses';
 import { GameFlow, type Phase } from './game/gameFlow';
 import { Lobby } from './game/lobby';
@@ -42,6 +42,19 @@ function initialCourse(): CourseInfo {
   return COURSES.find((c) => c.id === saved) ?? COURSES[0];
 }
 
+/** Start-screen toggles (cones, carrots) and their localStorage keys. */
+const OPTION_KEYS: Record<keyof CourseOptions, string> = {
+  cones: 'giddyhop.cones',
+  carrots: 'giddyhop.carrots',
+};
+
+function initialOptions(): CourseOptions {
+  const read = (k: keyof CourseOptions) => loadSetting(OPTION_KEYS[k]) !== 'off' && DEFAULT_COURSE_OPTIONS[k];
+  return { cones: read('cones'), carrots: read('carrots') };
+}
+
+const isOptionKey = (v: string | undefined): v is keyof CourseOptions => !!v && v in OPTION_KEYS;
+
 const TRACKER_MODE: Record<Phase, TrackerMode> = {
   startup: 'register',
   register: 'register',
@@ -60,7 +73,8 @@ const TRACKER_MODE: Record<Phase, TrackerMode> = {
  */
 export class App {
   private course: CourseInfo = initialCourse();
-  private readonly flow = new GameFlow(new Track(this.course.def), CONFIG);
+  private options: CourseOptions = initialOptions();
+  private readonly flow = new GameFlow(this.makeTrack(), CONFIG);
   private readonly tracker = new PlayerTracker();
   private readonly lobby = new Lobby(this.tracker);
   private readonly keyboard = new KeyboardInput();
@@ -113,8 +127,12 @@ export class App {
   private selectCourse(id: string): void {
     const course = COURSES.find((c) => c.id === id);
     if (!course || course.id === this.course.id) return;
-    if (!this.flow.setTrack(new Track(course.def))) return;
+    const previous = this.course;
     this.course = course;
+    if (!this.flow.setTrack(this.makeTrack())) {
+      this.course = previous;
+      return;
+    }
     saveSetting(COURSE_SETTING_KEY, course.id);
     this.buildScenery();
     this.screens.updateCourseInfo(course);
@@ -129,9 +147,27 @@ export class App {
     if (this.flow.phase === 'register') this.showRegistration();
   }
 
+  /** Cone / carrot toggles on the start screen. */
+  private setOption(key: keyof CourseOptions, on: boolean): void {
+    if (this.options[key] === on) return;
+    const previous = this.options;
+    this.options = { ...this.options, [key]: on };
+    if (!this.flow.setTrack(this.makeTrack())) {
+      this.options = previous;
+      return;
+    }
+    saveSetting(OPTION_KEYS[key], on ? 'on' : 'off');
+    this.buildScenery();
+  }
+
+  /** Track for the selected course with the start-screen options applied. */
+  private makeTrack(): Track {
+    return new Track(applyCourseOptions(this.course.def, this.options));
+  }
+
   private showRegistration(): void {
     const problem = this.cameraError ? t('startup.cameraProblem', { message: this.cameraError }) : null;
-    this.screens.registration(problem, COURSES, this.course);
+    this.screens.registration(problem, COURSES, this.course, this.options);
     this.mountCameraPreview();
   }
 
@@ -147,12 +183,14 @@ export class App {
       this.toggleFullscreen();
     });
     this.el.overlay.addEventListener('change', (e) => {
-      const select = (e.target as HTMLElement).closest<HTMLSelectElement>('select[data-action]');
-      if (!select) return;
-      if (select.dataset.action === 'course') this.selectCourse(select.value);
-      else if (select.dataset.action === 'language') this.selectLanguage(select.value);
+      const control = (e.target as HTMLElement).closest<HTMLInputElement | HTMLSelectElement>('[data-action]');
+      if (!control) return;
+      const action = control.dataset.action;
+      if (action === 'course') this.selectCourse(control.value);
+      else if (action === 'language') this.selectLanguage(control.value);
+      else if (isOptionKey(action) && control instanceof HTMLInputElement) this.setOption(action, control.checked);
       // Arrow keys and Space are game keys – give the focus back to the page.
-      select.blur();
+      control.blur();
     });
     document.addEventListener('fullscreenchange', () => {
       document.body.classList.toggle('is-fullscreen', !!document.fullscreenElement);

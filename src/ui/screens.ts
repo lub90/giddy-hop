@@ -1,4 +1,4 @@
-import { courseStats, type CourseInfo } from '../game/courseFormat';
+import { courseStats, type CourseInfo, type CourseOptions } from '../game/courseFormat';
 import type { RaceResult } from '../game/race';
 import { currentLanguage, LANGUAGE_NAMES, LANGUAGES, localized, t } from '../i18n';
 import type { PlayerSlot, PlayerTracker } from '../pose/playerTracker';
@@ -76,7 +76,14 @@ export class Screens {
   }
 
   /** Registration screen; mount the camera preview afterwards with `mountCamera`. */
-  registration(cameraProblem: string | null, courses: readonly CourseInfo[], selected: CourseInfo): void {
+  registration(
+    cameraProblem: string | null,
+    courses: readonly CourseInfo[],
+    selected: CourseInfo,
+    options: CourseOptions,
+  ): void {
+    const toggle = (key: keyof CourseOptions) =>
+      `<label class="toggle"><input type="checkbox" data-action="${key}"${options[key] ? ' checked' : ''} tabindex="-1"> ${t(`register.${key}`)}</label>`;
     const option = (value: string, label: string, isSelected: boolean) =>
       `<option value="${escapeHtml(value)}"${isSelected ? ' selected' : ''}>${escapeHtml(label)}</option>`;
     const courseOptions = courses.map((c) => option(c.id, localized(c.name), c.id === selected.id)).join('');
@@ -96,6 +103,8 @@ export class Screens {
          <div class="pickers">
            <label>${t('register.course')} <select data-action="course">${courseOptions}</select></label>
            <label>${t('register.language')} <select data-action="language">${languageOptions}</select></label>
+           ${toggle('cones')}
+           ${toggle('carrots')}
          </div>
          <div class="course-info"></div>
        </div>

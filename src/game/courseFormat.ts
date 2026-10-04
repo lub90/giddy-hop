@@ -97,6 +97,31 @@ const STRAIGHT_KEYS = ['straight', 'carrots', 'obstacles'] as const;
 const CURVE_KEYS = ['curve', 'angle', 'radius', 'carrots', 'obstacles'] as const;
 const OBSTACLE_KEYS = ['at', 'type', 'lateral'] as const;
 
+/** Options chosen on the start screen that modify a course. */
+export interface CourseOptions {
+  /** Include the cones (steer-around obstacles). */
+  cones: boolean;
+  /** Include the carrots (speed boosts). */
+  carrots: boolean;
+}
+
+export const DEFAULT_COURSE_OPTIONS: Readonly<CourseOptions> = { cones: true, carrots: true };
+
+/** Applies the start-screen options to a course (returns a new definition). */
+export function applyCourseOptions(def: CourseDef, options: CourseOptions): CourseDef {
+  if (options.cones && options.carrots) return def;
+  const keep = (type: ObstacleType) => (type !== 'cone' || options.cones) && (type !== 'carrot' || options.carrots);
+  return {
+    ...def,
+    segments: def.segments.map((s) => {
+      if (!s.obstacles) return s;
+      const obstacles = s.obstacles.filter((o) => keep(o.type));
+      const { obstacles: _drop, ...rest } = s;
+      return obstacles.length > 0 ? { ...rest, obstacles } : rest;
+    }),
+  };
+}
+
 export interface CourseStats {
   /** Total length in m. */
   length: number;

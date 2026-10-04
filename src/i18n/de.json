@@ -16,6 +16,8 @@
     "whenReady": "Wenn alle bereit sind, geht's los!",
     "course": "🏇 Strecke:",
     "language": "🌐 Sprache:",
+    "cones": "🔶 Hütchen",
+    "carrots": "🥕 Karotten",
     "fullscreen": "⛶ Vollbild (Esc = beenden)",
     "keys": "<b>Leertaste</b> = alle bereit · <b>Rücktaste</b> = alle abmelden · <b>T</b> = Tastatur-Reiter · <b>F</b> = Vollbild"
   },

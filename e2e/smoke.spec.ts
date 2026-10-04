@@ -222,3 +222,28 @@ test.describe('Unsupported browser language', () => {
     await expectStartScreen(page, 'On your horses');
   });
 });
+
+test('cones and carrots can be switched off on the start screen', async ({ page }) => {
+  const errors = trackErrors(page);
+  await page.goto('/');
+  await expectStartScreen(page, 'Auf die Pferde');
+  const cones = page.locator('input[data-action="cones"]');
+  const carrots = page.locator('input[data-action="carrots"]');
+  await expect(cones).toBeChecked();
+  await expect(carrots).toBeChecked();
+
+  await cones.uncheck();
+  await carrots.uncheck();
+  await page.screenshot({ path: 'test-results/11-toggles.png' });
+  // Remembered across reloads.
+  await page.reload();
+  await expectStartScreen(page, 'Auf die Pferde');
+  await expect(page.locator('input[data-action="cones"]')).not.toBeChecked();
+  await expect(page.locator('input[data-action="carrots"]')).not.toBeChecked();
+
+  // Space afterwards still starts the game (the checkbox must not keep the focus).
+  await page.keyboard.press('t');
+  await page.keyboard.press('Space');
+  await expect(page.locator('#overlay h1')).toContainText('Laden');
+  expect(errors).toEqual([]);
+});

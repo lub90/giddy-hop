@@ -16,6 +16,8 @@
     "whenReady": "As soon as everyone is ready, off we go!",
     "course": "🏇 Course:",
     "language": "🌐 Language:",
+    "cones": "🔶 Cones",
+    "carrots": "🥕 Carrots",
     "fullscreen": "⛶ Fullscreen (Esc = exit)",
     "keys": "<b>Space</b> = everyone ready · <b>Backspace</b> = unregister all · <b>T</b> = keyboard rider · <b>F</b> = fullscreen"
   },
