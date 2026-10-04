@@ -11,7 +11,7 @@ import { PlayerTracker } from './pose/playerTracker';
 import { PoseService } from './pose/poseService';
 import { OverviewCamera } from './render/cameras';
 import { splitLayout } from './render/layout';
-import { buildCones } from './render/obstacleViews';
+import { buildStaticObstacles } from './render/obstacleViews';
 import { RaceView } from './render/raceView';
 import { SplitRenderer, type View } from './render/splitRenderer';
 import { buildWorld } from './render/world';
@@ -64,7 +64,7 @@ export class App {
     this.debug = new DebugPanel(el.debug, this.cameraView, () => this.renderer.setPixelRatio(CONFIG.render.pixelRatio));
 
     buildWorld(this.scene, this.track, CONFIG.render.viewDistance, CONFIG.render.treeCount);
-    buildCones(this.scene, this.track);
+    buildStaticObstacles(this.scene, this.track);
   }
 
   async start(): Promise<void> {

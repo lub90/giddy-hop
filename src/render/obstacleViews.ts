@@ -16,6 +16,13 @@ const carrotMat = new THREE.MeshLambertMaterial({ color: '#ff8a1e', emissive: '#
 const leafMat = new THREE.MeshLambertMaterial({ color: '#3fa34d' });
 const coneMat = new THREE.MeshLambertMaterial({ color: '#ff6a1a' });
 const whiteMat = new THREE.MeshLambertMaterial({ color: '#ffffff' });
+const hedgeGeo = new THREE.BoxGeometry(1, 1, 1);
+const bushGeo = new THREE.IcosahedronGeometry(0.6, 0);
+const hedgeMat = new THREE.MeshLambertMaterial({ color: '#2f6b2e' });
+const bushMat = new THREE.MeshLambertMaterial({ color: '#3c7f34', flatShading: true });
+
+const HEDGE_HEIGHT = 1.3;
+const HEDGE_DEPTH = 1.0;
 let poleMat: THREE.MeshLambertMaterial | null = null;
 
 const POLE_HEIGHTS = [0.45, 0.75, 1.0];
@@ -29,8 +36,8 @@ function place(obj: THREE.Object3D, track: Track, o: TrackObstacle): void {
 function buildFence(track: Track): { group: THREE.Group; poles: THREE.Mesh[] } {
   poleMat ??= new THREE.MeshLambertMaterial({ map: stripeTexture('#d62828') });
   const group = new THREE.Group();
-  // Span from rail to rail so it is clear the fence cannot be bypassed over the grass.
-  const width = track.railOffset * 2;
+  // The striped poles span the sand only; hedges on the grass block the way around.
+  const width = track.halfWidth * 2 + 0.4;
   for (const side of [-1, 1]) {
     const st = new THREE.Mesh(standardGeo, standardMat);
     st.position.set((side * width) / 2, 0.8, 0);
@@ -117,16 +124,48 @@ export class PlayerObstacles {
   }
 }
 
-/** Cones never change, so all players share them. */
-export function buildCones(scene: THREE.Scene, track: Track): void {
+function buildCone(): THREE.Group {
+  const g = new THREE.Group();
+  const cone = new THREE.Mesh(coneGeo, coneMat);
+  cone.position.y = 0.4;
+  const stripe = new THREE.Mesh(stripeGeo, whiteMat);
+  stripe.position.y = 0.45;
+  g.add(cone, stripe);
+  return g;
+}
+
+/** Hedges on both grass strips next to a fence, from the sand edge to the rails. */
+function buildHedges(track: Track): THREE.Group {
+  const g = new THREE.Group();
+  const inner = track.halfWidth + 0.35;
+  const outer = track.railOffset + 0.2;
+  const length = outer - inner;
+  for (const side of [-1, 1]) {
+    const center = (side * (inner + outer)) / 2;
+    const hedge = new THREE.Mesh(hedgeGeo, hedgeMat);
+    hedge.scale.set(length, HEDGE_HEIGHT * 0.8, HEDGE_DEPTH);
+    hedge.position.set(center, (HEDGE_HEIGHT * 0.8) / 2, 0);
+    g.add(hedge);
+    // Bushy top so it reads as a hedge, not a wall.
+    const bushes = Math.max(2, Math.round(length / 0.9));
+    for (let i = 0; i < bushes; i++) {
+      const bush = new THREE.Mesh(bushGeo, bushMat);
+      const x = side * (inner + ((i + 0.5) / bushes) * length);
+      bush.position.set(x, HEDGE_HEIGHT * 0.8, ((i % 2) - 0.5) * 0.15);
+      bush.scale.set(0.9, 0.75 + (i % 3) * 0.1, HEDGE_DEPTH * 0.85);
+      g.add(bush);
+    }
+  }
+  return g;
+}
+
+/** Cones and the hedges beside the fences never change, so all players share them. */
+export function buildStaticObstacles(scene: THREE.Scene, track: Track): void {
   for (const o of track.obstacles) {
-    if (o.type !== 'cone') continue;
-    const g = new THREE.Group();
-    const cone = new THREE.Mesh(coneGeo, coneMat);
-    cone.position.y = 0.4;
-    const stripe = new THREE.Mesh(stripeGeo, whiteMat);
-    stripe.position.y = 0.45;
-    g.add(cone, stripe);
+    let g: THREE.Group;
+    if (o.type === 'cone') g = buildCone();
+    else if (o.type === 'fence') g = buildHedges(track);
+    else continue;
     place(g, track, o);
     setLayer(g, LAYER_SHARED);
     scene.add(g);
