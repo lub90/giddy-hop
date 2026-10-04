@@ -4,3 +4,6 @@ dist/
 .vite/
 test-results/
 playwright-report/
+
+# Local Claude Code settings – never publish
+.claude/
