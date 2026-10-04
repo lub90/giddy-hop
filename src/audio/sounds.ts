@@ -50,9 +50,12 @@ export class Sounds {
   }
 
   /**
-   * A happy whinny. Like a real one it has two voices at once – a low, nasal
-   * main voice and a quieter high one – plus breath noise, and it pulses
-   * ("hi-hi-hi-hi") while it falls in pitch. Ends with a soft snort.
+   * A happy whinny: "Wieh-ha".
+   *
+   * Built like a voice: a soft voiced tone whose vowel changes over time
+   * (formant filters move) – a rounded "W" at the start, a bright trilling "ie"
+   * while the pitch rises to its peak in the middle, a breathy "h", and an open,
+   * pulsing "a" while the pitch falls. Ends with a soft snort.
    * `pitch` varies the voice per horse (≈0.85–1.15).
    */
   whinny(pitch = 1): void {
@@ -61,91 +64,93 @@ export class Sounds {
     if (!r || volume <= 0) return;
     const { ctx, bus } = r;
     const t0 = ctx.currentTime + 0.02;
-    const dur = 1.6;
+    const dur = WHINNY.duration;
+    const at = (frac: number) => t0 + frac * dur;
+    /** Linear keyframes (time as fraction of the duration). */
+    const keys = (param: AudioParam, points: readonly (readonly [number, number])[], scale = 1) => {
+      param.setValueAtTime(points[0][1] * scale, at(points[0][0]));
+      for (const [f, v] of points.slice(1)) param.linearRampToValueAtTime(v * scale, at(f));
+    };
 
     const out = ctx.createGain();
-    out.gain.value = volume * 0.9;
+    out.gain.value = volume;
     const soften = ctx.createBiquadFilter();
     soften.type = 'lowpass';
-    soften.frequency.value = 2400;
+    keys(soften.frequency, WHINNY.brightness);
     out.connect(soften).connect(bus);
 
-    // Overall loudness: quick attack, hold, long fade.
+    // Loudness over the phases, with a dip for the breathy "h".
     const env = ctx.createGain();
-    env.gain.setValueAtTime(0.0001, t0);
-    env.gain.exponentialRampToValueAtTime(1, t0 + 0.07);
-    env.gain.setValueAtTime(1, t0 + dur * 0.45);
-    env.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+    keys(env.gain, WHINNY.loudness);
     env.connect(out);
 
-    // Pulsing loudness: the whinny's "hi-hi-hi-hi", slowing down and getting deeper towards the end.
+    // Pulsing: light trill in the "ie", strong "ha-ha-ha" in the "a".
     const pulse = ctx.createGain();
-    pulse.gain.value = 0.6;
+    pulse.gain.value = 1;
     const pulseLfo = ctx.createOscillator();
-    pulseLfo.frequency.setValueAtTime(11, t0);
-    pulseLfo.frequency.linearRampToValueAtTime(6.5, t0 + dur);
+    keys(pulseLfo.frequency, WHINNY.pulseRate);
     const pulseDepth = ctx.createGain();
-    pulseDepth.gain.setValueAtTime(0.15, t0);
-    pulseDepth.gain.linearRampToValueAtTime(0.45, t0 + dur);
+    keys(pulseDepth.gain, WHINNY.pulseDepth);
     pulseLfo.connect(pulseDepth).connect(pulse.gain);
     pulse.connect(env);
 
-    // Low main voice through the formants of a horse's nasal tract.
-    const low = ctx.createOscillator();
-    low.type = 'sawtooth';
-    low.frequency.setValueAtTime(470 * pitch, t0);
-    low.frequency.linearRampToValueAtTime(560 * pitch, t0 + 0.12);
-    low.frequency.exponentialRampToValueAtTime(420 * pitch, t0 + dur * 0.55);
-    low.frequency.exponentialRampToValueAtTime(290 * pitch, t0 + dur);
-    const vibrato = ctx.createOscillator();
-    vibrato.frequency.value = 6;
-    const vibratoDepth = ctx.createGain();
-    vibratoDepth.gain.value = 9 * pitch;
-    vibrato.connect(vibratoDepth).connect(low.frequency);
-    const lowMix = ctx.createGain();
-    lowMix.gain.value = 0.55;
-    for (const [freq, q, gain] of [
-      [750, 4, 1],
-      [1300, 5, 0.55],
-      [2500, 6, 0.08],
-    ] as const) {
+    // Voiced source: soft, voice-like harmonics (not a harsh sawtooth).
+    const voice = ctx.createOscillator();
+    voice.setPeriodicWave(this.voiceWave(ctx));
+    keys(voice.frequency, WHINNY.pitch, pitch);
+    // Trill: the pitch shakes quickly, strongest around the high point.
+    const trill = ctx.createOscillator();
+    trill.frequency.value = 11;
+    const trillDepth = ctx.createGain();
+    keys(trillDepth.gain, WHINNY.trillDepth, pitch);
+    trill.connect(trillDepth).connect(voice.frequency);
+
+    // Vowel: three formant filters that move from "W" over "ie" to "a".
+    const vowel = ctx.createGain();
+    vowel.gain.value = 1;
+    WHINNY.formants.forEach((track, i) => {
       const f = ctx.createBiquadFilter();
       f.type = 'bandpass';
-      f.frequency.value = freq * pitch;
-      f.Q.value = q;
+      f.Q.value = [6, 9, 10][i];
+      keys(f.frequency, track, Math.sqrt(pitch));
       const g = ctx.createGain();
-      g.gain.value = gain;
-      low.connect(f).connect(g).connect(lowMix);
-    }
-    lowMix.connect(pulse);
+      g.gain.value = [1.6, 1.1, 0.5][i];
+      voice.connect(f).connect(g).connect(vowel);
+    });
+    vowel.connect(pulse);
 
-    // Quieter high voice on top (horses whinny with two pitches at once).
-    const high = ctx.createOscillator();
-    high.type = 'triangle';
-    high.frequency.setValueAtTime(1050 * pitch, t0);
-    high.frequency.linearRampToValueAtTime(1250 * pitch, t0 + 0.12);
-    high.frequency.exponentialRampToValueAtTime(820 * pitch, t0 + dur * 0.7);
-    const highGain = ctx.createGain();
-    highGain.gain.setValueAtTime(0.12, t0);
-    highGain.gain.exponentialRampToValueAtTime(0.001, t0 + dur * 0.75);
-    high.connect(highGain).connect(pulse);
-
-    // Breath: soft noise gives the sound its raspy, alive character.
+    // Breath: quiet throughout, loud for the "h" between "ie" and "a".
     const breath = this.noiseSource(ctx, dur);
     const breathBand = ctx.createBiquadFilter();
     breathBand.type = 'bandpass';
-    breathBand.frequency.value = 1100;
-    breathBand.Q.value = 0.7;
+    breathBand.frequency.value = 1500;
+    breathBand.Q.value = 0.8;
     const breathGain = ctx.createGain();
-    breathGain.gain.value = 0.14;
-    breath.connect(breathBand).connect(breathGain).connect(pulse);
+    keys(breathGain.gain, WHINNY.breath);
+    breath.connect(breathBand).connect(breathGain).connect(env);
 
-    for (const node of [low, vibrato, high, pulseLfo, breath]) {
+    for (const node of [voice, trill, pulseLfo, breath]) {
       node.start(t0);
       node.stop(t0 + dur + 0.05);
     }
 
-    this.snortAt(ctx, out, t0 + dur + 0.15);
+    this.snortAt(ctx, out, t0 + dur + 0.2);
+  }
+
+  private wave: PeriodicWave | null = null;
+  private waveCtx: BaseAudioContext | null = null;
+
+  /** Glottal-like source: harmonics falling off smoothly (1/n^1.4). */
+  private voiceWave(ctx: BaseAudioContext): PeriodicWave {
+    if (!this.wave || this.waveCtx !== ctx) {
+      const n = 40;
+      const real = new Float32Array(n);
+      const imag = new Float32Array(n);
+      for (let k = 1; k < n; k++) imag[k] = 1 / Math.pow(k, 1.4);
+      this.wave = ctx.createPeriodicWave(real, imag);
+      this.waveCtx = ctx;
+    }
+    return this.wave;
   }
 
   /** A soft snort on its own (e.g. for testing in the debug panel). */
@@ -262,3 +267,44 @@ export class Sounds {
     return src;
   }
 }
+
+type Keys = readonly (readonly [number, number])[];
+
+/**
+ * The "Wieh-ha" as keyframes [time as fraction of the duration, value]:
+ *   0.00–0.10 "W"   rounded, dark, soft onset
+ *   0.10–0.45 "ie"  bright, trilling, pitch rises to its peak around the middle
+ *   0.45–0.55 "h"   breathy dip
+ *   0.55–1.00 "a"   open, pulsing "ha-ha-ha", pitch falls
+ */
+export const WHINNY: {
+  duration: number;
+  pitch: Keys;
+  formants: readonly [Keys, Keys, Keys];
+  loudness: Keys;
+  pulseRate: Keys;
+  pulseDepth: Keys;
+  trillDepth: Keys;
+  breath: Keys;
+  brightness: Keys;
+} = {
+  duration: 1.5,
+  // Hz – up towards the middle, then down.
+  pitch: [[0, 380], [0.1, 500], [0.35, 780], [0.5, 640], [0.75, 450], [1, 320]],
+  formants: [
+    // F1: low for "W"/"ie", opens up for "a".
+    [[0, 300], [0.1, 320], [0.45, 340], [0.58, 760], [1, 700]],
+    // F2: low "W" → high "ie" → middle "a" – the core of "Wieh-ha".
+    [[0, 650], [0.1, 900], [0.25, 2100], [0.45, 2200], [0.58, 1250], [1, 1150]],
+    // F3
+    [[0, 2400], [0.25, 2900], [0.45, 3000], [0.58, 2500], [1, 2400]],
+  ],
+  loudness: [[0, 0], [0.06, 0.45], [0.15, 0.9], [0.42, 1], [0.47, 0.15], [0.52, 0.15], [0.58, 0.85], [0.8, 0.6], [1, 0]],
+  pulseRate: [[0, 10], [0.45, 11], [0.55, 7], [1, 5]],
+  pulseDepth: [[0, 0.05], [0.3, 0.15], [0.45, 0.1], [0.55, 0.35], [1, 0.45]],
+  // Hz of pitch shake
+  trillDepth: [[0, 5], [0.2, 25], [0.4, 35], [0.55, 10], [1, 5]],
+  breath: [[0, 0.03], [0.42, 0.05], [0.47, 0.7], [0.53, 0.6], [0.58, 0.1], [1, 0.05]],
+  // Hz – a closing low-pass makes the "W" dark and rounded, then opens up.
+  brightness: [[0, 900], [0.12, 4500], [0.5, 4500], [0.6, 3200], [1, 2800]],
+};
