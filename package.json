@@ -18,7 +18,8 @@
     "@tensorflow/tfjs-converter": "^4.22.0",
     "@tensorflow/tfjs-core": "^4.22.0",
     "lil-gui": "^0.21.0",
-    "three": "^0.186.1"
+    "three": "^0.186.1",
+    "yaml": "^2.9.1"
   },
   "devDependencies": {
     "@playwright/test": "^1.63.0",

@@ -1,0 +1,65 @@
+# The original parcours: ~370 m, about one minute of riding.
+# Format: see courses/README.md
+
+name:
+  de: Großer Parcours
+  en: Grand Parcours
+description:
+  de: Lange Strecke mit Haarnadelkurve, S-Kurve und fünf Sprüngen.
+  en: Long track with a hairpin, an S-bend and five jumps.
+order: 1
+
+width: 7   # width of the sand track (m)
+grass: 4   # grass strip between sand and rails on each side (m)
+
+segments:
+  - straight: 25
+
+  - straight: 30
+    obstacles:
+      - { at: 15, type: fence }
+
+  - curve: right
+    angle: 90
+    radius: 22
+    carrots: 3
+
+  - straight: 40
+    obstacles:
+      - { at: 10, type: fence }
+      - { at: 22, type: cone, lateral: 0 }
+      - { at: 22, type: carrot, lateral: -2.2 }
+      - { at: 33, type: fence }
+
+  - curve: left      # hairpin
+    angle: 180
+    radius: 20
+    carrots: 5
+
+  - straight: 35
+    obstacles:
+      - { at: 10, type: fence }
+      - { at: 20, type: cone, lateral: -1.5 }
+      - { at: 20, type: carrot, lateral: 1.8 }
+      - { at: 28, type: fence }
+
+  - curve: right
+    angle: 90
+    radius: 25
+    carrots: 3
+
+  # S-bend
+  - curve: left
+    angle: 60
+    radius: 25
+    carrots: 2
+  - curve: right
+    angle: 60
+    radius: 25
+    carrots: 2
+
+  - straight: 30
+    obstacles:
+      - { at: 15, type: fence }
+
+  - straight: 20   # finish straight

@@ -1,3 +1,4 @@
+import { courseStats, type CourseInfo } from '../game/courseFormat';
 import type { RaceResult } from '../game/race';
 import type { PlayerSlot, PlayerTracker } from '../pose/playerTracker';
 
@@ -58,8 +59,22 @@ export class Screens {
     this.root.querySelector('.camera-slot')?.appendChild(canvas);
   }
 
+  /** Shows the facts of the selected course below the course dropdown. */
+  updateCourseInfo(course: CourseInfo): void {
+    const el = this.root.querySelector<HTMLElement>('.course-info');
+    const select = this.root.querySelector<HTMLSelectElement>('select[data-action="course"]');
+    if (select && select.value !== course.id) select.value = course.id;
+    if (!el) return;
+    const s = courseStats(course.def);
+    const facts = `${Math.round(s.length)} m · ${s.jumps} Sprünge · ${s.curves} Kurven`;
+    el.textContent = course.description.de ? `${course.description.de} (${facts})` : facts;
+  }
+
   /** Registration screen; mount the camera preview afterwards with `mountCamera`. */
-  registration(cameraProblem: string | null): void {
+  registration(cameraProblem: string | null, courses: readonly CourseInfo[], selected: CourseInfo): void {
+    const options = courses
+      .map((c) => `<option value="${escapeHtml(c.id)}"${c.id === selected.id ? ' selected' : ''}>${escapeHtml(c.name.de)}</option>`)
+      .join('');
     this.show(
       'register',
       `<h1>🐴 Giddy Hop! – Das große Reitturnier</h1>
@@ -69,12 +84,17 @@ export class Screens {
        <span class="nowrap">🙌 <b>beide Arme</b> = zurück</span></p>
        ${cameraProblem ? `<p class="hint err">${escapeHtml(cameraProblem)}</p>` : '<div class="camera-slot"></div>'}
        <div class="slots"></div>
+       <div class="course-picker">
+         <label>🏇 Strecke: <select data-action="course">${options}</select></label>
+         <div class="course-info"></div>
+       </div>
        <p class="hint">Wenn alle bereit sind, geht's los!</p>
        <button class="fullscreen-btn" data-action="fullscreen" tabindex="-1">⛶ Vollbild (Esc = beenden)</button>
        <p class="hint small"><b>Leertaste</b> = alle bereit · <b>Rücktaste</b> = alle abmelden ·
        <b>T</b> = Tastatur-Reiter · <b>F</b> = Vollbild</p>`,
     );
     this.slotsEl = this.root.querySelector('.slots');
+    this.updateCourseInfo(selected);
   }
 
   /** "Laden …" while everyone gets into position. */

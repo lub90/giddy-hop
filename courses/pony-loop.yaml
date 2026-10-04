@@ -1,0 +1,41 @@
+# A short, easy course for the youngest riders (~200 m).
+# Format: see courses/README.md
+
+name:
+  de: Pony-Runde
+  en: Pony Loop
+description:
+  de: Kurze, gemütliche Strecke mit zwei Sprüngen – ideal für die Kleinsten.
+  en: Short, relaxed track with two jumps – perfect for the little ones.
+order: 2
+
+width: 8
+grass: 4
+
+segments:
+  - straight: 20
+
+  - straight: 25
+    obstacles:
+      - { at: 12, type: fence }
+
+  - curve: right
+    angle: 120
+    radius: 28
+    carrots: 3
+
+  - straight: 20
+    obstacles:
+      - { at: 10, type: cone, lateral: 0 }
+      - { at: 10, type: carrot, lateral: 2.5 }
+
+  - curve: left
+    angle: 120
+    radius: 28
+    carrots: 3
+
+  - straight: 25
+    obstacles:
+      - { at: 12, type: fence }
+
+  - straight: 20

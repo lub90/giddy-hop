@@ -34,15 +34,20 @@ export class RiderCamera {
 /** Camera high above the course: slowly orbiting in the registration, static as the spare quadrant. */
 export class OverviewCamera {
   readonly camera: THREE.PerspectiveCamera;
-  private readonly center: THREE.Vector3;
-  private readonly radius: number;
+  private readonly center = new THREE.Vector3();
+  private radius = 1;
 
   constructor(track: Track, far: number) {
-    const b = track.bounds;
-    this.center = new THREE.Vector3((b.minX + b.maxX) / 2, 0, (b.minZ + b.maxZ) / 2);
-    this.radius = Math.max(b.maxX - b.minX, b.maxZ - b.minZ);
     this.camera = new THREE.PerspectiveCamera(50, 1, 1, far * 3);
     this.camera.layers.enable(LAYER_OVERVIEW);
+    this.setTrack(track);
+  }
+
+  /** Frames the given course. */
+  setTrack(track: Track): void {
+    const b = track.bounds;
+    this.center.set((b.minX + b.maxX) / 2, 0, (b.minZ + b.maxZ) / 2);
+    this.radius = Math.max(b.maxX - b.minX, b.maxZ - b.minZ, 40);
   }
 
   /** Slow orbit for the start screen. */

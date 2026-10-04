@@ -160,7 +160,8 @@ function buildHedges(track: Track): THREE.Group {
 }
 
 /** Cones and the hedges beside the fences never change, so all players share them. */
-export function buildStaticObstacles(scene: THREE.Scene, track: Track): void {
+export function buildStaticObstacles(track: Track): THREE.Group {
+  const root = new THREE.Group();
   for (const o of track.obstacles) {
     let g: THREE.Group;
     if (o.type === 'cone') g = buildCone();
@@ -168,6 +169,9 @@ export function buildStaticObstacles(scene: THREE.Scene, track: Track): void {
     else continue;
     place(g, track, o);
     setLayer(g, LAYER_SHARED);
-    scene.add(g);
+    root.add(g);
   }
+  // Geometries and materials are module-wide and reused – never dispose them.
+  root.traverse((m) => (m.userData.shared = true));
+  return root;
 }

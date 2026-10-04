@@ -46,8 +46,8 @@ function placeAcross(obj: THREE.Object3D, track: Track, s: number, lateral = 0, 
   obj.rotation.y = -w.heading;
 }
 
-/** Builds the static scenery: sky, light, ground, track, rails, trees, gates and curve signs. */
-export function buildWorld(scene: THREE.Scene, track: Track, viewDistance: number, treeCount: number): void {
+/** Sky, fog and light – the same for every course. */
+export function setupEnvironment(scene: THREE.Scene, viewDistance: number): void {
   scene.background = new THREE.Color(SKY_COLOR);
   scene.fog = new THREE.Fog(SKY_COLOR, viewDistance * 0.35, viewDistance);
 
@@ -55,7 +55,11 @@ export function buildWorld(scene: THREE.Scene, track: Track, viewDistance: numbe
   const sun = new THREE.DirectionalLight('#fff4dc', 1.4);
   sun.position.set(40, 80, 30);
   scene.add(sun);
+}
 
+/** Course-specific scenery: ground, track, rails, trees, gates and curve signs. */
+export function buildCourseScenery(track: Track, treeCount: number): THREE.Group {
+  const scene = new THREE.Group();
   const b = track.bounds;
   const cx = (b.minX + b.maxX) / 2;
   const cz = (b.minZ + b.maxZ) / 2;
@@ -71,9 +75,26 @@ export function buildWorld(scene: THREE.Scene, track: Track, viewDistance: numbe
   addTrees(scene, track, treeCount);
   addGates(scene, track);
   addCurveSigns(scene, track);
+  return scene;
 }
 
-function addRails(scene: THREE.Scene, track: Track): void {
+/**
+ * Frees GPU resources of a subtree. Meshes flagged with `userData.shared`
+ * use geometries/materials that are reused across courses and are kept.
+ */
+export function disposeTree(root: THREE.Object3D): void {
+  root.traverse((o) => {
+    if (!(o instanceof THREE.Mesh) || o.userData.shared) return;
+    o.geometry.dispose();
+    const mats = Array.isArray(o.material) ? o.material : [o.material];
+    for (const m of mats) {
+      (m as THREE.MeshLambertMaterial).map?.dispose();
+      m.dispose();
+    }
+  });
+}
+
+function addRails(scene: THREE.Object3D, track: Track): void {
   const spacing = 3;
   const offset = track.railOffset + 0.2;
   const count = Math.floor(track.length / spacing) + 1;
@@ -106,7 +127,7 @@ function addRails(scene: THREE.Scene, track: Track): void {
   scene.add(posts, rails);
 }
 
-function addTrees(scene: THREE.Scene, track: Track, count: number): void {
+function addTrees(scene: THREE.Object3D, track: Track, count: number): void {
   const rnd = mulberry32(42);
   const b = track.bounds;
   const margin = 70;
@@ -137,7 +158,7 @@ function addTrees(scene: THREE.Scene, track: Track, count: number): void {
   scene.add(trunks, crowns);
 }
 
-function addGates(scene: THREE.Scene, track: Track): void {
+function addGates(scene: THREE.Object3D, track: Track): void {
   const width = track.railOffset * 2;
   const postMat = new THREE.MeshLambertMaterial({ color: '#8a5a2b' });
   const gate = (s: number, text: string, bg: string) => {
@@ -171,7 +192,7 @@ function addGates(scene: THREE.Scene, track: Track): void {
 }
 
 /** Chevron boards on the outside of every curve, pointing into the turn. */
-function addCurveSigns(scene: THREE.Scene, track: Track): void {
+function addCurveSigns(scene: THREE.Object3D, track: Track): void {
   const tex = { 1: chevronTexture(1), [-1]: chevronTexture(-1) } as Record<1 | -1, THREE.Texture>;
   const geo = new THREE.PlaneGeometry(1.6, 0.8);
   const postGeo = new THREE.BoxGeometry(0.08, 1.2, 0.08);

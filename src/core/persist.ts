@@ -35,6 +35,23 @@ export function saveOverrides(storageKey: string, value: Json): void {
   }
 }
 
+/** Reads a remembered string setting (e.g. the selected course). Never throws. */
+export function loadSetting(storageKey: string): string | null {
+  try {
+    return localStorage.getItem(storageKey);
+  } catch {
+    return null;
+  }
+}
+
+export function saveSetting(storageKey: string, value: string): void {
+  try {
+    localStorage.setItem(storageKey, value);
+  } catch {
+    // Storage unavailable – the setting only lasts for this session.
+  }
+}
+
 export function clearOverrides(storageKey: string): void {
   try {
     localStorage.removeItem(storageKey);

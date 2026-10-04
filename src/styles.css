@@ -92,6 +92,29 @@ h2 {
   white-space: nowrap;
 }
 
+.course-picker {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  font-size: 1.15rem;
+}
+.course-picker select {
+  margin-left: 6px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 2px solid var(--accent);
+  font: inherit;
+  font-weight: bold;
+  color: var(--text);
+  background: #2a241e;
+  cursor: pointer;
+}
+.course-info {
+  font-size: 0.95rem;
+  opacity: 0.8;
+}
+
 .fullscreen-btn {
   padding: 10px 22px;
   border: 0;

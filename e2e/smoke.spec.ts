@@ -120,3 +120,31 @@ test('fullscreen button in the start menu', async ({ page }) => {
   await expect(button).toBeVisible();
   expect(errors).toEqual([]);
 });
+
+test('course selection on the start screen', async ({ page }) => {
+  const errors = trackErrors(page);
+  await page.goto('/');
+  await expect(page.locator('#overlay h1')).toContainText('Reitturnier', { timeout: 60_000 });
+  const select = page.locator('select[data-action="course"]');
+  await expect(select.locator('option')).toHaveCount(2);
+  const before = await page.locator('.course-info').textContent();
+
+  await select.selectOption('pony-loop');
+  await expect(page.locator('.course-info')).not.toHaveText(before!);
+  await expect(page.locator('.course-info')).toContainText('2 Sprünge');
+  await page.screenshot({ path: 'test-results/07-course-selection.png' });
+
+  // The selection survives a reload.
+  await page.reload();
+  await expect(page.locator('select[data-action="course"]')).toHaveValue('pony-loop', { timeout: 60_000 });
+
+  await page.keyboard.press('t');
+  await page.keyboard.press('Space');
+  await page.keyboard.press('Space');
+  await expect(page.locator('#overlay')).toHaveClass(/hidden/, { timeout: 6_000 });
+  await page.keyboard.down('w');
+  await page.waitForTimeout(2_000);
+  expect(await progressWidth(page, 0)).toBeGreaterThan(0);
+  await page.screenshot({ path: 'test-results/08-pony-loop.png' });
+  expect(errors).toEqual([]);
+});

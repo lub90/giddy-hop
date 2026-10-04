@@ -24,9 +24,20 @@ export class GameFlow {
   private playerCount = 0;
 
   constructor(
-    private readonly track: Track,
+    private track: Track,
     private readonly cfg: RaceConfig = CONFIG,
   ) {}
+
+  get currentTrack(): Track {
+    return this.track;
+  }
+
+  /** Selects another course; only possible before a race is set up. */
+  setTrack(track: Track): boolean {
+    if (this.phase !== 'startup' && this.phase !== 'register') return false;
+    this.track = track;
+    return true;
+  }
 
   /** Camera and model are ready. */
   ready(): void {

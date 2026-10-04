@@ -1,54 +1,67 @@
 import { describe, expect, it } from 'vitest';
-import { COURSE } from '../src/game/course';
+import { COURSES } from '../src/game/courses';
 import { Track, rightOf, segmentLength, type CourseDef } from '../src/game/track';
 
-const track = new Track(COURSE);
-
-describe('Track – the parcours', () => {
-  it('has the expected length', () => {
-    const sum = COURSE.segments.reduce((a, s) => a + segmentLength(s), 0);
-    expect(track.length).toBeCloseTo(sum, 6);
-    expect(track.length).toBeGreaterThan(250);
+describe('Courses – every file in courses/ is a valid, rideable course', () => {
+  it('finds at least two courses', () => {
+    expect(COURSES.length).toBeGreaterThanOrEqual(2);
   });
 
-  it('contains curves to the left and to the right', () => {
-    const angles = COURSE.segments.flatMap((s) => (s.kind === 'curve' ? [s.angle] : []));
+  for (const course of COURSES) {
+    describe(course.id, () => {
+      const def = course.def;
+      const track = new Track(def);
+
+      it('has names and descriptions in German and English', () => {
+        expect(course.name.de).toBeTruthy();
+        expect(course.name.en).toBeTruthy();
+      });
+
+      it('has the expected length and at least one jump', () => {
+        const sum = def.segments.reduce((a, s) => a + segmentLength(s), 0);
+        expect(track.length).toBeCloseTo(sum, 6);
+        expect(track.length).toBeGreaterThan(100);
+        expect(track.obstacles.some((o) => o.type === 'fence')).toBe(true);
+      });
+
+      it('places obstacles on the track, sorted by distance, with unique ids', () => {
+        for (let i = 0; i < track.obstacles.length; i++) {
+          const o = track.obstacles[i];
+          expect(o.id).toBe(i);
+          expect(o.s).toBeGreaterThan(0);
+          expect(o.s).toBeLessThan(track.length);
+          expect(Math.abs(o.lateral)).toBeLessThan(track.halfWidth);
+          if (i > 0) expect(o.s).toBeGreaterThanOrEqual(track.obstacles[i - 1].s);
+        }
+      });
+
+      it('never crosses or touches itself (rails of distant sections stay apart)', () => {
+        const minGap = 2 * track.railOffset + 4;
+        const pts = track.samples;
+        for (let i = 0; i < pts.length; i += 4) {
+          for (let j = i + 4; j < pts.length; j += 4) {
+            // Only compare sections that are far apart along the track.
+            if ((j - i) * Track.STEP < minGap * 2.5) continue;
+            const d = Math.hypot(pts[i].x - pts[j].x, pts[i].z - pts[j].z);
+            expect(d).toBeGreaterThan(minGap);
+          }
+        }
+      });
+
+      it('ends with the heading given by the sum of all curve angles', () => {
+        const total = def.segments.reduce((a, s) => a + (s.kind === 'curve' ? s.angle : 0), 0);
+        expect(track.sample(track.length).heading).toBeCloseTo((total * Math.PI) / 180, 6);
+      });
+    });
+  }
+
+  it('the grand parcours has curves to both sides and all obstacle types', () => {
+    const grand = COURSES.find((c) => c.id === 'grand-parcours')!;
+    const angles = grand.def.segments.flatMap((s) => (s.kind === 'curve' ? [s.angle] : []));
     expect(angles.some((a) => a > 0)).toBe(true);
     expect(angles.some((a) => a < 0)).toBe(true);
-  });
-
-  it('contains fences, cones and carrots', () => {
-    const types = new Set(track.obstacles.map((o) => o.type));
+    const types = new Set(new Track(grand.def).obstacles.map((o) => o.type));
     expect([...types].sort()).toEqual(['carrot', 'cone', 'fence']);
-  });
-
-  it('places obstacles on the track, sorted by distance, with unique ids', () => {
-    for (let i = 0; i < track.obstacles.length; i++) {
-      const o = track.obstacles[i];
-      expect(o.id).toBe(i);
-      expect(o.s).toBeGreaterThan(0);
-      expect(o.s).toBeLessThan(track.length);
-      expect(Math.abs(o.lateral)).toBeLessThan(track.halfWidth);
-      if (i > 0) expect(o.s).toBeGreaterThanOrEqual(track.obstacles[i - 1].s);
-    }
-  });
-
-  it('never crosses or touches itself (rails of distant sections stay apart)', () => {
-    const minGap = 2 * track.railOffset + 4;
-    const pts = track.samples;
-    for (let i = 0; i < pts.length; i += 4) {
-      for (let j = i + 4; j < pts.length; j += 4) {
-        // Only compare sections that are far apart along the track.
-        if ((j - i) * Track.STEP < minGap * 2.5) continue;
-        const d = Math.hypot(pts[i].x - pts[j].x, pts[i].z - pts[j].z);
-        expect(d).toBeGreaterThan(minGap);
-      }
-    }
-  });
-
-  it('ends with the heading given by the sum of all curve angles', () => {
-    const total = COURSE.segments.reduce((a, s) => a + (s.kind === 'curve' ? s.angle : 0), 0);
-    expect(track.sample(track.length).heading).toBeCloseTo((total * Math.PI) / 180, 6);
   });
 });
 

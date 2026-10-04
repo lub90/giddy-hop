@@ -1,7 +1,9 @@
 import * as THREE from 'three';
 import { CONFIG } from './config';
+import { loadSetting, saveSetting } from './core/persist';
 import { DebugPanel } from './debug/debugPanel';
-import { COURSE } from './game/course';
+import type { CourseInfo } from './game/courseFormat';
+import { COURSES } from './game/courses';
 import { GameFlow, type Phase } from './game/gameFlow';
 import { Lobby } from './game/lobby';
 import { Track } from './game/track';
@@ -15,7 +17,7 @@ import { splitLayout } from './render/layout';
 import { buildStaticObstacles } from './render/obstacleViews';
 import { RaceView } from './render/raceView';
 import { SplitRenderer, type View } from './render/splitRenderer';
-import { buildWorld } from './render/world';
+import { buildCourseScenery, disposeTree, setupEnvironment } from './render/world';
 import { CameraView } from './ui/cameraView';
 import { Hud, type HudState } from './ui/hud';
 import { Screens } from './ui/screens';
@@ -29,6 +31,15 @@ export interface AppElements {
 }
 
 const now = () => performance.now() / 1000;
+
+const COURSE_SETTING_KEY = 'giddyhop.course';
+
+/** The remembered course, or the first one. */
+function initialCourse(): CourseInfo {
+  if (COURSES.length === 0) throw new Error('No valid course found in courses/*.yaml');
+  const saved = loadSetting(COURSE_SETTING_KEY);
+  return COURSES.find((c) => c.id === saved) ?? COURSES[0];
+}
 
 const TRACKER_MODE: Record<Phase, TrackerMode> = {
   startup: 'register',
@@ -47,8 +58,8 @@ const TRACKER_MODE: Record<Phase, TrackerMode> = {
  * names, colors and keyboard bindings follow the player number.
  */
 export class App {
-  private readonly track = new Track(COURSE);
-  private readonly flow = new GameFlow(this.track, CONFIG);
+  private course: CourseInfo = initialCourse();
+  private readonly flow = new GameFlow(new Track(this.course.def), CONFIG);
   private readonly tracker = new PlayerTracker();
   private readonly lobby = new Lobby(this.tracker);
   private readonly keyboard = new KeyboardInput();
@@ -62,6 +73,7 @@ export class App {
   private readonly debug: DebugPanel;
 
   private raceView: RaceView | null = null;
+  private scenery: THREE.Group | null = null;
   private lastPoseId = 0;
   private lastTime = now();
   private lastPhase: Phase = 'startup';
@@ -72,14 +84,38 @@ export class App {
   constructor(private readonly el: AppElements) {
     this.poses = new PoseService(el.video);
     this.renderer = new SplitRenderer(el.canvas, CONFIG.render);
-    this.overview = new OverviewCamera(this.track, CONFIG.render.viewDistance);
+    this.overview = new OverviewCamera(this.flow.currentTrack, CONFIG.render.viewDistance);
     this.cameraView = new CameraView(el.video);
     this.hud = new Hud(el.hud, CONFIG.hud.gaitThresholds);
     this.screens = new Screens(el.overlay);
     this.debug = new DebugPanel(el.debug, this.cameraView, () => this.renderer.setPixelRatio(CONFIG.render.pixelRatio));
 
-    buildWorld(this.scene, this.track, CONFIG.render.viewDistance, CONFIG.render.treeCount);
-    buildStaticObstacles(this.scene, this.track);
+    setupEnvironment(this.scene, CONFIG.render.viewDistance);
+    this.buildScenery();
+  }
+
+  /** (Re)builds everything that depends on the course. */
+  private buildScenery(): void {
+    if (this.scenery) {
+      this.scene.remove(this.scenery);
+      disposeTree(this.scenery);
+    }
+    const track = this.flow.currentTrack;
+    this.scenery = buildCourseScenery(track, CONFIG.render.treeCount);
+    this.scenery.add(buildStaticObstacles(track));
+    this.scene.add(this.scenery);
+    this.overview.setTrack(track);
+  }
+
+  /** Course selection on the start screen. */
+  private selectCourse(id: string): void {
+    const course = COURSES.find((c) => c.id === id);
+    if (!course || course.id === this.course.id) return;
+    if (!this.flow.setTrack(new Track(course.def))) return;
+    this.course = course;
+    saveSetting(COURSE_SETTING_KEY, course.id);
+    this.buildScenery();
+    this.screens.updateCourseInfo(course);
   }
 
   async start(): Promise<void> {
@@ -92,6 +128,13 @@ export class App {
       // Drop focus so a later Space press (start) does not click the button again.
       button.blur();
       this.toggleFullscreen();
+    });
+    this.el.overlay.addEventListener('change', (e) => {
+      const select = (e.target as HTMLElement).closest<HTMLSelectElement>('select[data-action="course"]');
+      if (!select) return;
+      this.selectCourse(select.value);
+      // Arrow keys and Space are game keys – give the focus back to the page.
+      select.blur();
     });
     document.addEventListener('fullscreenchange', () => {
       document.body.classList.toggle('is-fullscreen', !!document.fullscreenElement);
@@ -165,7 +208,7 @@ export class App {
         this.hud.clear();
         // After a race everyone confirms again; after a cancelled loading the others stay ready.
         if (previous !== 'loading') this.lobby.resetReady();
-        this.screens.registration(this.cameraProblem);
+        this.screens.registration(this.cameraProblem, COURSES, this.course);
         break;
       case 'loading':
         this.screens.loading();
