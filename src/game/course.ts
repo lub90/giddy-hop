@@ -13,7 +13,7 @@ function innerCarrots(angle: number, radius: number, count: number): ObstacleDef
  */
 export const COURSE: CourseDef = {
   halfWidth: 3.5,
-  shoulder: 1.5,
+  shoulder: 2.5,
   segments: [
     { kind: 'straight', length: 25 },
     { kind: 'straight', length: 30, obstacles: [{ at: 15, type: 'fence' }] },

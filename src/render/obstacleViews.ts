@@ -29,7 +29,8 @@ function place(obj: THREE.Object3D, track: Track, o: TrackObstacle): void {
 function buildFence(track: Track): { group: THREE.Group; poles: THREE.Mesh[] } {
   poleMat ??= new THREE.MeshLambertMaterial({ map: stripeTexture('#d62828') });
   const group = new THREE.Group();
-  const width = track.halfWidth * 2 + 0.4;
+  // Span from rail to rail so it is clear the fence cannot be bypassed over the grass.
+  const width = track.railOffset * 2;
   for (const side of [-1, 1]) {
     const st = new THREE.Mesh(standardGeo, standardMat);
     st.position.set((side * width) / 2, 0.8, 0);
