@@ -25,11 +25,11 @@ export class Screens {
   }
 
   loading(message: string): void {
-    this.show('loading', `<h1>🐴 Giddy Up!</h1><p class="hint">${escapeHtml(message)}</p>`);
+    this.show('loading', `<h1>🐴 Giddy Hop!</h1><p class="hint">${escapeHtml(message)}</p>`);
   }
 
   error(title: string, details: string): void {
-    this.show('error', `<h1>🐴 Giddy Up!</h1><h2 class="err">${escapeHtml(title)}</h2><p class="hint">${details}</p>`);
+    this.show('error', `<h1>🐴 Giddy Hop!</h1><h2 class="err">${escapeHtml(title)}</h2><p class="hint">${details}</p>`);
   }
 
   /** Puts the camera preview into the registration screen (if it is showing). */
@@ -41,7 +41,7 @@ export class Screens {
   registration(cameraProblem: string | null): void {
     this.show(
       'register',
-      `<h1>🐴 Giddy Up! – Das große Reitturnier</h1>
+      `<h1>🐴 Giddy Hop! – Das große Reitturnier</h1>
        <p class="hint">Stellt euch nebeneinander vor die Kamera (ca. 2–3 m Abstand).
        Wer mitreiten will: <b>einen Arm hochhalten</b>, bis der Kreis voll ist!</p>
        ${cameraProblem ? `<p class="hint err">${escapeHtml(cameraProblem)}</p>` : '<div class="camera-slot"></div>'}

@@ -1,4 +1,4 @@
-# Giddy Up! 🐴
+# Giddy Hop! 🐴
 
 A webcam motion game for a kids' birthday party with a horse-show theme.
 Up to four children stand in front of the laptop webcam and ride a parcours

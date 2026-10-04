@@ -4,7 +4,9 @@ import { clearOverrides, saveOverrides } from '../core/persist';
 import type { PlayerSlot } from '../pose/playerTracker';
 import type { CameraView } from '../ui/cameraView';
 
-export const CONFIG_STORAGE_KEY = 'giddyup.config.v1';
+export const CONFIG_STORAGE_KEY = 'giddyhop.config.v1';
+/** Key used before the project was renamed; still read so tuned values survive. */
+export const LEGACY_CONFIG_STORAGE_KEY = 'giddyup.config.v1';
 
 export interface DebugStats {
   renderFps: number;
