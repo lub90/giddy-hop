@@ -18,7 +18,7 @@ export interface PersonSpec {
   lean?: number;
   /** Extra vertical shoulder offset in pixels (simulates rocking towards the camera). */
   shoulderDrop?: number;
-  arm?: 'none' | 'left' | 'right';
+  arm?: 'none' | 'left' | 'right' | 'both';
   trackId?: number;
 }
 
@@ -40,8 +40,8 @@ export function makePose(spec: PersonSpec): DetectedPose {
       kp('right_shoulder', x + lean + sw / 2, shY),
       kp('left_hip', x - sw * 0.35, hipY),
       kp('right_hip', x + sw * 0.35, hipY),
-      kp('left_wrist', x - sw * 0.7, spec.arm === 'left' ? wristUpY : hipY - 10),
-      kp('right_wrist', x + sw * 0.7, spec.arm === 'right' ? wristUpY : hipY - 10),
+      kp('left_wrist', x - sw * 0.7, spec.arm === 'left' || spec.arm === 'both' ? wristUpY : hipY - 10),
+      kp('right_wrist', x + sw * 0.7, spec.arm === 'right' || spec.arm === 'both' ? wristUpY : hipY - 10),
       kp('left_knee', x - sw * 0.3, hipY + torso * 0.8),
       kp('right_knee', x + sw * 0.3, hipY + torso * 0.8),
     ],

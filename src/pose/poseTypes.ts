@@ -103,16 +103,22 @@ export function bodyMetrics(pose: DetectedPose): BodyMetrics | null {
   return { shoulderMid, hipMid, torsoLength, shoulderWidth: Math.max(shoulderWidth, torsoLength * 0.3) };
 }
 
-/** A wrist above the nose (or, without a nose, clearly above the shoulders). */
-export function isArmRaised(pose: DetectedPose): boolean {
+/** Number of wrists above the nose (or, without a nose, clearly above the shoulders). */
+export function raisedArmCount(pose: DetectedPose): 0 | 1 | 2 {
   const k = pose.keypoints;
   const wrists = [k.left_wrist, k.right_wrist].filter((w): w is Keypoint => !!w);
-  if (wrists.length === 0) return false;
+  if (wrists.length === 0) return 0;
   let limit: number | null = k.nose?.y ?? null;
   if (limit === null) {
     const m = bodyMetrics(pose);
-    if (!m) return false;
+    if (!m) return 0;
     limit = m.shoulderMid.y - m.torsoLength * 0.4;
   }
-  return wrists.some((w) => w.y < limit);
+  const lim = limit;
+  return wrists.filter((w) => w.y < lim).length as 0 | 1 | 2;
+}
+
+/** At least one arm raised. */
+export function isArmRaised(pose: DetectedPose): boolean {
+  return raisedArmCount(pose) > 0;
 }

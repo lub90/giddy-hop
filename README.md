@@ -9,9 +9,22 @@ in first-person view on a split screen – controlled only by their bodies:
 | Bounce / rock rhythmically | Gallop – the faster the rhythm, the faster the horse |
 | Lean left / right | Steer (needed in curves, otherwise the horse drifts outwards) |
 | Jump up (a real jump) | Horse jumps anywhere – inside the jump zone ("HOPP!") the jump is timed over the fence |
-| Raise one arm (registration) | Join the game |
 
 Children who do not raise an arm are ignored, so spectators may stand in the picture.
+
+### Lobby (no keyboard needed)
+
+Every gesture counts after holding it for a moment (progress ring in the camera
+image); afterwards the arms must come down before the next gesture counts.
+
+| Who | Gesture | Effect |
+| --- | --- | --- |
+| New person | hold one arm up | Register – the player number follows the registration order |
+| Registered | hold one arm up again | Ready |
+| Ready | hold both arms up | Not ready any more |
+| Registered, not ready | hold both arms up | Unregister (the number becomes free; the others keep theirs) |
+| – | everyone ready | "Laden …" for 10 s, then countdown 3, 2, 1, "Los!" – only then the horses move |
+| Any player during "Laden …" | hold both arms up | Cancel; that player is not ready any more |
 
 ## Running
 
@@ -30,11 +43,13 @@ from the internet on start, so an internet connection is required.
 
 | Key | Where | Action |
 | --- | --- | --- |
-| Space | Registration | Start the race |
+| Space | Registration | Mark everyone ready (starts "Laden …") |
+| Space | Laden … | Skip the wait |
 | Space | Results | Rematch with the same players |
-| Esc | Anywhere | Back to registration |
+| Esc | Laden … | Cancel back to the registration |
+| Esc | Anywhere else | Back to registration |
 | Backspace | Registration | Unregister everyone |
-| T | Registration | Add a keyboard rider (testing without camera) |
+| T | Registration | Add a keyboard rider (testing without camera; becomes ready with Space) |
 | F | Anywhere | Toggle fullscreen |
 | Ctrl+Alt+D | Anywhere | Toggle debug panel |
 
@@ -74,9 +89,9 @@ src/
   app.ts                wires modules together, main loop, keyboard commands
   config.ts             all tuning knobs
   core/                 math helpers, config persistence
-  pose/                 camera, MoveNet service (own loop), pose types, PlayerTracker (registration + identity)
+  pose/                 camera, MoveNet service (own loop), pose types, PlayerTracker (registration + identity), arm gestures
   input/                GestureAnalyzer (lean/bounce/jump → input), keyboard fallback, input merging
-  game/                 course data, track geometry, horse state, race rules/scoring, game phases
+  game/                 course data, track geometry, horse state, race rules/scoring, lobby rules, game phases
   render/               single-canvas split renderer, world/scenery, horse model, obstacles, cameras, layout
   ui/                   HUD per viewport, overlay screens, camera preview
   debug/                debug panel

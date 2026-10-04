@@ -6,46 +6,80 @@ import { splitLayout } from '../src/render/layout';
 
 const shortTrack = new Track({ halfWidth: 3.5, shoulder: 1.5, segments: [{ kind: 'straight', length: 20 }] });
 const full = [{ drive: 1, steer: 0, jump: false }];
+const R = CONFIG.race;
 
 function advance(flow: GameFlow, seconds: number, inputs = full) {
-  for (let i = 0; i < seconds * 60; i++) flow.update(1 / 60, inputs);
+  for (let i = 0; i < Math.round(seconds * 60); i++) flow.update(1 / 60, inputs);
+}
+
+/** Registration done, loading started. */
+function loading(players = 1) {
+  const flow = new GameFlow(shortTrack, structuredClone(CONFIG));
+  flow.ready();
+  flow.startLoading(players);
+  return flow;
 }
 
 describe('GameFlow – phases', () => {
-  it('goes from loading to registration, then countdown, race and results', () => {
+  it('startup → registration → loading (10 s) → countdown 3-2-1 → race with "Los!" → results', () => {
     const flow = new GameFlow(shortTrack, structuredClone(CONFIG));
-    expect(flow.phase).toBe('loading');
+    expect(flow.phase).toBe('startup');
     flow.ready();
     expect(flow.phase).toBe('register');
-    expect(flow.start(1)).toBe(true);
+    expect(flow.startLoading(1)).toBe(true);
+    expect(flow.phase).toBe('loading');
+    advance(flow, R.loadingSeconds - 0.5);
+    expect(flow.phase).toBe('loading');
+    expect(flow.loadingProgress).toBeGreaterThan(0.9);
+    advance(flow, 0.6);
     expect(flow.phase).toBe('countdown');
-    expect(flow.countdownValue).toBe(3);
-    advance(flow, CONFIG.race.countdownSeconds + 0.1);
+    const shown = new Set<number>();
+    while (flow.phase === 'countdown') {
+      shown.add(flow.countdownValue);
+      advance(flow, 1 / 60);
+    }
+    expect([...shown]).toEqual([3, 2, 1]);
     expect(flow.phase).toBe('race');
-    advance(flow, 10 + CONFIG.race.resultsDelaySeconds);
+    expect(flow.showGo).toBe(true);
+    advance(flow, R.goSeconds + 0.1);
+    expect(flow.showGo).toBe(false);
+    advance(flow, 10 + R.resultsDelaySeconds);
     expect(flow.phase).toBe('results');
   });
 
-  it('horses do not move during the countdown', () => {
-    const flow = new GameFlow(shortTrack, structuredClone(CONFIG));
-    flow.ready();
-    flow.start(1);
-    advance(flow, 2);
+  it('horses cannot move before "Los!" (loading and countdown)', () => {
+    const flow = loading();
+    advance(flow, R.loadingSeconds + R.countdownSeconds - 0.1);
+    expect(flow.phase).toBe('countdown');
     expect(flow.race!.horses[0].s).toBe(0);
+    advance(flow, 0.5);
+    expect(flow.race!.horses[0].s).toBeGreaterThan(0);
+  });
+
+  it('loading can be cancelled back to the registration', () => {
+    const flow = loading();
+    advance(flow, 5);
+    flow.cancelLoading();
+    expect(flow.phase).toBe('register');
+    expect(flow.race).toBeNull();
+  });
+
+  it('loading can be skipped (keyboard shortcut)', () => {
+    const flow = loading();
+    flow.skipLoading();
+    expect(flow.phase).toBe('countdown');
   });
 
   it('cannot start without players', () => {
     const flow = new GameFlow(shortTrack, structuredClone(CONFIG));
     flow.ready();
-    expect(flow.start(0)).toBe(false);
+    expect(flow.startLoading(0)).toBe(false);
     expect(flow.phase).toBe('register');
   });
 
   it('supports a rematch and going back to registration', () => {
-    const flow = new GameFlow(shortTrack, structuredClone(CONFIG));
-    flow.ready();
-    flow.start(2);
-    advance(flow, 20, [full[0], full[0]]);
+    const flow = loading(2);
+    advance(flow, R.loadingSeconds + 20, [full[0], full[0]]);
     expect(flow.rematch()).toBe(true);
     expect(flow.phase).toBe('countdown');
     expect(flow.race!.horses).toHaveLength(2);

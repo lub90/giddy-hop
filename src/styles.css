@@ -88,6 +88,9 @@ h2 {
 .err {
   color: var(--err);
 }
+.nowrap {
+  white-space: nowrap;
+}
 
 .camera-slot {
   width: min(70vw, 960px);
@@ -118,10 +121,38 @@ h2 {
   border: 3px solid transparent;
   opacity: 0.6;
 }
-.slot.on {
+.slot.registered,
+.slot.missing {
   opacity: 1;
   border-color: var(--player);
-  background: color-mix(in srgb, var(--player) 30%, #2a241e);
+  background: color-mix(in srgb, var(--player) 18%, #2a241e);
+}
+.slot.ready {
+  opacity: 1;
+  border-color: var(--player);
+  background: color-mix(in srgb, var(--player) 45%, #2a241e);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--player) 70%, transparent);
+}
+.slot.missing .slot-state {
+  color: #ffd24a;
+}
+
+.loading-bar {
+  width: min(70vw, 720px);
+  height: 22px;
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.15);
+  overflow: hidden;
+}
+.loading-fill {
+  width: 0;
+  height: 100%;
+  background: var(--accent);
+}
+
+.countdown.go {
+  color: #7bd34f;
+  animation: pulse 0.25s ease-in-out infinite alternate;
 }
 .slot-name {
   font-size: 1.3rem;

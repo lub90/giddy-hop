@@ -1,5 +1,5 @@
 import type { RaceResult } from '../game/race';
-import type { PlayerTracker } from '../pose/playerTracker';
+import type { PlayerSlot, PlayerTracker } from '../pose/playerTracker';
 
 const ROSETTES = ['🥇', '🥈', '🥉', '🎀'];
 
@@ -10,13 +10,33 @@ function formatTime(t: number | null): string {
   return `${Math.floor(t / 60)}:${(t % 60).toFixed(1).padStart(4, '0')}`;
 }
 
-/** Full-screen overlays: loading, registration, countdown, results. */
+export interface SlotStatus {
+  text: string;
+  /** CSS state class of the card. */
+  state: 'free' | 'registered' | 'ready' | 'missing';
+}
+
+/** What a player card in the lobby says (kid-facing, German). */
+export function slotStatus(slot: PlayerSlot | undefined): SlotStatus {
+  if (!slot) return { text: 'frei', state: 'free' };
+  if (slot.ready) return { text: '✅ bereit!', state: 'ready' };
+  if (slot.kind === 'keyboard') return { text: '⌨️ Tastatur', state: 'registered' };
+  if (!slot.pose) return { text: '👀 wo bist du?', state: 'missing' };
+  return { text: '✋ Nochmal Arm heben = bereit', state: 'registered' };
+}
+
+/** Full-screen overlays: startup, registration, loading, countdown, "Los!", results. */
 export class Screens {
   private current = '';
   private slotsEl: HTMLElement | null = null;
   private countdownEl: HTMLElement | null = null;
+  private progressEl: HTMLElement | null = null;
 
   constructor(private readonly root: HTMLElement) {}
+
+  get showing(): string {
+    return this.current;
+  }
 
   hide(): void {
     this.current = '';
@@ -24,8 +44,9 @@ export class Screens {
     this.root.replaceChildren();
   }
 
-  loading(message: string): void {
-    this.show('loading', `<h1>🐴 Giddy Hop!</h1><p class="hint">${escapeHtml(message)}</p>`);
+  /** Message while camera and model start up. */
+  startup(message: string): void {
+    this.show('startup', `<h1>🐴 Giddy Hop!</h1><p class="hint">${escapeHtml(message)}</p>`);
   }
 
   error(title: string, details: string): void {
@@ -42,25 +63,48 @@ export class Screens {
     this.show(
       'register',
       `<h1>🐴 Giddy Hop! – Das große Reitturnier</h1>
-       <p class="hint">Stellt euch nebeneinander vor die Kamera (ca. 2–3 m Abstand).
-       Wer mitreiten will: <b>einen Arm hochhalten</b>, bis der Kreis voll ist!</p>
+       <p class="hint">Stellt euch nebeneinander vor die Kamera (ca. 2–3 m Abstand).<br>
+       <span class="nowrap">✋ <b>Einen Arm hochhalten</b> = mitmachen</span> ·
+       <span class="nowrap">✋ <b>nochmal</b> = bereit</span> ·
+       <span class="nowrap">🙌 <b>beide Arme</b> = zurück</span></p>
        ${cameraProblem ? `<p class="hint err">${escapeHtml(cameraProblem)}</p>` : '<div class="camera-slot"></div>'}
        <div class="slots"></div>
-       <p class="hint small"><b>Leertaste</b> = Los geht's · <b>Rücktaste</b> = alle abmelden ·
+       <p class="hint">Wenn alle bereit sind, geht's los!</p>
+       <p class="hint small"><b>Leertaste</b> = alle bereit · <b>Rücktaste</b> = alle abmelden ·
        <b>T</b> = Tastatur-Reiter · <b>F</b> = Vollbild</p>`,
     );
     this.slotsEl = this.root.querySelector('.slots');
   }
 
-  updateRegistration(tracker: PlayerTracker, maxPlayers: number, names: readonly string[], colors: readonly string[]): void {
-    if (this.current !== 'register' || !this.slotsEl) return;
+  /** "Laden …" while everyone gets into position. */
+  loading(): void {
+    this.show(
+      'loading',
+      `<h1>Laden …</h1>
+       <div class="loading-bar"><div class="loading-fill"></div></div>
+       <div class="slots"></div>
+       <p class="hint big">Stellt euch bereit – gleich geht's los!</p>
+       <p class="hint">🙌 Beide Arme hoch = abbrechen</p>
+       <p class="hint small"><b>Leertaste</b> = sofort starten · <b>Esc</b> = abbrechen</p>`,
+    );
+    this.slotsEl = this.root.querySelector('.slots');
+    this.progressEl = this.root.querySelector('.loading-fill');
+  }
+
+  updateLoading(progress: number): void {
+    if (this.progressEl) this.progressEl.style.width = `${(progress * 100).toFixed(1)}%`;
+  }
+
+  /** Player cards (registration and loading screen), one per player number. */
+  updateSlots(tracker: PlayerTracker, maxPlayers: number, names: readonly string[], colors: readonly string[]): void {
+    if (!this.slotsEl) return;
     const cards: string[] = [];
-    for (let i = 0; i < maxPlayers; i++) {
-      const slot = tracker.slots[i];
-      const state = !slot ? 'frei' : slot.kind === 'keyboard' ? '⌨️ Tastatur' : slot.pose ? '✋ bereit!' : '👀 wo bist du?';
+    for (let n = 0; n < maxPlayers; n++) {
+      const slot = tracker.slots.find((s) => s.number === n);
+      const status = slotStatus(slot);
       cards.push(
-        `<div class="slot ${slot ? 'on' : ''}" style="--player:${colors[i]}">
-           <div class="slot-name">🐴 ${escapeHtml(names[i])}</div><div class="slot-state">${state}</div>
+        `<div class="slot ${status.state}" style="--player:${colors[n]}">
+           <div class="slot-name">${n + 1}. 🐴 ${escapeHtml(names[n])}</div><div class="slot-state">${status.text}</div>
          </div>`,
       );
     }
@@ -88,6 +132,11 @@ export class Screens {
     }
   }
 
+  /** "Los!" at the start of the race. */
+  go(): void {
+    this.show('go', '<div class="countdown go">Los!</div>', 'overlay translucent');
+  }
+
   results(results: readonly RaceResult[], names: readonly string[], colors: readonly string[]): void {
     const rows = [...results]
       .sort((a, b) => a.rank - b.rank)
@@ -112,6 +161,7 @@ export class Screens {
     this.current = name;
     this.slotsEl = null;
     this.countdownEl = null;
+    this.progressEl = null;
     this.root.className = className;
     this.root.innerHTML = html;
   }

@@ -27,7 +27,7 @@ export const CONFIG = {
     maxMatchDistance: 0.18,
     /** How fast a player's remembered position follows the person (0..1 per frame). */
     anchorFollow: 0.3,
-    /** How long an arm must be raised to register. */
+    /** How long an arm (or both arms) must be held up for a gesture: register, ready, back. */
     registerHoldSeconds: 0.8,
     /** During registration: a player is removed when not seen for this long. */
     dropAfterSeconds: 3,
@@ -122,7 +122,11 @@ export const CONFIG = {
   },
 
   race: {
+    /** "Laden …" wait after everyone is ready (s). */
+    loadingSeconds: 10,
     countdownSeconds: 3,
+    /** How long "Los!" is shown at the start of the race (s). */
+    goSeconds: 1,
     timeoutSeconds: 150,
     /** Wait this long after the race ends before showing the results. */
     resultsDelaySeconds: 2,

@@ -26,18 +26,30 @@ test('registration → race with keyboard players → results', async ({ page })
   await expect(page.locator('.slot')).toHaveCount(4);
   await page.screenshot({ path: 'test-results/01-registration.png' });
 
-  // Two keyboard riders.
+  // Two keyboard riders: registered, not ready yet.
   await page.keyboard.press('t');
   await page.keyboard.press('t');
-  await expect(page.locator('.slot.on')).toHaveCount(2);
+  await expect(page.locator('.slot.registered')).toHaveCount(2);
 
+  // Space = everyone ready → "Laden …"; Esc cancels back to the registration.
   await page.keyboard.press('Space');
-  await expect(page.locator('.countdown')).toBeVisible();
+  await expect(page.locator('#overlay h1')).toContainText('Laden');
+  await expect(page.locator('.slot.ready')).toHaveCount(2);
+  await page.screenshot({ path: 'test-results/02-loading.png' });
+  await page.keyboard.press('Escape');
+  await expect(page.locator('#overlay h1')).toContainText('Reitturnier');
+
+  // Again, and skip the wait: countdown 3-2-1, then "Los!".
+  await page.keyboard.press('Space');
+  await expect(page.locator('#overlay h1')).toContainText('Laden');
+  await page.keyboard.press('Space');
+  await expect(page.locator('.countdown')).toHaveText('3');
   await expect(page.locator('.hud-panel')).toHaveCount(2);
   await page.screenshot({ path: 'test-results/02-countdown.png' });
+  await expect(page.locator('.countdown')).toHaveText('Los!', { timeout: 5_000 });
 
   // Race: player 1 gallops (W), player 2 only trots.
-  await expect(page.locator('#overlay')).toHaveClass(/hidden/, { timeout: 5_000 });
+  await expect(page.locator('#overlay')).toHaveClass(/hidden/, { timeout: 3_000 });
   await page.keyboard.down('w');
   await page.waitForTimeout(4_000);
   await page.screenshot({ path: 'test-results/03-race.png' });
@@ -67,7 +79,9 @@ test('four players get a 2×2 split screen', async ({ page }) => {
   await page.goto('/');
   await expect(page.locator('#overlay h1')).toContainText('Reitturnier', { timeout: 60_000 });
   for (let i = 0; i < 5; i++) await page.keyboard.press('t');
-  await expect(page.locator('.slot.on')).toHaveCount(4);
+  await expect(page.locator('.slot.registered')).toHaveCount(4);
+  await page.keyboard.press('Space');
+  await expect(page.locator('#overlay h1')).toContainText('Laden');
   await page.keyboard.press('Space');
   await expect(page.locator('#overlay')).toHaveClass(/hidden/, { timeout: 6_000 });
 

@@ -3,11 +3,12 @@ import { CONFIG } from './config';
 import { DebugPanel } from './debug/debugPanel';
 import { COURSE } from './game/course';
 import { GameFlow, type Phase } from './game/gameFlow';
+import { Lobby } from './game/lobby';
 import { Track } from './game/track';
 import { KeyboardInput } from './input/keyboardInput';
 import { mergeInputs, NEUTRAL_INPUT, type PlayerInput } from './input/playerInput';
 import { startCamera } from './pose/camera';
-import { PlayerTracker } from './pose/playerTracker';
+import { PlayerTracker, type TrackerMode } from './pose/playerTracker';
 import { PoseService } from './pose/poseService';
 import { OverviewCamera } from './render/cameras';
 import { splitLayout } from './render/layout';
@@ -29,14 +30,27 @@ export interface AppElements {
 
 const now = () => performance.now() / 1000;
 
+const TRACKER_MODE: Record<Phase, TrackerMode> = {
+  startup: 'register',
+  register: 'register',
+  loading: 'loading',
+  countdown: 'race',
+  race: 'race',
+  results: 'race',
+};
+
 /**
  * Wires everything together and owns the main loop:
- * pose frames → tracker/gestures → inputs → game flow → rendering + UI.
+ * pose frames → tracker/gestures → lobby / inputs → game flow → rendering + UI.
+ *
+ * Race player index i corresponds to tracker.slots[i] (sorted by player number);
+ * names, colors and keyboard bindings follow the player number.
  */
 export class App {
   private readonly track = new Track(COURSE);
   private readonly flow = new GameFlow(this.track, CONFIG);
   private readonly tracker = new PlayerTracker();
+  private readonly lobby = new Lobby(this.tracker);
   private readonly keyboard = new KeyboardInput();
   private readonly poses: PoseService;
   private readonly scene = new THREE.Scene();
@@ -50,7 +64,7 @@ export class App {
   private raceView: RaceView | null = null;
   private lastPoseId = 0;
   private lastTime = now();
-  private lastPhase: Phase = 'loading';
+  private lastPhase: Phase = 'startup';
   private cameraProblem: string | null = null;
   private fps = 60;
 
@@ -73,10 +87,10 @@ export class App {
     this.keyboard.attach(window);
     requestAnimationFrame(() => this.frame());
 
-    this.screens.loading('Kamera wird gestartet …');
+    this.screens.startup('Kamera wird gestartet …');
     try {
       await startCamera(this.el.video, CONFIG.camera.width, CONFIG.camera.height);
-      this.screens.loading('KI-Modell wird geladen …');
+      this.screens.startup('KI-Modell wird geladen …');
       await this.poses.init();
       this.poses.start();
     } catch (err) {
@@ -93,14 +107,9 @@ export class App {
     this.lastTime = t;
     this.fps += (1 / Math.max(dt, 1e-3) - this.fps) * 0.05;
 
-    const frame = this.poses.latest;
-    if (frame.id !== this.lastPoseId) {
-      this.lastPoseId = frame.id;
-      this.tracker.update(frame, this.flow.phase === 'register');
-    }
-
+    this.processPoses();
     this.flow.update(dt, this.readInputs());
-    if (this.flow.phase !== this.lastPhase) this.enterPhase(this.flow.phase);
+    if (this.flow.phase !== this.lastPhase) this.enterPhase(this.flow.phase, this.lastPhase);
     this.lastPhase = this.flow.phase;
 
     this.render(t);
@@ -108,36 +117,62 @@ export class App {
     requestAnimationFrame(() => this.frame());
   }
 
+  /** New pose frame → tracker → lobby rules (registration and loading only). */
+  private processPoses(): void {
+    const frame = this.poses.latest;
+    if (frame.id === this.lastPoseId) return;
+    this.lastPoseId = frame.id;
+    const phase = this.flow.phase;
+    const events = this.tracker.update(frame, TRACKER_MODE[phase]);
+    if (phase !== 'register' && phase !== 'loading') return;
+
+    const command = this.lobby.handle(events, phase);
+    if (command === 'startLoading') this.flow.startLoading(this.tracker.slots.length);
+    else if (command === 'cancelLoading') this.flow.cancelLoading();
+  }
+
   private readInputs(): PlayerInput[] {
-    return this.tracker.slots.map((slot, i) =>
-      mergeInputs(slot.kind === 'pose' ? slot.gestures.read() : NEUTRAL_INPUT, this.keyboard.read(i)),
+    return this.tracker.slots.map((slot) =>
+      mergeInputs(slot.kind === 'pose' ? slot.gestures.read() : NEUTRAL_INPUT, this.keyboard.read(slot.number)),
     );
   }
 
-  private enterPhase(phase: Phase): void {
-    const names = CONFIG.horseNames;
-    const colors = CONFIG.playerColors;
+  /** Horse names / colors in race order (by player number). */
+  private playerNames(): string[] {
+    return this.tracker.slots.map((s) => CONFIG.horseNames[s.number]);
+  }
+  private playerColors(): string[] {
+    return this.tracker.slots.map((s) => CONFIG.playerColors[s.number]);
+  }
+
+  private enterPhase(phase: Phase, previous: Phase): void {
     switch (phase) {
       case 'register':
         this.disposeRace();
         this.hud.clear();
+        // After a race everyone confirms again; after a cancelled loading the others stay ready.
+        if (previous !== 'loading') this.lobby.resetReady();
         this.screens.registration(this.cameraProblem);
+        break;
+      case 'loading':
+        this.screens.loading();
         break;
       case 'countdown': {
         this.disposeRace();
+        for (const s of this.tracker.slots) s.gestures.reset();
         const race = this.flow.race!;
-        this.raceView = new RaceView(this.scene, race, colors, CONFIG.render.fov, CONFIG.render.viewDistance);
-        this.hud.setup(names.slice(0, race.horses.length), colors);
+        this.raceView = new RaceView(this.scene, race, this.playerColors(), CONFIG.render.fov, CONFIG.render.viewDistance);
+        this.hud.setup(this.playerNames(), this.playerColors());
         this.screens.countdown();
         break;
       }
       case 'race':
-        this.screens.hide();
+        this.screens.go();
         break;
       case 'results':
-        this.screens.results(this.flow.race!.results(), names, colors);
+        this.screens.results(this.flow.race!.results(), this.playerNames(), this.playerColors());
         break;
-      case 'loading':
+      case 'startup':
         break;
     }
     this.mountCameraPreview();
@@ -175,8 +210,12 @@ export class App {
     const phase = this.flow.phase;
     const race = this.flow.race;
 
-    if (phase === 'register') this.screens.updateRegistration(this.tracker, CONFIG.maxPlayers, names, colors);
+    if (phase === 'register' || phase === 'loading') {
+      this.screens.updateSlots(this.tracker, CONFIG.maxPlayers, names, colors);
+    }
+    if (phase === 'loading') this.screens.updateLoading(this.flow.loadingProgress);
     if (phase === 'countdown') this.screens.updateCountdown(this.flow.countdownValue);
+    if (phase === 'race' && !this.flow.showGo && this.screens.showing === 'go') this.screens.hide();
     if (phase === 'register' || this.debug.showsCamera) this.cameraView.draw(this.tracker, names, colors);
 
     if (race && (phase === 'countdown' || phase === 'race' || phase === 'results')) {
@@ -218,22 +257,22 @@ export class App {
       return;
     }
     if (e.ctrlKey || e.altKey || e.metaKey || e.repeat) return;
-    // Keys used for steering must not trigger game commands.
     const phase = this.flow.phase;
     switch (e.code) {
       case 'Space':
         e.preventDefault();
         if (phase === 'register') {
-          this.tracker.sortByPosition();
-          for (const s of this.tracker.slots) s.gestures.reset();
-          this.flow.start(this.tracker.slots.length);
+          this.lobby.setAllReady();
+          this.flow.startLoading(this.tracker.slots.length);
+        } else if (phase === 'loading') {
+          this.flow.skipLoading();
         } else if (phase === 'results') {
-          for (const s of this.tracker.slots) s.gestures.reset();
           this.flow.rematch();
         }
         break;
       case 'Escape':
-        this.flow.toRegistration();
+        if (phase === 'loading') this.flow.cancelLoading();
+        else this.flow.toRegistration();
         break;
       case 'Backspace':
         if (phase === 'register') this.tracker.clear();

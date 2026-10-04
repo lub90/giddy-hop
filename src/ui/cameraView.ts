@@ -1,6 +1,10 @@
 import type { PlayerTracker } from '../pose/playerTracker';
 import { SKELETON_EDGES, type DetectedPose } from '../pose/poseTypes';
 
+/** Progress ring colors: one arm (register / ready) and both arms (back / cancel). */
+const ONE_ARM_COLOR = '#ffd24a';
+const BOTH_ARMS_COLOR = '#ff6a4a';
+
 /**
  * Mirrored webcam image with skeletons drawn on top. One instance is moved
  * between the registration screen (large) and the debug panel (small).
@@ -42,13 +46,17 @@ export class CameraView {
 
     for (const c of tracker.candidates) {
       this.skeleton(c.pose, 'rgba(255,255,255,0.45)', map, 2);
-      if (c.progress > 0) this.progressRing(c.pose, c.progress, map);
+      if (c.progress > 0) this.progressRing(c.pose, c.progress, ONE_ARM_COLOR, map);
     }
-    tracker.slots.forEach((slot, i) => {
-      if (!slot.pose) return;
-      this.skeleton(slot.pose, colors[i], map, 4);
-      this.label(slot.pose, `${i + 1} ${names[i]}`, colors[i], map);
-    });
+    for (const slot of tracker.slots) {
+      if (!slot.pose) continue;
+      const n = slot.number;
+      this.skeleton(slot.pose, colors[n], map, 4);
+      this.label(slot.pose, `${n + 1} ${names[n]}${slot.ready ? ' ✅' : ''}`, colors[n], map);
+      if (slot.arms.progress > 0) {
+        this.progressRing(slot.pose, slot.arms.progress, slot.arms.holding === 2 ? BOTH_ARMS_COLOR : ONE_ARM_COLOR, map, -44);
+      }
+    }
   }
 
   private skeleton(pose: DetectedPose, color: string, map: (x: number, y: number) => readonly [number, number], width: number): void {
@@ -73,17 +81,24 @@ export class CameraView {
     return p ? { x: p.x, y: p.y - 60 } : null;
   }
 
-  private progressRing(pose: DetectedPose, progress: number, map: (x: number, y: number) => readonly [number, number]): void {
+  private progressRing(
+    pose: DetectedPose,
+    progress: number,
+    color: string,
+    map: (x: number, y: number) => readonly [number, number],
+    offsetY = 0,
+  ): void {
     const p = this.headPoint(pose);
     if (!p) return;
-    const [x, y] = map(p.x, p.y);
+    const [x, my] = map(p.x, p.y);
+    const y = my + offsetY;
     const { ctx } = this;
     ctx.lineWidth = 6;
     ctx.strokeStyle = 'rgba(0,0,0,0.4)';
     ctx.beginPath();
     ctx.arc(x, y, 18, 0, Math.PI * 2);
     ctx.stroke();
-    ctx.strokeStyle = '#ffd24a';
+    ctx.strokeStyle = color;
     ctx.beginPath();
     ctx.arc(x, y, 18, -Math.PI / 2, -Math.PI / 2 + progress * Math.PI * 2);
     ctx.stroke();

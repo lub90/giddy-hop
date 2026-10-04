@@ -1,14 +1,25 @@
 import { CONFIG, type TrackingConfig } from '../config';
 import { distance, lerp, type Point } from '../core/math';
 import { GestureAnalyzer, type GestureConfig } from '../input/gestureAnalyzer';
-import { isArmRaised, type DetectedPose, type PoseFrame } from './poseTypes';
+import { ArmGestureDetector, type ArmAction } from './armGesture';
+import { raisedArmCount, type DetectedPose, type PoseFrame } from './poseTypes';
 
 export type SlotKind = 'pose' | 'keyboard';
 
+/**
+ * What the tracker does with a frame:
+ *   register – new people can register, arm gestures of players are reported, vanished players are dropped
+ *   loading  – only arm gestures of registered players are reported
+ *   race     – identities are kept, nothing else
+ */
+export type TrackerMode = 'register' | 'loading' | 'race';
+
 /** A registered player. */
 export interface PlayerSlot {
-  /** Running id (stays the same when slots are re-sorted). */
+  /** Running id (unique for the lifetime of the tracker). */
   readonly uid: number;
+  /** Player number 0..maxPlayers-1, given in registration order; decides horse name and color. */
+  readonly number: number;
   readonly kind: SlotKind;
   /** Remembered position (normalized 0..1); slowly follows the person. */
   anchor: Point | null;
@@ -16,7 +27,10 @@ export interface PlayerSlot {
   /** Pose assigned in the current frame, null when not detected. */
   pose: DetectedPose | null;
   lastSeen: number;
+  /** Confirmed "ready" in the lobby. */
+  ready: boolean;
   readonly gestures: GestureAnalyzer;
+  readonly arms: ArmGestureDetector;
 }
 
 /** A not (yet) registered person with arm-raise progress. */
@@ -24,6 +38,12 @@ export interface Candidate {
   pose: DetectedPose;
   /** 0..1 – registers at 1. */
   progress: number;
+}
+
+/** An arm gesture completed by a registered player. */
+export interface SlotEvent {
+  slot: PlayerSlot;
+  action: ArmAction;
 }
 
 export interface TrackerOptions {
@@ -35,17 +55,23 @@ export interface TrackerOptions {
 /**
  * Assigns detected people to fixed player slots over time.
  *
- * - Registration: an unassigned person holds an arm up.
+ * - Registration: an unassigned person holds one arm up. The player number is
+ *   the lowest free one, i.e. the registration order.
  * - Matching: by MoveNet tracker id first, otherwise by nearest remembered
  *   position. People who match no player are ignored (other kids may be in
  *   the picture).
+ * - Arm gestures of registered players are reported as events; what they mean
+ *   (ready, unregister, cancel) is decided by the Lobby.
  */
 export class PlayerTracker {
+  /** Registered players, sorted by player number. */
   slots: PlayerSlot[] = [];
   candidates: Candidate[] = [];
+  /** Number of players dropped in the last update (walked away during registration). */
+  lastDropped = 0;
 
   private nextUid = 1;
-  private raiseSince = new Map<string, number>();
+  private candidateArms = new Map<string, ArmGestureDetector>();
 
   constructor(
     private readonly opts: TrackerOptions = { tracking: CONFIG.tracking, maxPlayers: CONFIG.maxPlayers, gestures: CONFIG },
@@ -55,74 +81,78 @@ export class PlayerTracker {
     return this.slots.length >= this.opts.maxPlayers;
   }
 
-  /**
-   * Processes one pose frame.
-   * @param allowRegistration true during registration: adds new players and drops vanished ones.
-   */
-  update(frame: PoseFrame, allowRegistration: boolean): void {
+  /** Processes one pose frame and returns completed arm gestures of registered players. */
+  update(frame: PoseFrame, mode: TrackerMode): SlotEvent[] {
     const t = frame.time;
+    const hold = this.opts.tracking.registerHoldSeconds;
     const unmatched = this.match(frame.poses, t);
+    this.lastDropped = 0;
 
     for (const slot of this.slots) {
       if (slot.kind === 'pose') slot.gestures.update(slot.pose, t);
     }
 
     this.candidates = [];
-    if (!allowRegistration) {
-      this.raiseSince.clear();
-      return;
+    if (mode === 'race') {
+      this.candidateArms.clear();
+      return [];
     }
 
-    const seenKeys = new Set<string>();
-    for (const pose of unmatched) {
-      const key = candidateKey(pose);
-      seenKeys.add(key);
-      if (!isArmRaised(pose) || this.isFull) {
-        this.raiseSince.delete(key);
-        this.candidates.push({ pose, progress: 0 });
-        continue;
-      }
-      const since = this.raiseSince.get(key) ?? t;
-      this.raiseSince.set(key, since);
-      const progress = Math.min(1, (t - since) / this.opts.tracking.registerHoldSeconds);
-      if (progress >= 1) {
-        this.raiseSince.delete(key);
-        this.addPoseSlot(pose, t);
-      } else {
-        this.candidates.push({ pose, progress });
-      }
+    const events: SlotEvent[] = [];
+    for (const slot of this.slots) {
+      if (!slot.pose) continue;
+      const action = slot.arms.update(raisedArmCount(slot.pose), t, hold);
+      if (action) events.push({ slot, action });
     }
-    for (const key of [...this.raiseSince.keys()]) if (!seenKeys.has(key)) this.raiseSince.delete(key);
 
-    // Whoever walks away during registration frees their slot again.
-    this.slots = this.slots.filter(
-      (s) => s.kind === 'keyboard' || t - s.lastSeen <= this.opts.tracking.dropAfterSeconds,
-    );
-    this.sortByPosition();
+    if (mode === 'register') {
+      this.registerCandidates(unmatched, t, hold);
+      // Whoever walks away during registration frees their slot again.
+      const before = this.slots.length;
+      this.slots = this.slots.filter(
+        (s) => s.kind === 'keyboard' || t - s.lastSeen <= this.opts.tracking.dropAfterSeconds,
+      );
+      this.lastDropped = before - this.slots.length;
+    } else {
+      this.candidateArms.clear();
+    }
+    return events;
   }
 
   /** Adds a keyboard-only player (for testing without a camera). */
   addKeyboardPlayer(): PlayerSlot | null {
     if (this.isFull) return null;
-    const slot = this.createSlot('keyboard', null, undefined, Number.POSITIVE_INFINITY);
-    this.slots.push(slot);
-    return slot;
+    return this.addSlot('keyboard', null, undefined, Number.POSITIVE_INFINITY);
+  }
+
+  unregister(slot: PlayerSlot): void {
+    this.slots = this.slots.filter((s) => s !== slot);
   }
 
   clear(): void {
     this.slots = [];
     this.candidates = [];
-    this.raiseSince.clear();
+    this.candidateArms.clear();
   }
 
-  /** Leftmost in the image = player 1 (top left on screen). Keyboard players go last. */
-  sortByPosition(): void {
-    this.slots.sort((a, b) => {
-      if (a.anchor && b.anchor) return a.anchor.x - b.anchor.x;
-      if (a.anchor) return -1;
-      if (b.anchor) return 1;
-      return a.uid - b.uid;
-    });
+  private registerCandidates(unmatched: DetectedPose[], t: number, hold: number): void {
+    const seen = new Set<string>();
+    for (const pose of unmatched) {
+      const key = candidateKey(pose);
+      seen.add(key);
+      let arms = this.candidateArms.get(key);
+      if (!arms) this.candidateArms.set(key, (arms = new ArmGestureDetector()));
+      const action = arms.update(raisedArmCount(pose), t, hold);
+      if (action === 'one' && !this.isFull) {
+        this.candidateArms.delete(key);
+        const slot = this.addSlot('pose', { ...pose.center }, pose.trackId, t);
+        slot.pose = pose;
+      } else {
+        // Only one raised arm registers; show progress just for that.
+        this.candidates.push({ pose, progress: arms.holding === 1 && !this.isFull ? arms.progress : 0 });
+      }
+    }
+    for (const key of [...this.candidateArms.keys()]) if (!seen.has(key)) this.candidateArms.delete(key);
   }
 
   /** Assigns poses to existing players and returns the remaining ones. */
@@ -157,14 +187,26 @@ export class PlayerTracker {
     return poses.filter((p) => !usedPoses.has(p));
   }
 
-  private addPoseSlot(pose: DetectedPose, t: number): void {
-    const slot = this.createSlot('pose', { ...pose.center }, pose.trackId, t);
-    slot.pose = pose;
+  private addSlot(kind: SlotKind, anchor: Point | null, trackId: number | undefined, lastSeen: number): PlayerSlot {
+    const taken = new Set(this.slots.map((s) => s.number));
+    let number = 0;
+    while (taken.has(number)) number++;
+    const slot: PlayerSlot = {
+      uid: this.nextUid++,
+      number,
+      kind,
+      anchor,
+      trackId,
+      pose: null,
+      lastSeen,
+      ready: false,
+      gestures: new GestureAnalyzer(this.opts.gestures),
+      // The registering arm is still up: it must come down before the next gesture counts.
+      arms: new ArmGestureDetector(true),
+    };
     this.slots.push(slot);
-  }
-
-  private createSlot(kind: SlotKind, anchor: Point | null, trackId: number | undefined, lastSeen: number): PlayerSlot {
-    return { uid: this.nextUid++, kind, anchor, trackId, pose: null, lastSeen, gestures: new GestureAnalyzer(this.opts.gestures) };
+    this.slots.sort((a, b) => a.number - b.number);
+    return slot;
   }
 }
 

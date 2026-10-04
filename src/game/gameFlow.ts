@@ -3,19 +3,19 @@ import type { PlayerInput } from '../input/playerInput';
 import { Race, type RaceConfig } from './race';
 import type { Track } from './track';
 
-export type Phase = 'loading' | 'register' | 'countdown' | 'race' | 'results';
+export type Phase = 'startup' | 'register' | 'loading' | 'countdown' | 'race' | 'results';
 
 /**
  * Game phases and transitions. Contains no DOM/rendering code so it can be
  * unit tested; the App reacts to `phase` changes.
  *
- *   loading → register → countdown → race → results
- *                ↑            ↑                  │
- *                │            └──── rematch ─────┤
- *                └────────── new registration ───┘
+ *   startup → register → loading → countdown → race → results
+ *                ↑  ↑        │          ↑                 │
+ *                │  └ cancel ┘          └──── rematch ────┤
+ *                └──────────── new registration ──────────┘
  */
 export class GameFlow {
-  phase: Phase = 'loading';
+  phase: Phase = 'startup';
   /** Seconds since the current phase began. */
   phaseTime = 0;
   race: Race | null = null;
@@ -30,15 +30,25 @@ export class GameFlow {
 
   /** Camera and model are ready. */
   ready(): void {
+    if (this.phase === 'startup') this.enter('register');
+  }
+
+  /** Everyone is ready: show "Laden …" before the countdown. Returns false if not possible. */
+  startLoading(playerCount: number): boolean {
+    if (this.phase !== 'register' || playerCount < 1) return false;
+    this.playerCount = playerCount;
+    this.enter('loading');
+    return true;
+  }
+
+  /** A player cancelled the loading. */
+  cancelLoading(): void {
     if (this.phase === 'loading') this.enter('register');
   }
 
-  /** Start a race with the registered players. Returns false if not possible. */
-  start(playerCount: number): boolean {
-    if (this.phase !== 'register' || playerCount < 1) return false;
-    this.playerCount = playerCount;
-    this.beginCountdown();
-    return true;
+  /** Keyboard shortcut: skip the loading wait. */
+  skipLoading(): void {
+    if (this.phase === 'loading') this.beginCountdown();
   }
 
   /** Same players, new race (from the results screen). */
@@ -50,9 +60,14 @@ export class GameFlow {
 
   /** Abort / finish and go back to registration. */
   toRegistration(): void {
-    if (this.phase === 'loading') return;
+    if (this.phase === 'startup') return;
     this.race = null;
     this.enter('register');
+  }
+
+  /** 0..1 progress of the loading wait. */
+  get loadingProgress(): number {
+    return this.phase === 'loading' ? Math.min(1, this.phaseTime / this.cfg.race.loadingSeconds) : 0;
   }
 
   /** Seconds left in the countdown, rounded up (3, 2, 1); 0 outside the countdown. */
@@ -61,9 +76,16 @@ export class GameFlow {
     return Math.max(1, Math.ceil(this.cfg.race.countdownSeconds - this.phaseTime));
   }
 
+  /** True during the first moment of the race, while "Los!" is shown. */
+  get showGo(): boolean {
+    return this.phase === 'race' && this.phaseTime < this.cfg.race.goSeconds;
+  }
+
   update(dt: number, inputs: readonly PlayerInput[]): void {
     this.phaseTime += dt;
-    if (this.phase === 'countdown' && this.phaseTime >= this.cfg.race.countdownSeconds) {
+    if (this.phase === 'loading' && this.phaseTime >= this.cfg.race.loadingSeconds) {
+      this.beginCountdown();
+    } else if (this.phase === 'countdown' && this.phaseTime >= this.cfg.race.countdownSeconds) {
       this.enter('race');
     } else if (this.phase === 'race' && this.race) {
       this.race.update(dt, inputs);
