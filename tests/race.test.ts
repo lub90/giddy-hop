@@ -440,3 +440,46 @@ describe('Race – remembered jump (regression: horse hung in the air, then drop
     expect(maxAirSpeed).toBeLessThan(5);
   });
 });
+
+describe('Race – double jumps (two obstacles right after each other)', () => {
+  const first = 40;
+  const second = 51;
+  const double = () => new Track(straight(140, [{ at: first, type: 'fence' }, { at: second, type: 'wall' }]));
+
+  /** Jumps at the given distances before the first obstacle and at given times after the first jump. */
+  function ride2(secondJumpDelay: number) {
+    const race = new Race(double(), 1, cfg());
+    race.horses[0].speed = CONFIG.horse.maxSpeed;
+    let firstAt = -1;
+    let jumps = 0;
+    ride(race, 12, (p, r) => {
+      const h = r.horses[p];
+      let jump = false;
+      if (jumps === 0 && first - h.s <= 6) {
+        jump = true;
+        firstAt = r.time;
+      } else if (jumps === 1 && r.time >= firstAt + secondJumpDelay) {
+        jump = true;
+      }
+      if (jump) jumps++;
+      return input({ drive: 1, jump });
+    });
+    return race;
+  }
+
+  it('jumping again right after landing clears both', () => {
+    const race = ride2(0.9);
+    expect(race.obstacles[0].map((o) => o.result)).toEqual(['cleared', 'cleared']);
+  });
+
+  it('jumping again while still in the air is remembered and clears the second one too', () => {
+    const race = ride2(0.5);
+    expect(race.horses[0].air).toBeNull();
+    expect(race.obstacles[0].map((o) => o.result)).toEqual(['cleared', 'cleared']);
+  });
+
+  it('without a second jump the second obstacle is knocked down', () => {
+    const race = ride2(99);
+    expect(race.obstacles[0].map((o) => o.result)).toEqual(['cleared', 'hit']);
+  });
+});

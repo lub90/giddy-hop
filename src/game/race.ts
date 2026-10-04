@@ -203,7 +203,11 @@ export class Race {
     }
 
     // --- jump start ---
-    if (input.jump && !h.air && h.pendingJump === null && !h.finished && !over) this.requestJump(i, h);
+    if (input.jump && h.pendingJump === null && !h.finished && !over) {
+      if (!h.air) this.requestJump(i, h);
+      // Double jumps: a jump while still in the air is remembered for the next obstacle.
+      else if (h.air.kind === 'assisted') this.rememberNextJump(i, h, h.air.obstacleId);
+    }
     if (h.pendingJump !== null && !h.air) this.takeOffIfReady(i, h);
 
     // --- move forward ---
@@ -248,6 +252,20 @@ export class Race {
       h.air = { kind: 'free', vy: this.cfg.jumpAssist.freeJumpVelocity };
       this.emit(i, 'jump');
     }
+  }
+
+  /** In the air over one obstacle: remember a jump for the following one if it is close. */
+  private rememberNextJump(i: number, h: Horse, currentObstacle: number): void {
+    const list = this.obstacles[i];
+    const current = list.find((o) => o.def.id === currentObstacle);
+    const next = list.find(
+      (o) => isJump(o.def.type) && o.result === 'pending' && o.def.id !== currentObstacle && (!current || o.def.s > current.def.s),
+    );
+    if (!next) return;
+    // The zone counts from where the horse will land.
+    const remainingFlight = h.air?.kind === 'assisted' ? h.air.speed * (h.air.duration - h.air.elapsed) : 0;
+    const distance = next.def.s - h.s;
+    if (distance >= 0 && distance <= this.cfg.jumpAssist.zoneBefore + remainingFlight) h.pendingJump = next.def.id;
   }
 
   /** Takes off for a remembered jump once the obstacle is close enough. */
