@@ -153,7 +153,9 @@ export const CONFIG = {
     /** Volume of the sound effects (0 = off … 1). */
     volume: 0.5,
     /** Hoofbeats relative to the other sounds (0 = off … 1). */
-    hoofVolume: 1,
+    hoofVolume: 1.5,
+    /** Whinny and snort of the finish celebration relative to the other sounds. */
+    whinnyVolume: 0.5,
   },
 
   hud: {

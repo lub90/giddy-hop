@@ -11,12 +11,14 @@ export class Sounds {
   private noise: AudioBuffer | null = null;
 
   /**
-   * @param volume master volume, @param hoofVolume relative volume of the hoofbeats –
-   *   both read on every sound, so changes in the debug panel apply immediately.
+   * @param volume master volume, @param hoofVolume / @param whinnyVolume relative volume of the
+   *   hoofbeats and of the whinny + snort –
+   *   all read on every sound, so changes in the debug panel apply immediately.
    */
   constructor(
     private readonly volume: () => number,
     private readonly hoofVolume: () => number = () => 1,
+    private readonly whinnyVolume: () => number = () => 1,
   ) {}
 
   /** Creates/resumes the audio context; must run inside a user gesture. */
@@ -60,7 +62,7 @@ export class Sounds {
    */
   whinny(pitch = 1): void {
     const r = this.ready();
-    const volume = this.volume();
+    const volume = this.volume() * this.whinnyVolume();
     if (!r || volume <= 0) return;
     const { ctx, bus } = r;
     const t0 = ctx.currentTime + 0.02;
@@ -111,10 +113,11 @@ export class Sounds {
     WHINNY.formants.forEach((track, i) => {
       const f = ctx.createBiquadFilter();
       f.type = 'bandpass';
-      f.Q.value = [6, 9, 10][i];
+      // F1 broad: the falling voice passes through it at the "A" without a resonance spike.
+      f.Q.value = [2.5, 9, 10][i];
       keys(f.frequency, track, Math.sqrt(pitch));
       const g = ctx.createGain();
-      g.gain.value = [1.6, 1.1, 0.5][i];
+      g.gain.value = [1.1, 1.1, 0.5][i];
       voice.connect(f).connect(g).connect(vowel);
     });
     vowel.connect(pulse);
@@ -156,7 +159,7 @@ export class Sounds {
   /** A soft snort on its own (e.g. for testing in the debug panel). */
   snort(): void {
     const r = this.ready();
-    const volume = this.volume();
+    const volume = this.volume() * this.whinnyVolume();
     if (!r || volume <= 0) return;
     const out = r.ctx.createGain();
     out.gain.value = volume * 0.9;
@@ -275,7 +278,7 @@ type Keys = readonly (readonly [number, number])[];
  * modelled on real whinnies:
  *   0.00–0.62 "Wiiieh"  starts high right away (no rise), fluttering strongly, held long
  *   0.62–0.68           short breathy drop
- *   0.68–1.00 "A"       clearly lower, shorter, open vowel, no flutter
+ *   0.68–1.00 "A"       lower, shorter and quieter, a gently opening vowel, no flutter
  */
 export const WHINNY: {
   duration: number;
@@ -290,22 +293,22 @@ export const WHINNY: {
 } = {
   duration: 1.5,
   // Hz – high from the first moment, held (slightly sinking), then a clear drop for the "A".
-  pitch: [[0, 560], [0.62, 520], [0.7, 360], [1, 280]],
+  pitch: [[0, 560], [0.62, 520], [0.72, 390], [1, 310]],
   formants: [
     // F1: closed during "Wiiieh", wide open for the "A".
-    [[0, 330], [0.62, 350], [0.7, 820], [1, 780]],
+    [[0, 330], [0.62, 350], [0.74, 600], [1, 570]],
     // F2: fairly high "ie"-colour, then the middle "A" position.
-    [[0, 1850], [0.62, 1950], [0.7, 1250], [1, 1150]],
+    [[0, 1850], [0.62, 1950], [0.74, 1500], [1, 1400]],
     // F3
     [[0, 2600], [0.62, 2700], [0.7, 2500], [1, 2400]],
   ],
-  loudness: [[0, 0], [0.03, 0.85], [0.6, 0.8], [0.65, 0.35], [0.7, 1], [0.85, 0.8], [1, 0]],
+  loudness: [[0, 0], [0.03, 0.85], [0.6, 0.8], [0.64, 0.3], [0.7, 0.3], [0.76, 0.5], [0.88, 0.35], [1, 0]],
   // Flutter of the "Wiiieh" (loudness pulsing) – stops for the "A".
   pulseRate: [[0, 13], [0.62, 12], [0.65, 0], [1, 0]],
   pulseDepth: [[0, 0.4], [0.62, 0.35], [0.65, 0], [1, 0]],
   // Hz of pitch shake – strong during "Wiiieh", none in the "A".
   trillDepth: [[0, 40], [0.62, 35], [0.65, 0], [1, 0]],
-  breath: [[0, 0.04], [0.62, 0.05], [0.66, 0.35], [0.7, 0.1], [1, 0.06]],
+  breath: [[0, 0.04], [0.62, 0.05], [0.66, 0.15], [0.72, 0.07], [1, 0.05]],
   // Hz – overall low-pass
   brightness: [[0, 3000], [0.62, 3000], [0.7, 3500], [1, 3000]],
 };

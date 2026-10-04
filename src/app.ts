@@ -101,6 +101,7 @@ export class App {
   private readonly sounds: Sounds = new Sounds(
     () => CONFIG.audio.volume,
     () => CONFIG.audio.hoofVolume,
+    () => CONFIG.audio.whinnyVolume,
   );
   private readonly hoofbeats = new HoofbeatPlayer(this.sounds);
 
