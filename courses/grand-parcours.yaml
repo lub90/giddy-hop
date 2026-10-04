@@ -5,8 +5,8 @@ name:
   de: Großer Parcours
   en: Grand Parcours
 description:
-  de: Lange Strecke mit Haarnadelkurve, S-Kurve und fünf Sprüngen.
-  en: Long track with a hairpin, an S-bend and five jumps.
+  de: Lange Strecke mit Haarnadelkurve, S-Kurve und sechs Sprüngen – Stangen, Mauer, Hecke und Wassergraben.
+  en: Long track with a hairpin, an S-bend and six jumps – poles, wall, hedge and water ditch.
 order: 1
 
 width: 7   # width of the sand track (m)
@@ -26,10 +26,10 @@ segments:
 
   - straight: 40
     obstacles:
-      - { at: 10, type: fence }
+      - { at: 10, type: wall }
       - { at: 22, type: cone, lateral: 0 }
       - { at: 22, type: carrot, lateral: -2.2 }
-      - { at: 33, type: fence }
+      - { at: 33, type: hedge }
 
   - curve: left      # hairpin
     angle: 180
@@ -38,7 +38,7 @@ segments:
 
   - straight: 35
     obstacles:
-      - { at: 10, type: fence }
+      - { at: 10, type: water }
       - { at: 20, type: cone, lateral: -1.5 }
       - { at: 20, type: carrot, lateral: 1.8 }
       - { at: 28, type: fence }
@@ -60,6 +60,6 @@ segments:
 
   - straight: 30
     obstacles:
-      - { at: 15, type: fence }
+      - { at: 15, type: wall }
 
   - straight: 20   # finish straight

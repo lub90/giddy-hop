@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { CONFIG } from '../src/config';
 import { Race } from '../src/game/race';
-import { Track, type CourseDef, type ObstacleDef } from '../src/game/track';
+import { JUMP_TYPES, Track, type CourseDef, type ObstacleDef } from '../src/game/track';
 import type { PlayerInput } from '../src/input/playerInput';
 
 const DT = 1 / 60;
@@ -118,6 +118,32 @@ describe('Race – curves (semi-guided steering)', () => {
   });
 });
 
+describe('Race – all jump types (fence, wall, hedge, water) behave the same', () => {
+  for (const type of JUMP_TYPES) {
+    it(`${type}: cleared with a jump in the zone, fault without`, () => {
+      const track = new Track(straight(100, [{ at: 40, type }]));
+      const jumped = new Race(track, 1, cfg());
+      ride(jumped, 12, (p, r) => input({ drive: 1, jump: Math.abs(35 - r.horses[p].s) < 0.08 }));
+      expect(jumped.obstacles[0][0].result).toBe('cleared');
+      expect(jumped.drainEvents()).toContainEqual(expect.objectContaining({ type: 'jump-cleared', obstacle: type }));
+
+      const missed = new Race(track, 1, cfg());
+      ride(missed, 12, () => input({ drive: 1 }));
+      expect(missed.obstacles[0][0].result).toBe('hit');
+      expect(missed.horses[0].faults).toBe(1);
+      expect(missed.drainEvents()).toContainEqual(expect.objectContaining({ type: 'jump-fault', obstacle: type }));
+    });
+  }
+
+  it('the jump zone ("HOPP!") works for every jump type', () => {
+    for (const type of JUMP_TYPES) {
+      const race = new Race(new Track(straight(100, [{ at: 40, type }])), 1, cfg());
+      race.horses[0].s = 35;
+      expect(race.inJumpZone(0), type).toBe(true);
+    }
+  });
+});
+
 describe('Race – jumping with jump zone', () => {
   const fenceAt = 40;
   const fenceTrack = () => new Track(straight(100, [{ at: fenceAt, type: 'fence' }]));
@@ -156,7 +182,7 @@ describe('Race – jumping with jump zone', () => {
     expect(race.obstacles[0][0].result).toBe('hit');
     expect(race.horses[0].faults).toBe(1);
     expect(speedAfter).toBeLessThan(CONFIG.horse.maxSpeed * 0.5);
-    expect(race.drainEvents().map((e) => e.type)).toContain('fence-fault');
+    expect(race.drainEvents().map((e) => e.type)).toContain('jump-fault');
   });
 
   it('allows jumping anywhere, also without an obstacle', () => {

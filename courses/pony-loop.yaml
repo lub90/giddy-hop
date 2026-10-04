@@ -36,6 +36,6 @@ segments:
 
   - straight: 25
     obstacles:
-      - { at: 12, type: fence }
+      - { at: 12, type: hedge }
 
   - straight: 20

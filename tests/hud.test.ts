@@ -3,7 +3,7 @@ import { CONFIG } from '../src/config';
 import { GAIT_LABELS, gaitOf } from '../src/game/gait';
 import { Race } from '../src/game/race';
 import { Track } from '../src/game/track';
-import { hintFor, type HudState } from '../src/ui/hud';
+import { hintFor, toastFor, type HudState } from '../src/ui/hud';
 
 const T = CONFIG.hud.gaitThresholds;
 
@@ -80,5 +80,22 @@ describe('Race.slowdownReason', () => {
     expect(race.slowdownReason(0)).toBeNull();
     expect(race.slowdownReason(1)).toBe('grass');
     expect(race.slowdownReason(2)).toBe('rail');
+  });
+});
+
+describe('HUD toasts', () => {
+  it('celebrates clean jumps and reports faults', () => {
+    expect(toastFor({ type: 'jump-cleared', obstacle: 'wall' })).toContain('Super Sprung');
+    expect(toastFor({ type: 'jump-fault', obstacle: 'fence' })).toContain('Abwurf');
+    expect(toastFor({ type: 'carrot', obstacle: 'carrot' })).toContain('🥕');
+  });
+
+  it('a fault at the water ditch makes a splash', () => {
+    expect(toastFor({ type: 'jump-fault', obstacle: 'water' })).toContain('Platsch');
+  });
+
+  it('has no toast for a plain jump or the finish', () => {
+    expect(toastFor({ type: 'jump' })).toBeNull();
+    expect(toastFor({ type: 'finish' })).toBeNull();
   });
 });

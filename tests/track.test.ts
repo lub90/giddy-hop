@@ -55,13 +55,13 @@ describe('Courses – every file in courses/ is a valid, rideable course', () =>
     });
   }
 
-  it('the grand parcours has curves to both sides and all obstacle types', () => {
+  it('the grand parcours has curves to both sides and every obstacle type', () => {
     const grand = COURSES.find((c) => c.id === 'grand-parcours')!;
     const angles = grand.def.segments.flatMap((s) => (s.kind === 'curve' ? [s.angle] : []));
     expect(angles.some((a) => a > 0)).toBe(true);
     expect(angles.some((a) => a < 0)).toBe(true);
     const types = new Set(new Track(grand.def).obstacles.map((o) => o.type));
-    expect([...types].sort()).toEqual(['carrot', 'cone', 'fence']);
+    expect([...types].sort()).toEqual(['carrot', 'cone', 'fence', 'hedge', 'wall', 'water']);
   });
 });
 

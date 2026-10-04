@@ -275,7 +275,7 @@ export class App {
     if (phase === 'register' || this.debug.showsCamera) this.cameraView.draw(this.tracker, names, colors);
 
     if (race && (phase === 'countdown' || phase === 'race' || phase === 'results')) {
-      for (const e of race.drainEvents()) this.hud.event(e.player, e.type, t);
+      for (const e of race.drainEvents()) this.hud.event(e, t);
       this.hud.update(race.horses.map((_, i) => this.hudState(i, t)), t);
     }
 

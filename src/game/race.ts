@@ -2,7 +2,7 @@ import { CONFIG, type Config } from '../config';
 import { approach, clamp, damp } from '../core/math';
 import { NEUTRAL_INPUT, type PlayerInput } from '../input/playerInput';
 import { Horse } from './horse';
-import type { Track, TrackObstacle } from './track';
+import { isJump, type ObstacleType, type Track, type TrackObstacle } from './track';
 
 export type RaceConfig = Pick<Config, 'horse' | 'jumpAssist' | 'obstacles' | 'scoring' | 'race'>;
 
@@ -18,12 +18,14 @@ export interface ObstacleState {
 
 export type SlowdownReason = 'grass' | 'rail' | null;
 
-export type RaceEventType = 'jump' | 'fence-cleared' | 'fence-fault' | 'cone-hit' | 'carrot' | 'finish';
+export type RaceEventType = 'jump' | 'jump-cleared' | 'jump-fault' | 'cone-hit' | 'carrot' | 'finish';
 
 export interface RaceEvent {
   player: number;
   type: RaceEventType;
   time: number;
+  /** The obstacle involved (for jump-cleared / jump-fault / cone-hit / carrot). */
+  obstacle?: ObstacleType;
 }
 
 export interface RaceResult {
@@ -90,19 +92,19 @@ export class Race {
     return e;
   }
 
-  /** Next fence ahead that has not been passed yet. */
-  nextFence(player: number): { state: ObstacleState; distance: number } | null {
+  /** Next jump obstacle ahead that has not been passed yet. */
+  nextJump(player: number): { state: ObstacleState; distance: number } | null {
     const horse = this.horses[player];
     for (let k = this.nextObstacle[player]; k < this.obstacles[player].length; k++) {
       const state = this.obstacles[player][k];
-      if (state.def.type === 'fence' && state.result === 'pending') return { state, distance: state.def.s - horse.s };
+      if (isJump(state.def.type) && state.result === 'pending') return { state, distance: state.def.s - horse.s };
     }
     return null;
   }
 
-  /** True when a jump now would be timed automatically over the next fence. */
+  /** True when a jump now would be timed automatically over the next obstacle. */
   inJumpZone(player: number): boolean {
-    const f = this.nextFence(player);
+    const f = this.nextJump(player);
     return !!f && f.distance >= 0 && f.distance <= this.cfg.jumpAssist.zoneBefore;
   }
 
@@ -201,10 +203,10 @@ export class Race {
 
   private startJump(i: number, h: Horse): void {
     const ja = this.cfg.jumpAssist;
-    const fence = this.nextFence(i);
-    if (fence && fence.distance >= 0 && fence.distance <= ja.zoneBefore) {
-      const half = Math.max(fence.distance, ja.minHalfLength);
-      h.air = { kind: 'assisted', from: h.s, to: fence.state.def.s + half, obstacleId: fence.state.def.id };
+    const next = this.nextJump(i);
+    if (next && next.distance >= 0 && next.distance <= ja.zoneBefore) {
+      const half = Math.max(next.distance, ja.minHalfLength);
+      h.air = { kind: 'assisted', from: h.s, to: next.state.def.s + half, obstacleId: next.state.def.id };
     } else {
       h.air = { kind: 'free', vy: ja.freeJumpVelocity };
     }
@@ -223,26 +225,26 @@ export class Race {
       const state = list[this.nextObstacle[i]++];
       const d = state.def;
       let result: ObstacleResult;
-      if (d.type === 'fence') {
+      if (isJump(d.type)) {
         const assisted = h.air?.kind === 'assisted' && h.air.obstacleId === d.id;
         result = assisted || h.height >= oc.fenceHeight ? 'cleared' : 'hit';
         if (result === 'hit') {
           h.faults++;
           this.stumble(h);
         }
-        this.emit(i, result === 'hit' ? 'fence-fault' : 'fence-cleared');
+        this.emit(i, result === 'hit' ? 'jump-fault' : 'jump-cleared', d.type);
       } else if (d.type === 'cone') {
         result = Math.abs(h.lateral - d.lateral) < oc.coneHitRadius && h.height < 0.5 ? 'hit' : 'missed';
         if (result === 'hit') {
           h.faults++;
           this.stumble(h);
-          this.emit(i, 'cone-hit');
+          this.emit(i, 'cone-hit', d.type);
         }
       } else {
         result = Math.abs(h.lateral - d.lateral) < oc.carrotPickRadius ? 'collected' : 'missed';
         if (result === 'collected') {
           h.carrots++;
-          this.emit(i, 'carrot');
+          this.emit(i, 'carrot', d.type);
         }
       }
       state.result = result;
@@ -255,7 +257,7 @@ export class Race {
     h.speed *= this.cfg.horse.stumbleSpeedFactor;
   }
 
-  private emit(player: number, type: RaceEventType): void {
-    this.events.push({ player, type, time: this.time });
+  private emit(player: number, type: RaceEventType, obstacle?: ObstacleType): void {
+    this.events.push({ player, type, time: this.time, obstacle });
   }
 }

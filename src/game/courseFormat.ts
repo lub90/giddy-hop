@@ -1,5 +1,5 @@
 import { parse as parseYaml } from 'yaml';
-import type { CourseDef, ObstacleDef, ObstacleType, SegmentDef } from './track';
+import { isJump, JUMP_TYPES, type CourseDef, type ObstacleDef, type ObstacleType, type SegmentDef } from './track';
 
 /**
  * Course files (courses/*.yaml) – see courses/README.md for the format.
@@ -10,7 +10,7 @@ export const LANGUAGES = ['de', 'en'] as const;
 export type Language = (typeof LANGUAGES)[number];
 export type Localized = Record<Language, string>;
 
-export const OBSTACLE_TYPES: readonly ObstacleType[] = ['fence', 'cone', 'carrot'];
+export const OBSTACLE_TYPES: readonly ObstacleType[] = [...JUMP_TYPES, 'cone', 'carrot'];
 
 export interface CourseInfo {
   /** File name without extension. */
@@ -112,7 +112,7 @@ export function courseStats(def: CourseDef): CourseStats {
   for (const s of def.segments) {
     length += s.kind === 'straight' ? s.length : (Math.abs(s.angle) * Math.PI * s.radius) / 180;
     if (s.kind === 'curve') curves++;
-    jumps += (s.obstacles ?? []).filter((o) => o.type === 'fence').length;
+    jumps += (s.obstacles ?? []).filter((o) => isJump(o.type)).length;
   }
   return { length, jumps, curves };
 }

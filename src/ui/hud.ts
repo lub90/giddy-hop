@@ -1,5 +1,5 @@
 import { GAIT_LABELS, gaitOf, type Gait, type GaitThresholds } from '../game/gait';
-import type { RaceEventType, SlowdownReason } from '../game/race';
+import type { RaceEvent, RaceEventType, SlowdownReason } from '../game/race';
 import type { Rect } from '../render/layout';
 
 export interface HudState {
@@ -26,11 +26,17 @@ export interface Hint {
 }
 
 const TOASTS: Partial<Record<RaceEventType, string>> = {
-  'fence-cleared': 'Super Sprung! ⭐',
-  'fence-fault': 'Abwurf! 💥',
+  'jump-cleared': 'Super Sprung! ⭐',
+  'jump-fault': 'Abwurf! 💥',
   'cone-hit': 'Autsch, Hütchen! 💥',
   carrot: '+1 🥕',
 };
+
+/** Short message for a race event, or null if it has none. */
+export function toastFor(e: Pick<RaceEvent, 'type' | 'obstacle'>): string | null {
+  if (e.type === 'jump-fault' && e.obstacle === 'water') return 'Platsch! 💦';
+  return TOASTS[e.type] ?? null;
+}
 
 const TOAST_SECONDS = 1.2;
 const GAITS: Gait[] = ['walk', 'trot', 'gallop'];
@@ -171,9 +177,9 @@ export class Hud {
     this.panels.forEach((p, i) => states[i] && p.update(states[i], now));
   }
 
-  event(player: number, type: RaceEventType, now: number): void {
-    const text = TOASTS[type];
-    if (text) this.panels[player]?.showToast(text, now);
+  event(e: RaceEvent, now: number): void {
+    const text = toastFor(e);
+    if (text) this.panels[e.player]?.showToast(text, now);
   }
 
   clear(): void {

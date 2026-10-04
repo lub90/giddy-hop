@@ -108,3 +108,20 @@ segments:
     expect(errors).toHaveLength(1);
   });
 });
+
+describe('Course format – jump types', () => {
+  it('accepts fence, wall, hedge and water as jumps and counts them', () => {
+    const c = parseCourse('t', `
+name: X
+segments:
+  - straight: 100
+    obstacles:
+      - { at: 10, type: fence }
+      - { at: 30, type: wall }
+      - { at: 50, type: hedge }
+      - { at: 70, type: water }
+`);
+    expect(c.def.segments[0].obstacles!.map((o) => o.type)).toEqual(['fence', 'wall', 'hedge', 'water']);
+    expect(courseStats(c.def).jumps).toBe(4);
+  });
+});

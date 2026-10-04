@@ -58,6 +58,25 @@ export function stripeTexture(color: string): THREE.CanvasTexture {
   return tex;
 }
 
+/** Red brick pattern for walls (repeats horizontally). */
+export function brickTexture(): THREE.CanvasTexture {
+  const tex = canvasTexture(128, 64, (ctx) => {
+    ctx.fillStyle = '#d9cfc0';
+    ctx.fillRect(0, 0, 128, 64);
+    const rows = 4;
+    const h = 64 / rows;
+    for (let r = 0; r < rows; r++) {
+      const offset = r % 2 ? 16 : 0;
+      for (let x = -32 + offset; x < 128; x += 32) {
+        ctx.fillStyle = ['#a7442f', '#b5513a', '#9a3d2a'][(r + Math.round(x / 32)) % 3];
+        ctx.fillRect(x + 2, r * h + 2, 28, h - 4);
+      }
+    }
+  });
+  tex.wrapS = THREE.RepeatWrapping;
+  return tex;
+}
+
 /** Black and white checkers for the finish line. */
 export function checkerTexture(): THREE.CanvasTexture {
   const tex = canvasTexture(64, 16, (ctx) => {

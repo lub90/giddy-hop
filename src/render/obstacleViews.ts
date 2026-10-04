@@ -1,17 +1,14 @@
 import * as THREE from 'three';
 import type { ObstacleState } from '../game/race';
-import type { Track, TrackObstacle } from '../game/track';
+import { isJump, type Track, type TrackObstacle } from '../game/track';
+import { buildJump, type JumpView } from './jumpViews';
 import { LAYER_SHARED, setLayer } from './layers';
-import { stripeTexture } from './textures';
 
 // Geometries and materials are shared by all players and races.
-const poleGeo = new THREE.CylinderGeometry(0.06, 0.06, 1, 8);
-const standardGeo = new THREE.BoxGeometry(0.18, 1.6, 0.18);
 const carrotGeo = new THREE.ConeGeometry(0.13, 0.5, 8);
 const leafGeo = new THREE.ConeGeometry(0.1, 0.25, 5);
 const coneGeo = new THREE.ConeGeometry(0.35, 0.8, 12);
 const stripeGeo = new THREE.CylinderGeometry(0.2, 0.25, 0.12, 12);
-const standardMat = new THREE.MeshLambertMaterial({ color: '#2a5fa8' });
 const carrotMat = new THREE.MeshLambertMaterial({ color: '#ff8a1e', emissive: '#552200' });
 const leafMat = new THREE.MeshLambertMaterial({ color: '#3fa34d' });
 const coneMat = new THREE.MeshLambertMaterial({ color: '#ff6a1a' });
@@ -23,35 +20,13 @@ const bushMat = new THREE.MeshLambertMaterial({ color: '#3c7f34', flatShading: t
 
 const HEDGE_HEIGHT = 1.3;
 const HEDGE_DEPTH = 1.0;
-let poleMat: THREE.MeshLambertMaterial | null = null;
-
-const POLE_HEIGHTS = [0.45, 0.75, 1.0];
+/** Duration of the knock-down animation of a jump (s). */
+const HIT_SECONDS = 0.5;
 
 function place(obj: THREE.Object3D, track: Track, o: TrackObstacle): void {
   const w = track.toWorld(o.s, o.lateral);
   obj.position.set(w.x, 0, w.z);
   obj.rotation.y = -w.heading;
-}
-
-function buildFence(track: Track): { group: THREE.Group; poles: THREE.Mesh[] } {
-  poleMat ??= new THREE.MeshLambertMaterial({ map: stripeTexture('#d62828') });
-  const group = new THREE.Group();
-  // The striped poles span the sand only; hedges on the grass block the way around.
-  const width = track.halfWidth * 2 + 0.4;
-  for (const side of [-1, 1]) {
-    const st = new THREE.Mesh(standardGeo, standardMat);
-    st.position.set((side * width) / 2, 0.8, 0);
-    group.add(st);
-  }
-  const poles = POLE_HEIGHTS.map((h) => {
-    const pole = new THREE.Mesh(poleGeo, poleMat!);
-    pole.rotation.z = Math.PI / 2;
-    pole.scale.y = width;
-    pole.position.y = h;
-    group.add(pole);
-    return pole;
-  });
-  return { group, poles };
 }
 
 function buildCarrot(): THREE.Group {
@@ -67,12 +42,12 @@ function buildCarrot(): THREE.Group {
 interface Item {
   state: ObstacleState;
   obj: THREE.Group;
-  poles?: THREE.Mesh[];
+  jump?: JumpView;
 }
 
 /**
- * Fences and carrots of one player. They live on that player's layer, so a
- * fence knocked down by player 1 still stands for player 2.
+ * Jumps and carrots of one player. They live on that player's layer, so a
+ * jump knocked down by player 1 still stands for player 2.
  */
 export class PlayerObstacles {
   readonly group = new THREE.Group();
@@ -80,32 +55,29 @@ export class PlayerObstacles {
 
   constructor(track: Track, states: ObstacleState[], layer: number) {
     for (const state of states) {
-      if (state.def.type === 'fence') {
-        const { group, poles } = buildFence(track);
-        place(group, track, state.def);
-        this.items.push({ state, obj: group, poles });
-        this.group.add(group);
-      } else if (state.def.type === 'carrot') {
-        const carrot = buildCarrot();
-        place(carrot, track, state.def);
-        this.items.push({ state, obj: carrot });
-        this.group.add(carrot);
+      const type = state.def.type;
+      let item: Item;
+      if (isJump(type)) {
+        const jump = buildJump(type, track);
+        item = { state, obj: jump.group, jump };
+      } else if (type === 'carrot') {
+        item = { state, obj: buildCarrot() };
+      } else {
+        continue;
       }
+      place(item.obj, track, state.def);
+      this.items.push(item);
+      this.group.add(item.obj);
     }
     setLayer(this.group, layer);
   }
 
-  /** Animates carrots and falling poles. */
+  /** Animates carrots and knocked-down jumps. */
   update(raceTime: number, time: number): void {
     for (const it of this.items) {
       const age = raceTime - it.state.changedAt;
-      if (it.poles) {
-        if (it.state.result !== 'hit') continue;
-        const f = Math.min(1, age / 0.4);
-        it.poles.forEach((p, i) => {
-          p.position.y = POLE_HEIGHTS[i] + (0.08 - POLE_HEIGHTS[i]) * f;
-          p.position.z = f * (0.4 + i * 0.25);
-        });
+      if (it.jump) {
+        if (it.state.result === 'hit') it.jump.hit(Math.min(1, age / HIT_SECONDS));
       } else {
         // Carrots float at rider-eye-friendly height and spin; collected ones pop and vanish.
         const y = 1.25 + Math.sin(time * 3 + it.state.def.s) * 0.1;
@@ -134,7 +106,7 @@ function buildCone(): THREE.Group {
   return g;
 }
 
-/** Hedges on both grass strips next to a fence, from the sand edge to the rails. */
+/** Hedges on both grass strips next to a jump, from the sand edge to the rails. */
 function buildHedges(track: Track): THREE.Group {
   const g = new THREE.Group();
   const inner = track.halfWidth + 0.35;
@@ -159,13 +131,13 @@ function buildHedges(track: Track): THREE.Group {
   return g;
 }
 
-/** Cones and the hedges beside the fences never change, so all players share them. */
+/** Cones and the hedges beside the jumps never change, so all players share them. */
 export function buildStaticObstacles(track: Track): THREE.Group {
   const root = new THREE.Group();
   for (const o of track.obstacles) {
     let g: THREE.Group;
     if (o.type === 'cone') g = buildCone();
-    else if (o.type === 'fence') g = buildHedges(track);
+    else if (isJump(o.type)) g = buildHedges(track);
     else continue;
     place(g, track, o);
     setLayer(g, LAYER_SHARED);

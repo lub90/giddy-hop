@@ -25,6 +25,7 @@ segments:             # the track, from start to finish
   - straight: 30
     obstacles:                    # optional
       - { at: 15, type: fence }   # at = m from the start of this segment
+      - { at: 25, type: water }   # jumps: fence, wall, hedge, water
 
   - curve: right                  # left | right
     angle: 90                     # degrees, 1–360
@@ -37,7 +38,7 @@ segments:             # the track, from start to finish
 | Field | Meaning |
 | --- | --- |
 | `at` | Distance from the start of the segment (m) |
-| `type` | `fence` (jump), `cone` (steer around it), `carrot` (collect it) |
+| `type` | Jumps: `fence` (striped poles), `wall` (brick wall), `hedge`, `water` (water ditch) – all behave the same, they only look different. Others: `cone` (steer around it), `carrot` (collect it) |
 | `lateral` | Sideways position in m, negative = left, positive = right, 0 = center (default). Ignored for jumps, which span the whole track. |
 
 `carrots: n` on a segment places `n` carrots evenly along it – on the inner side

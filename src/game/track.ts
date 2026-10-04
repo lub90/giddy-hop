@@ -8,7 +8,12 @@
  * positive heading turns right (clockwise seen from above).
  */
 
-export type ObstacleType = 'fence' | 'cone' | 'carrot';
+/** Jump obstacles: all behave the same, they only look different. */
+export const JUMP_TYPES = ['fence', 'wall', 'hedge', 'water'] as const;
+export type JumpType = (typeof JUMP_TYPES)[number];
+export type ObstacleType = JumpType | 'cone' | 'carrot';
+
+export const isJump = (type: ObstacleType): type is JumpType => (JUMP_TYPES as readonly string[]).includes(type);
 
 export interface ObstacleDef {
   /** Distance from the start of the segment (m). */
@@ -98,7 +103,7 @@ export class Track {
       const curvature = def.kind === 'curve' ? (Math.sign(def.angle) / def.radius) : 0;
       this.segments.push({ start: s, end: s + len, def });
       for (const o of def.obstacles ?? []) {
-        this.obstacles.push({ id: 0, s: s + o.at, type: o.type, lateral: o.type === 'fence' ? 0 : (o.lateral ?? 0) });
+        this.obstacles.push({ id: 0, s: s + o.at, type: o.type, lateral: isJump(o.type) ? 0 : (o.lateral ?? 0) });
       }
 
       const steps = Math.max(1, Math.round(len / step));
