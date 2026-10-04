@@ -132,7 +132,7 @@ test('course selection on the start screen', async ({ page }) => {
   await page.goto('/');
   await expectStartScreen(page, 'Auf die Pferde');
   const select = page.locator('select[data-action="course"]');
-  await expect(select.locator('option')).toHaveCount(2);
+  await expect(select.locator('option')).toHaveCount(4);
   const before = await page.locator('.course-info').textContent();
 
   await select.selectOption('pony-loop');

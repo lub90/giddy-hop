@@ -1,0 +1,37 @@
+# Racetrack: an oval with two long straights and two curves. The finish is
+# just behind the start, so the riders do one full lap.
+# Only two obstacles, one on each straight – none in the curves.
+# Format: see courses/README.md
+
+name:
+  de: Pferderennbahn
+  en: Racetrack
+description:
+  de: Eine Runde auf dem Oval – lange Geraden zum Galoppieren, nur zwei Hindernisse.
+  en: One lap of the oval – long straights to gallop, only two obstacles.
+order: 4
+
+width: 10
+grass: 4
+
+segments:
+  - straight: 137
+    obstacles:
+      - { at: 80, type: fence }
+
+  - curve: right
+    angle: 180
+    radius: 30
+    carrots: 4
+
+  - straight: 137
+    obstacles:
+      - { at: 70, type: water }
+
+  - curve: right
+    angle: 180
+    radius: 30
+    carrots: 4
+
+  # Back on the home straight: the finish line is just behind the start.
+  - straight: 15

@@ -47,12 +47,24 @@ describe('Courses – every file in courses/ is a valid, rideable course', () =>
       it('never crosses or touches itself (rails of distant sections stay apart)', () => {
         const minGap = 2 * track.railOffset + 4;
         const pts = track.samples;
+        // Riding the very same lane again in the same direction is fine (a lap on a
+        // racetrack ends on its own home straight); crossing or running alongside is not.
+        const sameLane = (a: (typeof pts)[number], b: (typeof pts)[number], d: number) => {
+          const turn = Math.abs(Math.atan2(Math.sin(a.heading - b.heading), Math.cos(a.heading - b.heading)));
+          return d < 0.5 && turn < 0.05;
+        };
+        // A lap course comes back to its start: then sections are neighbours across the seam, too.
+        const lap = pts.findIndex(
+          (p, k) => k * Track.STEP > minGap * 2.5 && sameLane(pts[0], p, Math.hypot(p.x - pts[0].x, p.z - pts[0].z)),
+        );
         for (let i = 0; i < pts.length; i += 4) {
           for (let j = i + 4; j < pts.length; j += 4) {
-            // Only compare sections that are far apart along the track.
-            if ((j - i) * Track.STEP < minGap * 2.5) continue;
+            // Only compare sections that are far apart along the track (or along the lap).
+            const apart = lap > 0 ? Math.min(j - i, Math.abs(i + lap - j)) : j - i;
+            if (apart * Track.STEP < minGap * 2.5) continue;
             const d = Math.hypot(pts[i].x - pts[j].x, pts[i].z - pts[j].z);
-            expect(d).toBeGreaterThan(minGap);
+            if (sameLane(pts[i], pts[j], d)) continue;
+            expect(d, `samples ${i} / ${j}`).toBeGreaterThan(minGap);
           }
         }
       });
@@ -121,5 +133,50 @@ describe('Track – geometry', () => {
     expect(end.heading).toBeCloseTo(finish.heading, 6);
     expect(end.x - finish.x).toBeCloseTo(Track.RUN_OUT, 1);
     expect(end.curvature).toBe(0);
+  });
+});
+
+describe('Courses – show jumping and racetrack', () => {
+  const byId = (id: string) => {
+    const c = COURSES.find((x) => x.id === id);
+    if (!c) throw new Error(`course ${id} missing`);
+    return { course: c, track: new Track(c.def) };
+  };
+  const grand = byId('grand-parcours').track;
+
+  it('all four courses are offered: Grand Parcours, Pony Loop, Show Jumping, Racetrack', () => {
+    expect(COURSES.filter((c) => !c.hidden).map((c) => c.id)).toEqual(['grand-parcours', 'pony-loop', 'show-jumping', 'racetrack']);
+  });
+
+  it('show jumping: longer than the longest course so far, more jumps, at least two double jumps', () => {
+    const { track } = byId('show-jumping');
+    const jumps = track.obstacles.filter((o) => isJump(o.type));
+    expect(track.length).toBeGreaterThan(grand.length);
+    expect(jumps.length).toBeGreaterThan(grand.obstacles.filter((o) => isJump(o.type)).length);
+    // Double jump: the next obstacle comes right after landing.
+    const doubles = jumps.filter((o, i) => i > 0 && o.s - jumps[i - 1].s <= 12);
+    expect(doubles.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('racetrack: one lap of an oval, finish just behind the start', () => {
+    const { course, track } = byId('racetrack');
+    const start = track.sample(0);
+    const finish = track.sample(track.length);
+    expect(Math.hypot(finish.x - start.x, finish.z - start.z)).toBeLessThan(20);
+    const curves = course.def.segments.filter((s) => s.kind === 'curve');
+    expect(curves).toHaveLength(2);
+    expect(curves.every((c) => c.kind === 'curve' && Math.abs(c.angle) === 180)).toBe(true);
+  });
+
+  it('racetrack: about as long as show jumping, only 1–2 obstacles per straight, none in the curves', () => {
+    const { course, track } = byId('racetrack');
+    const jumping = byId('show-jumping').track;
+    expect(Math.abs(track.length - jumping.length) / jumping.length).toBeLessThan(0.05);
+    for (const seg of course.def.segments) {
+      const obstacles = (seg.obstacles ?? []).filter((o) => o.type !== 'carrot');
+      if (seg.kind === 'curve') expect(obstacles).toHaveLength(0);
+      else expect(obstacles.length).toBeLessThanOrEqual(2);
+    }
+    expect(track.obstacles.filter((o) => o.type !== 'carrot').length).toBeLessThanOrEqual(4);
   });
 });

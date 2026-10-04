@@ -1,0 +1,72 @@
+# Show-jumping course: longer than the Grand Parcours, with many jumps and two
+# double jumps (land and jump again right away).
+# Format: see courses/README.md
+
+name:
+  de: Springparcours
+  en: Show Jumping
+description:
+  de: Langer Parcours mit zehn Sprüngen und zwei Doppelsprüngen – landen und sofort wieder springen!
+  en: Long course with ten jumps and two double jumps – land and jump again right away!
+order: 3
+
+width: 7
+grass: 4
+
+segments:
+  - straight: 30
+
+  - straight: 40
+    obstacles:
+      - { at: 20, type: fence }
+
+  - curve: right
+    angle: 90
+    radius: 25
+    carrots: 2
+
+  - straight: 50
+    obstacles:
+      - { at: 12, type: wall }
+      # Double jump
+      - { at: 30, type: hedge }
+      - { at: 41, type: fence }
+
+  - curve: left
+    angle: 120
+    radius: 22
+    carrots: 3
+
+  - straight: 35
+    obstacles:
+      - { at: 15, type: water }
+
+  - curve: right
+    angle: 150
+    radius: 24
+    carrots: 3
+
+  - straight: 50
+    obstacles:
+      # Double jump
+      - { at: 12, type: fence }
+      - { at: 23, type: wall }
+      - { at: 40, type: hedge }
+
+  - curve: left
+    angle: 60
+    radius: 30
+
+  - straight: 40
+    obstacles:
+      - { at: 20, type: fence }
+
+  - curve: right
+    angle: 30
+    radius: 30
+
+  - straight: 25
+    obstacles:
+      - { at: 10, type: wall }
+
+  - straight: 20   # finish straight
