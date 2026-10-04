@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { COURSES } from '../src/game/courses';
-import { currentLanguage, detectLanguage, LANGUAGES, localized, matchLanguage, RESOURCES, setLanguage, t } from '../src/i18n';
+import { currentLanguage, detectLanguage, horseName, horseNames, LANGUAGES, localized, matchLanguage, RESOURCES, setLanguage, t } from '../src/i18n';
 import { courseInfoText, slotStatus } from '../src/ui/screens';
 import { hintFor, toastFor } from '../src/ui/hud';
 
@@ -74,6 +74,15 @@ describe('Translations', () => {
     setLanguage('en');
     expect(t('title')).toBe('Giddy Hop!');
     expect(t('subtitle')).toBe('On your horses, get set, go!');
+  });
+
+  it('the horses have names in every language, one per player', () => {
+    setLanguage('de');
+    expect(horseNames(4)).toEqual(['Blitz', 'Sternchen', 'Fridolin', 'Luna']);
+    setLanguage('en');
+    expect(horseNames(4)).toEqual(['Flash', 'Twinkle', 'Freddie', 'Luna']);
+    expect(horseName(1)).toBe('Twinkle');
+    for (const lang of LANGUAGES) expect(RESOURCES[lang].horses.length, lang).toBe(4);
   });
 
   it('uses singular and plural forms in the course facts', () => {

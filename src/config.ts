@@ -7,7 +7,6 @@
  */
 export const CONFIG = {
   maxPlayers: 4,
-  horseNames: ['Blitz', 'Sternchen', 'Fridolin', 'Luna'],
   playerColors: ['#ff4f81', '#3fa9f5', '#ffc93c', '#7bd34f'],
 
   camera: {

@@ -1,6 +1,7 @@
 {
   "title": "Giddy Hop!",
   "subtitle": "Auf die Pferde, fertig, los!",
+  "horses": ["Blitz", "Sternchen", "Fridolin", "Luna"],
   "startup": {
     "camera": "Kamera wird gestartet …",
     "model": "KI-Modell wird geladen …",

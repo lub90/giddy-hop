@@ -188,6 +188,7 @@ test.describe('English browser', () => {
     await expectStartScreen(page, 'On your horses');
     await expect(page.locator('html')).toHaveAttribute('lang', 'en');
     await expect(page.locator('.slot').first()).toContainText('free');
+    await expect(page.locator('.slot').first()).toContainText('Flash');
     await expect(page.locator('.course-info')).toContainText('jumps');
     await page.screenshot({ path: 'test-results/10-english.png' });
 

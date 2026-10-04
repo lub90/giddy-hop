@@ -1,6 +1,7 @@
 {
   "title": "Giddy Hop!",
   "subtitle": "On your horses, get set, go!",
+  "horses": ["Flash", "Twinkle", "Freddie", "Luna"],
   "startup": {
     "camera": "Starting the camera …",
     "model": "Loading the AI model …",

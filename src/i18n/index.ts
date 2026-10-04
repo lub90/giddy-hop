@@ -63,6 +63,17 @@ export function t(key: string, options?: Record<string, unknown>): string {
   return i18next.t(key, options) as string;
 }
 
+/** Horse name for a player number (0..3) in the current language. */
+export function horseName(playerNumber: number): string {
+  const names = i18next.t('horses', { returnObjects: true }) as unknown as string[];
+  return names[playerNumber] ?? `#${playerNumber + 1}`;
+}
+
+/** Horse names for all player numbers in the current language. */
+export function horseNames(count: number): string[] {
+  return Array.from({ length: count }, (_, n) => horseName(n));
+}
+
 /** Picks the current language from a text given per language (e.g. course names). */
 export function localized(text: Localized): string {
   return text[currentLanguage()];

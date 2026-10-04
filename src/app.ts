@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { CONFIG } from './config';
 import { loadSetting, saveSetting } from './core/persist';
-import { currentLanguage, LANGUAGE_SETTING_KEY, matchLanguage, setLanguage, t } from './i18n';
+import { currentLanguage, horseName, horseNames, LANGUAGE_SETTING_KEY, matchLanguage, setLanguage, t } from './i18n';
 import { DebugPanel } from './debug/debugPanel';
 import type { CourseInfo } from './game/courseFormat';
 import { COURSES } from './game/courses';
@@ -213,7 +213,7 @@ export class App {
 
   /** Horse names / colors in race order (by player number). */
   private playerNames(): string[] {
-    return this.tracker.slots.map((s) => CONFIG.horseNames[s.number]);
+    return this.tracker.slots.map((s) => horseName(s.number));
   }
   private playerColors(): string[] {
     return this.tracker.slots.map((s) => CONFIG.playerColors[s.number]);
@@ -279,7 +279,7 @@ export class App {
   }
 
   private updateUi(t: number): void {
-    const names = CONFIG.horseNames;
+    const names = horseNames(CONFIG.maxPlayers);
     const colors = CONFIG.playerColors;
     const phase = this.flow.phase;
     const race = this.flow.race;
