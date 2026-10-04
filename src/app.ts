@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { CONFIG } from './config';
 import { loadSetting, saveSetting } from './core/persist';
+import { currentLanguage, LANGUAGE_SETTING_KEY, matchLanguage, setLanguage, t } from './i18n';
 import { DebugPanel } from './debug/debugPanel';
 import type { CourseInfo } from './game/courseFormat';
 import { COURSES } from './game/courses';
@@ -77,7 +78,8 @@ export class App {
   private lastPoseId = 0;
   private lastTime = now();
   private lastPhase: Phase = 'startup';
-  private cameraProblem: string | null = null;
+  /** Why camera/detection failed (technical message), or null. */
+  private cameraError: string | null = null;
   private fps = 60;
   private fullscreenChangedAt = Number.NEGATIVE_INFINITY;
 
@@ -118,6 +120,21 @@ export class App {
     this.screens.updateCourseInfo(course);
   }
 
+  /** Language selection on the start screen: switch and redraw the screen. */
+  private selectLanguage(value: string): void {
+    const lang = matchLanguage(value);
+    if (!lang || lang === currentLanguage()) return;
+    setLanguage(lang);
+    saveSetting(LANGUAGE_SETTING_KEY, lang);
+    if (this.flow.phase === 'register') this.showRegistration();
+  }
+
+  private showRegistration(): void {
+    const problem = this.cameraError ? t('startup.cameraProblem', { message: this.cameraError }) : null;
+    this.screens.registration(problem, COURSES, this.course);
+    this.mountCameraPreview();
+  }
+
   async start(): Promise<void> {
     window.addEventListener('resize', () => this.renderer.resize());
     window.addEventListener('keydown', (e) => this.onKey(e));
@@ -130,9 +147,10 @@ export class App {
       this.toggleFullscreen();
     });
     this.el.overlay.addEventListener('change', (e) => {
-      const select = (e.target as HTMLElement).closest<HTMLSelectElement>('select[data-action="course"]');
+      const select = (e.target as HTMLElement).closest<HTMLSelectElement>('select[data-action]');
       if (!select) return;
-      this.selectCourse(select.value);
+      if (select.dataset.action === 'course') this.selectCourse(select.value);
+      else if (select.dataset.action === 'language') this.selectLanguage(select.value);
       // Arrow keys and Space are game keys – give the focus back to the page.
       select.blur();
     });
@@ -143,16 +161,16 @@ export class App {
     this.keyboard.attach(window);
     requestAnimationFrame(() => this.frame());
 
-    this.screens.startup('Kamera wird gestartet …');
+    this.screens.startup(t('startup.camera'));
     try {
       await startCamera(this.el.video, CONFIG.camera.width, CONFIG.camera.height);
-      this.screens.startup('KI-Modell wird geladen …');
+      this.screens.startup(t('startup.model'));
       await this.poses.init();
       this.poses.start();
     } catch (err) {
       console.error(err);
       const msg = err instanceof Error ? err.message : String(err);
-      this.cameraProblem = `Kamera/Erkennung nicht verfügbar (${msg}). Mit T kann trotzdem per Tastatur gespielt werden.`;
+      this.cameraError = msg;
     }
     this.flow.ready();
   }
@@ -208,7 +226,7 @@ export class App {
         this.hud.clear();
         // After a race everyone confirms again; after a cancelled loading the others stay ready.
         if (previous !== 'loading') this.lobby.resetReady();
-        this.screens.registration(this.cameraProblem, COURSES, this.course);
+        this.showRegistration();
         break;
       case 'loading':
         this.screens.loading();
@@ -236,7 +254,7 @@ export class App {
 
   /** The single camera preview lives in the registration screen, otherwise in the debug panel. */
   private mountCameraPreview(): void {
-    if (this.flow.phase === 'register' && !this.cameraProblem) this.screens.mountCamera(this.cameraView.canvas);
+    if (this.flow.phase === 'register' && !this.cameraError) this.screens.mountCamera(this.cameraView.canvas);
     else if (this.debug.visible) this.debug.mountCamera();
   }
 

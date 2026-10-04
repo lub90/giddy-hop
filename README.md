@@ -65,6 +65,22 @@ last selection is remembered). The format is documented in
 [courses/README.md](courses/README.md); `npm test` validates every course
 (format, no self-crossing, at least one jump).
 
+## Languages
+
+The UI is available in German and English ([src/i18n/](src/i18n/), one JSON
+file per language; a test makes sure both contain the same keys). The language
+is chosen in this order:
+
+1. URL parameter, e.g. `index.html?lang=en`
+2. The language picked in the dropdown on the start screen (remembered)
+3. The browser language (`navigator.languages`, first German or English entry)
+4. English
+
+Course names and descriptions are translated in the course files themselves.
+To add a language: add `src/i18n/<code>.json`, register it in
+[src/i18n/index.ts](src/i18n/index.ts) and `LANGUAGES` in
+[src/game/courseFormat.ts](src/game/courseFormat.ts), and add the texts to the courses.
+
 ## Tuning on site
 
 Open the debug panel (Ctrl+Alt+D). It shows per player: tracked, lean angle,
@@ -102,6 +118,7 @@ src/
   game/                 course file format + loader, track geometry, horse state, race rules/scoring, lobby rules, game phases
   render/               single-canvas split renderer, world/scenery, horse model, obstacles, cameras, layout
   ui/                   HUD per viewport, overlay screens, camera preview
+  i18n/                 translations (de.json, en.json) and language detection
   debug/                debug panel
 courses/                course files (YAML)
 tests/                  unit tests (Vitest) – pure logic, no browser needed
@@ -144,6 +161,7 @@ the jump zone clears fences, scoring/ranking, game phases and split-screen layou
 | `@tensorflow-models/pose-detection` | MoveNet MultiPose – detects up to 6 people with 17 keypoints each |
 | `lil-gui` | Sliders in the debug panel |
 | `yaml` | Reads the course files (YAML allows comments, easy to edit by hand) |
+| `i18next` | Translations (German / English), including plural forms |
 | `vite` (dev) | Dev server and build tool |
 | `vite-plugin-singlefile` (dev) | Inlines everything into one `dist/index.html` (works via double-click) |
 | `typescript`, `@types/three`, `@types/node` (dev) | Type checking |

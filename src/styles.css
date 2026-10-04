@@ -452,3 +452,10 @@ h2 {
 .debug .lil-gui.root {
   width: 100% !important;
 }
+
+.pickers {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px 28px;
+}

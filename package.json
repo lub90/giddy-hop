@@ -17,6 +17,7 @@
     "@tensorflow/tfjs-backend-webgl": "^4.22.0",
     "@tensorflow/tfjs-converter": "^4.22.0",
     "@tensorflow/tfjs-core": "^4.22.0",
+    "i18next": "^26.4.2",
     "lil-gui": "^0.21.0",
     "three": "^0.186.1",
     "yaml": "^2.9.1"

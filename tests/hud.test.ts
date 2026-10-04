@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { CONFIG } from '../src/config';
-import { GAIT_LABELS, gaitOf } from '../src/game/gait';
+import { gaitOf } from '../src/game/gait';
+import { t } from '../src/i18n';
 import { Race } from '../src/game/race';
 import { Track } from '../src/game/track';
 import { hintFor, toastFor, type HudState } from '../src/ui/hud';
@@ -18,7 +19,7 @@ describe('Speed gauge – Schritt / Trab / Galopp', () => {
   });
 
   it('uses German labels for the kids', () => {
-    expect(Object.values(GAIT_LABELS)).toEqual(['Schritt', 'Trab', 'Galopp']);
+    expect(['walk', 'trot', 'gallop'].map((g) => t(`gait.${g}`))).toEqual(['Schritt', 'Trab', 'Galopp']);
   });
 
   it('a trotting horse without input is shown as "Schritt", full bouncing as "Galopp"', () => {

@@ -1,0 +1,70 @@
+{
+  "title": "Giddy Hop!",
+  "subtitle": "The big horse show",
+  "startup": {
+    "camera": "Starting the camera …",
+    "model": "Loading the AI model …",
+    "noCameraApi": "This browser does not allow camera access here (localhost or https required).",
+    "cameraProblem": "Camera/detection not available ({{message}}). Press T to play with the keyboard anyway."
+  },
+  "register": {
+    "position": "Stand side by side in front of the camera (about 2–3 m away).",
+    "gestureJoin": "✋ <b>Hold one arm up</b> = join",
+    "gestureReady": "✋ <b>again</b> = ready",
+    "gestureBack": "🙌 <b>both arms</b> = back",
+    "whenReady": "As soon as everyone is ready, off we go!",
+    "course": "🏇 Course:",
+    "language": "🌐 Language:",
+    "fullscreen": "⛶ Fullscreen (Esc = exit)",
+    "keys": "<b>Space</b> = everyone ready · <b>Backspace</b> = unregister all · <b>T</b> = keyboard rider · <b>F</b> = fullscreen"
+  },
+  "course": {
+    "jumps_one": "{{count}} jump",
+    "jumps_other": "{{count}} jumps",
+    "curves_one": "{{count}} curve",
+    "curves_other": "{{count}} curves"
+  },
+  "slot": {
+    "free": "free",
+    "ready": "✅ ready!",
+    "keyboard": "⌨️ Keyboard",
+    "missing": "👀 where are you?",
+    "registered": "✋ Raise an arm again = ready"
+  },
+  "loading": {
+    "title": "Loading …",
+    "getReady": "Get ready – here we go!",
+    "cancel": "🙌 Both arms up = cancel",
+    "keys": "<b>Space</b> = start now · <b>Esc</b> = cancel"
+  },
+  "countdown": {
+    "controls": "Bounce = gallop · Lean = steer · Jump up = hop!",
+    "go": "Go!"
+  },
+  "results": {
+    "title": "🏆 Award ceremony",
+    "ribbon": "Every horse gets a ribbon – well ridden! 🎀",
+    "keys": "<b>Space</b> = ride again · <b>Esc</b> = new registration"
+  },
+  "hud": {
+    "finish": "FINISH! 🏁",
+    "jump": "HOP!",
+    "lost": "👀 I can't see you – please stand in your spot again!",
+    "leanLeft": "⬅️ lean left",
+    "leanRight": "lean right ➡️",
+    "rail": "🚧 Fence!",
+    "grass": "🌱 Grass!"
+  },
+  "toast": {
+    "cleared": "Great jump! ⭐",
+    "fault": "Knocked down! 💥",
+    "splash": "Splash! 💦",
+    "cone": "Ouch, a cone! 💥",
+    "carrot": "+1 🥕"
+  },
+  "gait": {
+    "walk": "Walk",
+    "trot": "Trot",
+    "gallop": "Gallop"
+  }
+}

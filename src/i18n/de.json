@@ -1,0 +1,70 @@
+{
+  "title": "Giddy Hop!",
+  "subtitle": "Das große Reitturnier",
+  "startup": {
+    "camera": "Kamera wird gestartet …",
+    "model": "KI-Modell wird geladen …",
+    "noCameraApi": "Dieser Browser erlaubt hier keinen Kamerazugriff (localhost oder https nötig).",
+    "cameraProblem": "Kamera/Erkennung nicht verfügbar ({{message}}). Mit T kann trotzdem per Tastatur gespielt werden."
+  },
+  "register": {
+    "position": "Stellt euch nebeneinander vor die Kamera (ca. 2–3 m Abstand).",
+    "gestureJoin": "✋ <b>Einen Arm hochhalten</b> = mitmachen",
+    "gestureReady": "✋ <b>nochmal</b> = bereit",
+    "gestureBack": "🙌 <b>beide Arme</b> = zurück",
+    "whenReady": "Wenn alle bereit sind, geht's los!",
+    "course": "🏇 Strecke:",
+    "language": "🌐 Sprache:",
+    "fullscreen": "⛶ Vollbild (Esc = beenden)",
+    "keys": "<b>Leertaste</b> = alle bereit · <b>Rücktaste</b> = alle abmelden · <b>T</b> = Tastatur-Reiter · <b>F</b> = Vollbild"
+  },
+  "course": {
+    "jumps_one": "{{count}} Sprung",
+    "jumps_other": "{{count}} Sprünge",
+    "curves_one": "{{count}} Kurve",
+    "curves_other": "{{count}} Kurven"
+  },
+  "slot": {
+    "free": "frei",
+    "ready": "✅ bereit!",
+    "keyboard": "⌨️ Tastatur",
+    "missing": "👀 wo bist du?",
+    "registered": "✋ Nochmal Arm heben = bereit"
+  },
+  "loading": {
+    "title": "Laden …",
+    "getReady": "Stellt euch bereit – gleich geht's los!",
+    "cancel": "🙌 Beide Arme hoch = abbrechen",
+    "keys": "<b>Leertaste</b> = sofort starten · <b>Esc</b> = abbrechen"
+  },
+  "countdown": {
+    "controls": "Wippen = Galopp · Lehnen = Lenken · Hochspringen = Hopp!",
+    "go": "Los!"
+  },
+  "results": {
+    "title": "🏆 Siegerehrung",
+    "ribbon": "Jedes Pferd bekommt eine Schleife – toll geritten! 🎀",
+    "keys": "<b>Leertaste</b> = Nochmal reiten · <b>Esc</b> = Neue Anmeldung"
+  },
+  "hud": {
+    "finish": "ZIEL! 🏁",
+    "jump": "HOPP!",
+    "lost": "👀 Ich sehe dich nicht – stell dich wieder hin!",
+    "leanLeft": "⬅️ nach links lehnen",
+    "leanRight": "nach rechts lehnen ➡️",
+    "rail": "🚧 Zaun!",
+    "grass": "🌱 Wiese!"
+  },
+  "toast": {
+    "cleared": "Super Sprung! ⭐",
+    "fault": "Abwurf! 💥",
+    "splash": "Platsch! 💦",
+    "cone": "Autsch, Hütchen! 💥",
+    "carrot": "+1 🥕"
+  },
+  "gait": {
+    "walk": "Schritt",
+    "trot": "Trab",
+    "gallop": "Galopp"
+  }
+}

@@ -7,13 +7,6 @@ export interface GaitThresholds {
   gallop: number;
 }
 
-/** Labels shown to the kids. */
-export const GAIT_LABELS: Record<Gait, string> = {
-  walk: 'Schritt',
-  trot: 'Trab',
-  gallop: 'Galopp',
-};
-
 /** Gait for a speed fraction 0..1 (speed / maxSpeed). */
 export function gaitOf(fraction: number, t: GaitThresholds): Gait {
   if (fraction >= t.gallop) return 'gallop';

@@ -12,6 +12,8 @@ export default defineConfig({
   use: {
     baseURL: 'http://localhost:4173',
     channel: 'msedge',
+    // The UI follows the browser language; most tests check the German texts.
+    locale: 'de-DE',
     viewport: { width: 1600, height: 900 },
     permissions: ['camera'],
     launchOptions: {

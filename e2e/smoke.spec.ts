@@ -172,3 +172,46 @@ test('live placement is shown top left', async ({ page }) => {
   await page.screenshot({ path: 'test-results/09-placement.png' });
   expect(errors).toEqual([]);
 });
+
+test.describe('English browser', () => {
+  test.use({ locale: 'en-US' });
+
+  test('shows the English UI and can switch to German', async ({ page }) => {
+    const errors = trackErrors(page);
+    await page.goto('/');
+    await expect(page.locator('#overlay h1')).toContainText('The big horse show', { timeout: 60_000 });
+    await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+    await expect(page.locator('.slot').first()).toContainText('free');
+    await expect(page.locator('.course-info')).toContainText('jumps');
+    await page.screenshot({ path: 'test-results/10-english.png' });
+
+    await page.locator('select[data-action="language"]').selectOption('de');
+    await expect(page.locator('#overlay h1')).toContainText('Das große Reitturnier');
+    await expect(page.locator('.slot').first()).toContainText('frei');
+    // The choice is remembered across reloads.
+    await page.reload();
+    await expect(page.locator('#overlay h1')).toContainText('Das große Reitturnier', { timeout: 60_000 });
+
+    // A URL parameter overrides everything.
+    await page.goto('/?lang=en');
+    await expect(page.locator('#overlay h1')).toContainText('The big horse show', { timeout: 60_000 });
+
+    // The race HUD is translated, too.
+    await page.keyboard.press('t');
+    await page.keyboard.press('Space');
+    await expect(page.locator('#overlay h1')).toContainText('Loading');
+    await page.keyboard.press('Space');
+    await expect(page.locator('.countdown')).toHaveText('Go!', { timeout: 5_000 });
+    await expect(page.locator('.gauge-label').first()).toHaveText('Walk');
+    expect(errors).toEqual([]);
+  });
+});
+
+test.describe('Unsupported browser language', () => {
+  test.use({ locale: 'fr-FR' });
+
+  test('falls back to English', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.locator('#overlay h1')).toContainText('The big horse show', { timeout: 60_000 });
+  });
+});

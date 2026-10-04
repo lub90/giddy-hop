@@ -1,14 +1,15 @@
 import { courseStats, type CourseInfo } from '../game/courseFormat';
 import type { RaceResult } from '../game/race';
+import { currentLanguage, LANGUAGE_NAMES, LANGUAGES, localized, t } from '../i18n';
 import type { PlayerSlot, PlayerTracker } from '../pose/playerTracker';
 
 const ROSETTES = ['🥇', '🥈', '🥉', '🎀'];
 
 const escapeHtml = (s: string) => s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 
-function formatTime(t: number | null): string {
-  if (t === null) return '–';
-  return `${Math.floor(t / 60)}:${(t % 60).toFixed(1).padStart(4, '0')}`;
+function formatTime(time: number | null): string {
+  if (time === null) return '–';
+  return `${Math.floor(time / 60)}:${(time % 60).toFixed(1).padStart(4, '0')}`;
 }
 
 export interface SlotStatus {
@@ -17,16 +18,24 @@ export interface SlotStatus {
   state: 'free' | 'registered' | 'ready' | 'missing';
 }
 
-/** What a player card in the lobby says (kid-facing, German). */
+/** What a player card in the lobby says. */
 export function slotStatus(slot: PlayerSlot | undefined): SlotStatus {
-  if (!slot) return { text: 'frei', state: 'free' };
-  if (slot.ready) return { text: '✅ bereit!', state: 'ready' };
-  if (slot.kind === 'keyboard') return { text: '⌨️ Tastatur', state: 'registered' };
-  if (!slot.pose) return { text: '👀 wo bist du?', state: 'missing' };
-  return { text: '✋ Nochmal Arm heben = bereit', state: 'registered' };
+  if (!slot) return { text: t('slot.free'), state: 'free' };
+  if (slot.ready) return { text: t('slot.ready'), state: 'ready' };
+  if (slot.kind === 'keyboard') return { text: t('slot.keyboard'), state: 'registered' };
+  if (!slot.pose) return { text: t('slot.missing'), state: 'missing' };
+  return { text: t('slot.registered'), state: 'registered' };
 }
 
-/** Full-screen overlays: startup, registration, loading, countdown, "Los!", results. */
+/** Description and key facts of a course in the current language. */
+export function courseInfoText(course: CourseInfo): string {
+  const s = courseStats(course.def);
+  const facts = `${Math.round(s.length)} m · ${t('course.jumps', { count: s.jumps })} · ${t('course.curves', { count: s.curves })}`;
+  const description = localized(course.description);
+  return description ? `${description} (${facts})` : facts;
+}
+
+/** Full-screen overlays: startup, registration, loading, countdown, "Go!", results. */
 export class Screens {
   private current = '';
   private slotsEl: HTMLElement | null = null;
@@ -47,11 +56,7 @@ export class Screens {
 
   /** Message while camera and model start up. */
   startup(message: string): void {
-    this.show('startup', `<h1>🐴 Giddy Hop!</h1><p class="hint">${escapeHtml(message)}</p>`);
-  }
-
-  error(title: string, details: string): void {
-    this.show('error', `<h1>🐴 Giddy Hop!</h1><h2 class="err">${escapeHtml(title)}</h2><p class="hint">${details}</p>`);
+    this.show('startup', `<h1>🐴 ${t('title')}</h1><p class="hint">${escapeHtml(message)}</p>`);
   }
 
   /** Puts the camera preview into the registration screen (if it is showing). */
@@ -64,49 +69,50 @@ export class Screens {
     const el = this.root.querySelector<HTMLElement>('.course-info');
     const select = this.root.querySelector<HTMLSelectElement>('select[data-action="course"]');
     if (select && select.value !== course.id) select.value = course.id;
-    if (!el) return;
-    const s = courseStats(course.def);
-    const facts = `${Math.round(s.length)} m · ${s.jumps} Sprünge · ${s.curves} Kurven`;
-    el.textContent = course.description.de ? `${course.description.de} (${facts})` : facts;
+    if (el) el.textContent = courseInfoText(course);
   }
 
   /** Registration screen; mount the camera preview afterwards with `mountCamera`. */
   registration(cameraProblem: string | null, courses: readonly CourseInfo[], selected: CourseInfo): void {
-    const options = courses
-      .map((c) => `<option value="${escapeHtml(c.id)}"${c.id === selected.id ? ' selected' : ''}>${escapeHtml(c.name.de)}</option>`)
-      .join('');
+    const option = (value: string, label: string, isSelected: boolean) =>
+      `<option value="${escapeHtml(value)}"${isSelected ? ' selected' : ''}>${escapeHtml(label)}</option>`;
+    const courseOptions = courses.map((c) => option(c.id, localized(c.name), c.id === selected.id)).join('');
+    const lang = currentLanguage();
+    const languageOptions = LANGUAGES.map((l) => option(l, LANGUAGE_NAMES[l], l === lang)).join('');
     this.show(
       'register',
-      `<h1>🐴 Giddy Hop! – Das große Reitturnier</h1>
-       <p class="hint">Stellt euch nebeneinander vor die Kamera (ca. 2–3 m Abstand).<br>
-       <span class="nowrap">✋ <b>Einen Arm hochhalten</b> = mitmachen</span> ·
-       <span class="nowrap">✋ <b>nochmal</b> = bereit</span> ·
-       <span class="nowrap">🙌 <b>beide Arme</b> = zurück</span></p>
+      `<h1>🐴 ${t('title')} – ${t('subtitle')}</h1>
+       <p class="hint">${t('register.position')}<br>
+       <span class="nowrap">${t('register.gestureJoin')}</span> ·
+       <span class="nowrap">${t('register.gestureReady')}</span> ·
+       <span class="nowrap">${t('register.gestureBack')}</span></p>
        ${cameraProblem ? `<p class="hint err">${escapeHtml(cameraProblem)}</p>` : '<div class="camera-slot"></div>'}
        <div class="slots"></div>
        <div class="course-picker">
-         <label>🏇 Strecke: <select data-action="course">${options}</select></label>
+         <div class="pickers">
+           <label>${t('register.course')} <select data-action="course">${courseOptions}</select></label>
+           <label>${t('register.language')} <select data-action="language">${languageOptions}</select></label>
+         </div>
          <div class="course-info"></div>
        </div>
-       <p class="hint">Wenn alle bereit sind, geht's los!</p>
-       <button class="fullscreen-btn" data-action="fullscreen" tabindex="-1">⛶ Vollbild (Esc = beenden)</button>
-       <p class="hint small"><b>Leertaste</b> = alle bereit · <b>Rücktaste</b> = alle abmelden ·
-       <b>T</b> = Tastatur-Reiter · <b>F</b> = Vollbild</p>`,
+       <p class="hint">${t('register.whenReady')}</p>
+       <button class="fullscreen-btn" data-action="fullscreen" tabindex="-1">${t('register.fullscreen')}</button>
+       <p class="hint small">${t('register.keys')}</p>`,
     );
     this.slotsEl = this.root.querySelector('.slots');
     this.updateCourseInfo(selected);
   }
 
-  /** "Laden …" while everyone gets into position. */
+  /** "Loading …" while everyone gets into position. */
   loading(): void {
     this.show(
       'loading',
-      `<h1>Laden …</h1>
+      `<h1>${t('loading.title')}</h1>
        <div class="loading-bar"><div class="loading-fill"></div></div>
        <div class="slots"></div>
-       <p class="hint big">Stellt euch bereit – gleich geht's los!</p>
-       <p class="hint">🙌 Beide Arme hoch = abbrechen</p>
-       <p class="hint small"><b>Leertaste</b> = sofort starten · <b>Esc</b> = abbrechen</p>`,
+       <p class="hint big">${t('loading.getReady')}</p>
+       <p class="hint">${t('loading.cancel')}</p>
+       <p class="hint small">${t('loading.keys')}</p>`,
     );
     this.slotsEl = this.root.querySelector('.slots');
     this.progressEl = this.root.querySelector('.loading-fill');
@@ -140,7 +146,7 @@ export class Screens {
     this.show(
       'countdown',
       `<div class="countdown"></div>
-       <p class="hint big">Wippen = Galopp · Lehnen = Lenken · Hochspringen = Hopp!</p>`,
+       <p class="hint big">${t('countdown.controls')}</p>`,
       'overlay translucent',
     );
     this.countdownEl = this.root.querySelector('.countdown');
@@ -153,9 +159,9 @@ export class Screens {
     }
   }
 
-  /** "Los!" at the start of the race. */
+  /** "Go!" at the start of the race. */
   go(): void {
-    this.show('go', '<div class="countdown go">Los!</div>', 'overlay translucent');
+    this.show('go', `<div class="countdown go">${t('countdown.go')}</div>`, 'overlay translucent');
   }
 
   results(results: readonly RaceResult[], names: readonly string[], colors: readonly string[]): void {
@@ -171,10 +177,10 @@ export class Screens {
       .join('');
     this.show(
       'results',
-      `<h1>🏆 Siegerehrung</h1>
+      `<h1>${t('results.title')}</h1>
        <div class="results">${rows}</div>
-       <p class="hint">Jedes Pferd bekommt eine Schleife – toll geritten! 🎀</p>
-       <p class="hint small"><b>Leertaste</b> = Nochmal reiten · <b>Esc</b> = Neue Anmeldung</p>`,
+       <p class="hint">${t('results.ribbon')}</p>
+       <p class="hint small">${t('results.keys')}</p>`,
     );
   }
 

@@ -1,4 +1,5 @@
-import { GAIT_LABELS, gaitOf, type Gait, type GaitThresholds } from '../game/gait';
+import { gaitOf, type Gait, type GaitThresholds } from '../game/gait';
+import { t } from '../i18n';
 import type { RaceEvent, RaceEventType, SlowdownReason } from '../game/race';
 import type { Rect } from '../render/layout';
 
@@ -29,17 +30,18 @@ export interface Hint {
   warn: boolean;
 }
 
-const TOASTS: Partial<Record<RaceEventType, string>> = {
-  'jump-cleared': 'Super Sprung! ⭐',
-  'jump-fault': 'Abwurf! 💥',
-  'cone-hit': 'Autsch, Hütchen! 💥',
-  carrot: '+1 🥕',
+const TOAST_KEYS: Partial<Record<RaceEventType, string>> = {
+  'jump-cleared': 'toast.cleared',
+  'jump-fault': 'toast.fault',
+  'cone-hit': 'toast.cone',
+  carrot: 'toast.carrot',
 };
 
 /** Short message for a race event, or null if it has none. */
 export function toastFor(e: Pick<RaceEvent, 'type' | 'obstacle'>): string | null {
-  if (e.type === 'jump-fault' && e.obstacle === 'water') return 'Platsch! 💦';
-  return TOASTS[e.type] ?? null;
+  if (e.type === 'jump-fault' && e.obstacle === 'water') return t('toast.splash');
+  const key = TOAST_KEYS[e.type];
+  return key ? t(key) : null;
 }
 
 const TOAST_SECONDS = 1.2;
@@ -47,10 +49,10 @@ const GAITS: Gait[] = ['walk', 'trot', 'gallop'];
 
 /** The hint line at the bottom of a player's view, most important first. */
 export function hintFor(s: HudState): Hint {
-  if (s.lostTracking) return { text: '👀 Ich sehe dich nicht – stell dich wieder hin!', warn: true };
-  const lean = s.steerHint === -1 ? '⬅️ nach links lehnen' : s.steerHint === 1 ? 'nach rechts lehnen ➡️' : '';
-  if (s.slowdown === 'rail') return { text: `🚧 Zaun! ${lean}`.trim(), warn: true };
-  if (s.slowdown === 'grass') return { text: `🌱 Wiese! ${lean}`.trim(), warn: true };
+  if (s.lostTracking) return { text: t('hud.lost'), warn: true };
+  const lean = s.steerHint === -1 ? t('hud.leanLeft') : s.steerHint === 1 ? t('hud.leanRight') : '';
+  if (s.slowdown === 'rail') return { text: `${t('hud.rail')} ${lean}`.trim(), warn: true };
+  if (s.slowdown === 'grass') return { text: `${t('hud.grass')} ${lean}`.trim(), warn: true };
   return { text: lean, warn: false };
 }
 
@@ -62,7 +64,7 @@ function toggle(el: HTMLElement, cls: string, on: boolean): void {
   if (el.classList.contains(cls) !== on) el.classList.toggle(cls, on);
 }
 
-/** Vertical speed gauge with tick marks for Schritt / Trab / Galopp. */
+/** Vertical speed gauge with tick marks for walk / trot / gallop. */
 class SpeedGauge {
   readonly el = document.createElement('div');
   private readonly fill: HTMLElement;
@@ -81,7 +83,7 @@ class SpeedGauge {
       .join('');
     const labels = GAITS.map((g) => {
       const [lo, hi] = bands[g];
-      return `<span class="gauge-label" data-gait="${g}" style="bottom:${((lo + hi) / 2) * 100}%">${GAIT_LABELS[g]}</span>`;
+      return `<span class="gauge-label" data-gait="${g}" style="bottom:${((lo + hi) / 2) * 100}%">${t(`gait.${g}`)}</span>`;
     }).join('');
     this.el.innerHTML = `<div class="gauge-track"><div class="gauge-fill"></div>${ticks}</div>${labels}`;
     this.fill = this.el.querySelector('.gauge-fill')!;
@@ -152,8 +154,8 @@ class PlayerHud {
     this.gauge.update(s.speed, gaitOf(s.speed, this.thresholds), s.slowdown !== null);
 
     let big = '';
-    if (s.finished) big = 'ZIEL! 🏁';
-    else if (s.jumpZone) big = 'HOPP!';
+    if (s.finished) big = t('hud.finish');
+    else if (s.jumpZone) big = t('hud.jump');
     setText(this.big, big);
     toggle(this.big, 'jump', s.jumpZone && !s.finished);
 

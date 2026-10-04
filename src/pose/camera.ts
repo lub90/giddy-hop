@@ -1,7 +1,9 @@
+import { t } from '../i18n';
+
 /** Starts the webcam and attaches it to the given video element. */
 export async function startCamera(video: HTMLVideoElement, width: number, height: number): Promise<void> {
   if (!navigator.mediaDevices?.getUserMedia) {
-    throw new Error('Dieser Browser erlaubt hier keinen Kamerazugriff (localhost oder https nötig).');
+    throw new Error(t('startup.noCameraApi'));
   }
   const stream = await navigator.mediaDevices.getUserMedia({
     video: { width: { ideal: width }, height: { ideal: height }, facingMode: 'user' },
