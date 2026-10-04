@@ -128,5 +128,3 @@ the jump zone clears fences, scoring/ranking, game phases and split-screen layou
 `pose-detection` also imports `@mediapipe/pose` and the WebGPU backend; both are
 replaced by tiny stubs in [src/vendor/](src/vendor/) via aliases in
 [vite.config.ts](vite.config.ts) because only MoveNet on WebGL is used.
-
-The first prototype is kept as [reit-parcours.html](reit-parcours.html) for reference.
