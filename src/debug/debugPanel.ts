@@ -17,23 +17,29 @@ type Range = [min: number, max: number, step?: number];
 
 /** Tunable parameters shown in the panel, grouped like CONFIG. */
 const TUNABLES: Record<string, Record<string, Range>> = {
-  steer: { deadzoneDegrees: [0, 20, 0.5], fullLeanDegrees: [5, 45, 0.5], smoothing: [0.05, 1, 0.05] },
+  steer: { fullLeanDegrees: [5, 45, 0.5], curveExponent: [1, 3, 0.1], smoothing: [0.05, 1, 0.05] },
   gallop: {
-    windowSeconds: [0.3, 2, 0.05],
-    energyMin: [0, 1.5, 0.05],
-    energyFull: [0.3, 4, 0.05],
+    minAmplitude: [0.005, 0.15, 0.005],
+    cadenceMin: [0, 2, 0.05],
+    cadenceFull: [0.8, 4, 0.05],
     positionSmoothing: [0.1, 1, 0.05],
     responsePerSecond: [0.5, 10, 0.5],
   },
-  jump: { upVelocityThreshold: [0.5, 6, 0.1], cooldownSeconds: [0.2, 2, 0.05] },
+  jump: {
+    minRise: [0.1, 1, 0.01],
+    windowSeconds: [0.2, 1.5, 0.05],
+    confirmFrames: [1, 5, 1],
+    cooldownSeconds: [0.2, 2, 0.05],
+  },
   horse: {
     maxSpeed: [3, 15, 0.5],
     minSpeed: [0, 4, 0.1],
     steerSpeed: [1, 8, 0.1],
     driftFactor: [0, 1.5, 0.05],
     offTrackSpeedFactor: [0.2, 1, 0.05],
+    railSpeedFactor: [0.1, 1, 0.05],
   },
-  jumpAssist: { zoneBefore: [2, 15, 0.5], height: [0.8, 3, 0.1] },
+  jumpAssist: { zoneBefore: [2, 15, 0.5], height: [0.8, 3, 0.1], freeJumpVelocity: [2, 8, 0.1] },
   tracking: { maxMatchDistance: [0.05, 0.4, 0.01], registerHoldSeconds: [0.2, 3, 0.1] },
   detection: { minKeypointScore: [0.1, 0.8, 0.05] },
   race: { timeoutSeconds: [30, 300, 5] },
@@ -42,7 +48,7 @@ const TUNABLES: Record<string, Record<string, Range>> = {
 
 /**
  * Developer overlay, toggled with Ctrl+Alt+D:
- *  - live values per player (lean, bounce energy, upward velocity …)
+ *  - live values per player (lean angle, bounce cadence, jump rise …)
  *  - camera preview with skeletons
  *  - sliders for all tuning values (saved in the browser, survive reloads)
  */
@@ -117,14 +123,14 @@ export class DebugPanel {
     const lines = [
       `Render ${stats.renderFps.toFixed(0)} fps · Pose ${stats.poseFps.toFixed(1)} fps · people ${stats.people}`,
       '',
-      ' #  tracked  lean°   steer   drive  energy   up↑    max↑',
+      ' #  tracked  lean°   steer   Hz    drive  rise   max',
       ...stats.slots.map((s, i) => {
         const g = s.gestures;
         const seen = s.kind === 'keyboard' ? 'keyboard' : g.tracked ? 'yes    ' : 'NO     ';
-        return ` ${i + 1}  ${seen}  ${f(g.leanDegrees, 1).padStart(6)}  ${f(g.steer)}  ${g.drive.toFixed(2)}  ${f(g.energy)}   ${f(g.upVelocity, 1)}  ${g.peakUpVelocity.toFixed(1)}`;
+        return ` ${i + 1}  ${seen}  ${f(g.leanDegrees, 1).padStart(6)}  ${f(g.steer)}  ${g.cadence.toFixed(1)}   ${g.drive.toFixed(2)}  ${f(g.rise)}  ${g.peakRise.toFixed(2)}`;
       }),
       '',
-      `jump threshold: ${CONFIG.jump.upVelocityThreshold.toFixed(1)} · energy full: ${CONFIG.gallop.energyFull.toFixed(2)}`,
+      `jump: rise ≥ ${CONFIG.jump.minRise.toFixed(2)} · full speed at ${CONFIG.gallop.cadenceFull.toFixed(1)} Hz`,
     ];
     this.live.textContent = lines.join('\n');
   }

@@ -6,9 +6,9 @@ in first-person view on a split screen – controlled only by their bodies:
 
 | Movement | Effect |
 | --- | --- |
-| Bounce / rock rhythmically | Gallop – the more energetic, the faster |
+| Bounce / rock rhythmically | Gallop – the faster the rhythm, the faster the horse |
 | Lean left / right | Steer (needed in curves, otherwise the horse drifts outwards) |
-| Jump up | Horse jumps – inside the jump zone ("HOPP!") the jump is timed automatically |
+| Jump up (a real jump) | Horse jumps anywhere – inside the jump zone ("HOPP!") the jump is timed over the fence |
 | Raise one arm (registration) | Join the game |
 
 Children who do not raise an arm are ignored, so spectators may stand in the picture.
@@ -44,17 +44,26 @@ P3 `↑` / `←` `→` / `↓` · P4 `Num8` / `Num4` `Num6` / `Num5`.
 
 ## Tuning on site
 
-Open the debug panel (Ctrl+Alt+D). It shows per player: tracked, steer, drive,
-bounce energy, current and peak upward velocity – plus the camera image with
-skeletons. All thresholds can be adjusted with sliders; changes are saved in
-the browser and survive reloads. "Copy config (JSON)" copies the current values
-so good ones can be transferred into [src/config.ts](src/config.ts).
+Open the debug panel (Ctrl+Alt+D). It shows per player: tracked, lean angle,
+steer, bounce cadence (Hz), drive, current and peak jump rise – plus the camera
+image with skeletons. All thresholds can be adjusted with sliders; changes are
+saved in the browser and survive reloads. "Copy config (JSON)" copies the current
+values so good ones can be transferred into [src/config.ts](src/config.ts).
+
+How the gestures are measured (all independent of body size and camera distance):
+- **Steering**: sideways tilt angle of the upper body, through a soft curve
+  `steer = (tilt / fullLeanDegrees) ^ curveExponent`.
+- **Speed**: bounce cadence – turning points of the up/down movement are detected
+  (ignoring jitter below `gallop.minAmplitude`); the frequency sets the speed.
+- **Jump**: hips *and* shoulders rise at least `jump.minRise` torso lengths above the
+  lowest position of the last `jump.windowSeconds`, for `jump.confirmFrames` frames.
 
 Typical adjustments:
-- Jumps not detected → lower `jump.upVelocityThreshold` (compare with the `max↑` column).
-- Bouncing gives too little speed → lower `gallop.energyFull`.
-- Horse moves while standing still → raise `gallop.energyMin`.
-- Steering too twitchy → raise `steer.fullLeanDegrees` / `steer.deadzoneDegrees` (compare with the `lean°` column).
+- Jumps not detected → lower `jump.minRise` (compare with the `max` column after a real jump).
+- Jumps detected while galloping → raise `jump.minRise` or `jump.confirmFrames`.
+- Full speed too hard to reach → lower `gallop.cadenceFull` (compare with the `Hz` column).
+- Horse moves while standing still → raise `gallop.minAmplitude`.
+- Steering too twitchy → raise `steer.fullLeanDegrees` or `steer.curveExponent` (compare with the `lean°` column).
 - Curves too hard → lower `horse.driftFactor`.
 
 ## Architecture

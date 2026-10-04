@@ -5,10 +5,10 @@ import { mergeKnown } from '../src/core/persist';
 describe('mergeKnown – restoring tuned values from the debug panel', () => {
   it('applies known numeric values', () => {
     const c = structuredClone(CONFIG);
-    mergeKnown(c, { steer: { fullLeanDegrees: 30 }, jump: { upVelocityThreshold: 1.5 } });
+    mergeKnown(c, { steer: { fullLeanDegrees: 30 }, jump: { minRise: 0.5 } });
     expect(c.steer.fullLeanDegrees).toBe(30);
-    expect(c.jump.upVelocityThreshold).toBe(1.5);
-    expect(c.steer.deadzoneDegrees).toBe(CONFIG.steer.deadzoneDegrees);
+    expect(c.jump.minRise).toBe(0.5);
+    expect(c.steer.curveExponent).toBe(CONFIG.steer.curveExponent);
   });
 
   it('ignores unknown keys and wrong types', () => {

@@ -56,8 +56,8 @@ describe('mirroring raw camera coordinates (regression: left/right were swapped)
   const rawLeaningRight = {
     id: 1,
     keypoints: [
-      { name: 'left_shoulder', x: 915, y: 330, score: 0.9 },
-      { name: 'right_shoulder', x: 825, y: 330, score: 0.9 },
+      { name: 'left_shoulder', x: 895, y: 330, score: 0.9 },
+      { name: 'right_shoulder', x: 805, y: 330, score: 0.9 },
       { name: 'left_hip', x: 935, y: 450, score: 0.9 },
       { name: 'right_hip', x: 885, y: 450, score: 0.9 },
     ],

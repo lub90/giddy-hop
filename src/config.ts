@@ -39,31 +39,39 @@ export const CONFIG = {
     // Steering uses the sideways tilt angle of the upper body (shoulder center vs.
     // hip center). An angle is independent of body size and camera distance, so
     // kids and adults steer the same way.
-    /** Tilt below this angle (degrees) counts as standing upright. */
-    deadzoneDegrees: 6,
     /** Tilt at which steering reaches full lock (degrees). */
-    fullLeanDegrees: 25,
+    fullLeanDegrees: 28,
+    /**
+     * Shape of the response curve: steer = (tilt / fullLean) ^ exponent.
+     * 1 = linear, 2 = small tilts count very little (6° → 5 %, 14° → 25 %, 20° → 51 %).
+     */
+    curveExponent: 2,
     /** Smoothing per pose frame (0 = sluggish, 1 = immediate). */
     smoothing: 0.35,
   },
 
   gallop: {
-    /** Time window for the bounce energy. */
-    windowSeconds: 0.8,
-    /** Bounce energy (torso lengths per second) below this = standstill. */
-    energyMin: 0.25,
-    /** Bounce energy for full speed. */
-    energyFull: 1.1,
+    // Speed is driven by the bounce cadence (cycles per second), not by how big the bounce is.
+    /** Up/down movement smaller than this (torso lengths) is treated as noise. */
+    minAmplitude: 0.03,
+    /** Cadence (Hz) at which the horse starts to speed up. */
+    cadenceMin: 0.6,
+    /** Cadence (Hz) for full speed. */
+    cadenceFull: 2.4,
     /** Smoothing of the vertical position against measurement noise. */
     positionSmoothing: 0.5,
-    /** How fast the drive value follows (per second). */
-    responsePerSecond: 4,
+    /** How fast the drive value follows the cadence (per second). Lower = smoother. */
+    responsePerSecond: 3,
   },
 
   jump: {
-    /** Upward velocity (torso lengths/s) above which a jump is triggered. */
-    upVelocityThreshold: 2.2,
-    cooldownSeconds: 0.7,
+    /** Hips and shoulders must rise this far above the standing height (torso lengths). */
+    minRise: 0.35,
+    /** The standing height is the lowest body position within this time window (s). */
+    windowSeconds: 0.5,
+    /** Number of consecutive pose frames above `minRise` needed (filters single-frame glitches). */
+    confirmFrames: 2,
+    cooldownSeconds: 0.8,
   },
 
   horse: {
@@ -77,7 +85,10 @@ export const CONFIG = {
     /** How strongly curves carry the horse outwards (factor on v²·curvature). */
     driftFactor: 0.45,
     lateralResponse: 6,
+    /** Speed factor on the grass between sand and rails. The whole sand track is full speed. */
     offTrackSpeedFactor: 0.5,
+    /** Speed factor while scraping along the rails. */
+    railSpeedFactor: 0.35,
     stumbleSpeedFactor: 0.35,
     stumbleSeconds: 0.8,
   },
@@ -90,8 +101,8 @@ export const CONFIG = {
     height: 1.6,
     /** Minimum speed while airborne so nobody "hangs" above a fence. */
     minAirSpeed: 3.5,
-    /** Small hop outside the jump zone. */
-    freeJumpVelocity: 4,
+    /** Jump outside the jump zone (no fence): plain physics, ~0.85 m high. */
+    freeJumpVelocity: 5.5,
     gravity: 18,
   },
 
