@@ -53,9 +53,9 @@ export class Sounds {
    * A happy whinny: "Wieh-ha".
    *
    * Built like a voice: a soft voiced tone whose vowel changes over time
-   * (formant filters move) – a rounded "W" at the start, a bright trilling "ie"
-   * while the pitch rises to its peak in the middle, a breathy "h", and an open,
-   * pulsing "a" while the pitch falls. Ends with a soft snort.
+   * (formant filters move) – a high, strongly fluttering "Wiiieh" held for most
+   * of the time, then a lower, shorter, open "A" without flutter (see WHINNY).
+   * Ends with a soft snort.
    * `pitch` varies the voice per horse (≈0.85–1.15).
    */
   whinny(pitch = 1): void {
@@ -271,11 +271,11 @@ export class Sounds {
 type Keys = readonly (readonly [number, number])[];
 
 /**
- * The "Wieh-ha" as keyframes [time as fraction of the duration, value]:
- *   0.00–0.10 "W"   rounded, dark, soft onset
- *   0.10–0.45 "ie"  bright, trilling, pitch rises to its peak around the middle
- *   0.45–0.55 "h"   breathy dip
- *   0.55–1.00 "a"   open, pulsing "ha-ha-ha", pitch falls
+ * The "Wieh-ha" as keyframes [time as fraction of the duration, value],
+ * modelled on real whinnies:
+ *   0.00–0.62 "Wiiieh"  starts high right away (no rise), fluttering strongly, held long
+ *   0.62–0.68           short breathy drop
+ *   0.68–1.00 "A"       clearly lower, shorter, open vowel, no flutter
  */
 export const WHINNY: {
   duration: number;
@@ -289,22 +289,23 @@ export const WHINNY: {
   brightness: Keys;
 } = {
   duration: 1.5,
-  // Hz – up towards the middle, then down.
-  pitch: [[0, 380], [0.1, 500], [0.35, 780], [0.5, 640], [0.75, 450], [1, 320]],
+  // Hz – high from the first moment, held (slightly sinking), then a clear drop for the "A".
+  pitch: [[0, 560], [0.62, 520], [0.7, 360], [1, 280]],
   formants: [
-    // F1: low for "W"/"ie", opens up for "a".
-    [[0, 300], [0.1, 320], [0.45, 340], [0.58, 760], [1, 700]],
-    // F2: low "W" → high "ie" → middle "a" – the core of "Wieh-ha".
-    [[0, 650], [0.1, 900], [0.25, 2100], [0.45, 2200], [0.58, 1250], [1, 1150]],
+    // F1: closed during "Wiiieh", wide open for the "A".
+    [[0, 330], [0.62, 350], [0.7, 820], [1, 780]],
+    // F2: fairly high "ie"-colour, then the middle "A" position.
+    [[0, 1850], [0.62, 1950], [0.7, 1250], [1, 1150]],
     // F3
-    [[0, 2400], [0.25, 2900], [0.45, 3000], [0.58, 2500], [1, 2400]],
+    [[0, 2600], [0.62, 2700], [0.7, 2500], [1, 2400]],
   ],
-  loudness: [[0, 0], [0.06, 0.45], [0.15, 0.9], [0.42, 1], [0.47, 0.15], [0.52, 0.15], [0.58, 0.85], [0.8, 0.6], [1, 0]],
-  pulseRate: [[0, 10], [0.45, 11], [0.55, 7], [1, 5]],
-  pulseDepth: [[0, 0.05], [0.3, 0.15], [0.45, 0.1], [0.55, 0.35], [1, 0.45]],
-  // Hz of pitch shake
-  trillDepth: [[0, 5], [0.2, 25], [0.4, 35], [0.55, 10], [1, 5]],
-  breath: [[0, 0.03], [0.42, 0.05], [0.47, 0.7], [0.53, 0.6], [0.58, 0.1], [1, 0.05]],
-  // Hz – a closing low-pass makes the "W" dark and rounded, then opens up.
-  brightness: [[0, 900], [0.12, 4500], [0.5, 4500], [0.6, 3200], [1, 2800]],
+  loudness: [[0, 0], [0.03, 0.85], [0.6, 0.8], [0.65, 0.35], [0.7, 1], [0.85, 0.8], [1, 0]],
+  // Flutter of the "Wiiieh" (loudness pulsing) – stops for the "A".
+  pulseRate: [[0, 13], [0.62, 12], [0.65, 0], [1, 0]],
+  pulseDepth: [[0, 0.4], [0.62, 0.35], [0.65, 0], [1, 0]],
+  // Hz of pitch shake – strong during "Wiiieh", none in the "A".
+  trillDepth: [[0, 40], [0.62, 35], [0.65, 0], [1, 0]],
+  breath: [[0, 0.04], [0.62, 0.05], [0.66, 0.35], [0.7, 0.1], [1, 0.06]],
+  // Hz – overall low-pass
+  brightness: [[0, 3000], [0.62, 3000], [0.7, 3500], [1, 3000]],
 };
