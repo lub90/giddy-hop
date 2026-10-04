@@ -49,9 +49,10 @@ export class PoseService {
       if (v.readyState >= 2 && v.videoWidth > 0) {
         const time = performance.now() / 1000;
         try {
-          const raw = await this.detector.estimatePoses(v, { flipHorizontal: true });
+          // MoveNet ignores `flipHorizontal`, so mirroring happens in toDetectedPose.
+          const raw = await this.detector.estimatePoses(v);
           const poses = raw
-            .map((p) => toDetectedPose(p, v.videoWidth, v.videoHeight, CONFIG.detection.minKeypointScore))
+            .map((p) => toDetectedPose(p, v.videoWidth, v.videoHeight, CONFIG.detection.minKeypointScore, true))
             .filter((p): p is DetectedPose => p !== null);
           this.latest = { id: ++this.frameId, time, width: v.videoWidth, height: v.videoHeight, poses };
           fpsCount++;

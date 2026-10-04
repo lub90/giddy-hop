@@ -54,13 +54,26 @@ export interface RawPose {
   keypoints: ReadonlyArray<{ x: number; y: number; score?: number; name?: string }>;
 }
 
-/** Converts a raw pose; returns null when no torso is visible. */
-export function toDetectedPose(raw: RawPose, width: number, height: number, minScore: number): DetectedPose | null {
+/**
+ * Converts a raw pose; returns null when no torso is visible.
+ *
+ * @param mirror flip x so the coordinates match the mirrored video the kids see
+ *   (their right is on the right of the screen). Needed because MoveNet in
+ *   pose-detection ignores its own `flipHorizontal` option and always returns
+ *   raw camera coordinates.
+ */
+export function toDetectedPose(
+  raw: RawPose,
+  width: number,
+  height: number,
+  minScore: number,
+  mirror = false,
+): DetectedPose | null {
   const keypoints: DetectedPose['keypoints'] = {};
   for (const k of raw.keypoints) {
     const score = k.score ?? 0;
     if (!k.name || score < minScore) continue;
-    keypoints[k.name as KeypointName] = { x: k.x, y: k.y, score };
+    keypoints[k.name as KeypointName] = { x: mirror ? width - k.x : k.x, y: k.y, score };
   }
   const shoulders = midpoint(keypoints.left_shoulder, keypoints.right_shoulder);
   const hips = midpoint(keypoints.left_hip, keypoints.right_hip);

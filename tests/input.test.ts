@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { CONFIG } from '../src/config';
+import { GestureAnalyzer } from '../src/input/gestureAnalyzer';
 import { KeyboardInput } from '../src/input/keyboardInput';
 import { mergeInputs } from '../src/input/playerInput';
 import { isArmRaised, toDetectedPose } from '../src/pose/poseTypes';
@@ -44,6 +46,34 @@ describe('mergeInputs', () => {
   it('keyboard steering overrides, speed takes the maximum, jumps combine', () => {
     expect(mergeInputs(body, { drive: 1, steer: -1, jump: true })).toEqual({ drive: 1, steer: -1, jump: true });
     expect(mergeInputs(body, { drive: 0, steer: 0, jump: false })).toEqual(body);
+  });
+});
+
+describe('mirroring raw camera coordinates (regression: left/right were swapped)', () => {
+  // The camera looks at the child, so the child's own right side appears on the
+  // LEFT of the raw camera image (smaller x). Shoulders shifted to image-left = leaning right.
+  const W = 1280;
+  const rawLeaningRight = {
+    id: 1,
+    keypoints: [
+      { name: 'left_shoulder', x: 915, y: 330, score: 0.9 },
+      { name: 'right_shoulder', x: 825, y: 330, score: 0.9 },
+      { name: 'left_hip', x: 935, y: 450, score: 0.9 },
+      { name: 'right_hip', x: 885, y: 450, score: 0.9 },
+    ],
+  };
+
+  it('a child leaning to their right steers right', () => {
+    const pose = toDetectedPose(rawLeaningRight, W, 720, 0.3, true)!;
+    const g = new GestureAnalyzer(structuredClone(CONFIG));
+    for (let i = 0; i < 25; i++) g.update(pose, i / 25);
+    expect(g.steer).toBeGreaterThan(0.5);
+  });
+
+  it('a child standing on the right of the camera image appears on the left of the screen (like a mirror)', () => {
+    const pose = toDetectedPose(rawLeaningRight, W, 720, 0.3, true)!;
+    expect(pose.center.x).toBeLessThan(0.5);
+    expect(pose.keypoints.left_hip!.x).toBe(W - 935);
   });
 });
 
