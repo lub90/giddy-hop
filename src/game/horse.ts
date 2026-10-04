@@ -1,8 +1,11 @@
 /** Jump in progress. */
 export type Airborne =
-  /** Jump started inside a jump zone: follows a parabola over distance, guaranteed to clear the fence. */
-  | { kind: 'assisted'; from: number; to: number; obstacleId: number }
-  /** Small hop outside a jump zone: plain ballistic physics. */
+  /**
+   * Jump over an obstacle: a parabola over a fixed flight time with constant
+   * horizontal speed, timed so the obstacle is passed mid-flight. Always clears it.
+   */
+  | { kind: 'assisted'; elapsed: number; duration: number; speed: number; obstacleId: number }
+  /** Hop without an obstacle: plain ballistic physics. */
   | { kind: 'free'; vy: number };
 
 /** Simulation state of one horse (no rendering concerns). */
@@ -17,6 +20,11 @@ export class Horse {
   /** Height above ground while jumping (m). */
   height = 0;
   air: Airborne | null = null;
+  /**
+   * Obstacle id of a jump requested in the jump zone: the horse keeps galloping
+   * and takes off by itself at the right distance in front of it.
+   */
+  pendingJump: number | null = null;
   /** Pressed against the rails (slows the horse down). */
   touchingRail = false;
   /** Remaining stand-still time after a fault (s). */

@@ -39,10 +39,10 @@ export const CONFIG = {
     // hip center). An angle is independent of body size and camera distance, so
     // kids and adults steer the same way.
     /** Tilt at which steering reaches full lock (degrees). */
-    fullLeanDegrees: 24,
+    fullLeanDegrees: 26,
     /**
      * Shape of the response curve: steer = (tilt / fullLean) ^ exponent.
-     * 1 = linear, 2 = small tilts count very little (6° → 6 %, 12° → 25 %, 18° → 56 %).
+     * 1 = linear, 2 = small tilts count very little (6° → 5 %, 12° → 21 %, 18° → 48 %).
      */
     curveExponent: 2,
     /** Smoothing per pose frame (0 = sluggish, 1 = immediate). */
@@ -105,12 +105,15 @@ export const CONFIG = {
   },
 
   jumpAssist: {
-    /** Jump zone: a jump triggered within this many meters before a fence is timed automatically. */
+    /**
+     * Jump zone: a jump within this many meters before an obstacle is remembered,
+     * and the horse takes off by itself at the right spot.
+     */
     zoneBefore: 9,
-    /** Minimum half length of an assisted jump (m). */
-    minHalfLength: 1.2,
+    /** Flight time of a jump over an obstacle (s). */
+    airTime: 0.8,
     height: 1.6,
-    /** Minimum speed while airborne so nobody "hangs" above a fence. */
+    /** Minimum horizontal speed in the air (m/s). */
     minAirSpeed: 3.5,
     /** Jump outside the jump zone (no fence): plain physics, ~0.85 m high. */
     freeJumpVelocity: 5.5,

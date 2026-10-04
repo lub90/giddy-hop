@@ -361,3 +361,82 @@ describe('Race – carrot turbo and stopping faults', () => {
     expect(res[0].rank).toBe(1);
   });
 });
+
+describe('Race – remembered jump (regression: horse hung in the air, then dropped)', () => {
+  const fenceAt = 40;
+  const JA = CONFIG.jumpAssist;
+
+  /** Jumps `early` m before the fence, then stops bouncing (drive 0) like a child after jumping. */
+  function earlyJumpThenStop(early: number) {
+    const race = new Race(new Track(straight(120, [{ at: fenceAt, type: 'hedge' }])), 1, cfg());
+    race.horses[0].speed = CONFIG.horse.maxSpeed;
+    let jumped = false;
+    const frames: { t: number; s: number; h: number; air: boolean }[] = [];
+    ride(race, 10, (p, r) => {
+      const horse = r.horses[p];
+      const jump = !jumped && fenceAt - horse.s <= early;
+      if (jump) jumped = true;
+      frames.push({ t: r.time, s: horse.s, h: horse.height, air: horse.airborne });
+      return input({ drive: jumped ? 0 : 1, jump });
+    });
+    return { race, frames };
+  }
+
+  it('an early jump is remembered: the horse takes off by itself close to the obstacle', () => {
+    const { race, frames } = earlyJumpThenStop(8.5);
+    const takeoff = frames.find((f) => f.air)!;
+    expect(fenceAt - takeoff.s).toBeLessThan(4);
+    expect(fenceAt - takeoff.s).toBeGreaterThan(0.5);
+    expect(race.obstacles[0][0].result).toBe('cleared');
+  });
+
+  it('never hangs in the air: the flight lasts the fixed air time, even without bouncing', () => {
+    const { frames } = earlyJumpThenStop(8.5);
+    const airborne = frames.filter((f) => f.air);
+    const flight = airborne.at(-1)!.t - airborne[0].t;
+    expect(flight).toBeLessThanOrEqual(JA.airTime + 0.05);
+  });
+
+  it('never drops abruptly: the height changes smoothly and lands from low height', () => {
+    for (const early of [8.5, 6, 3, 1]) {
+      const { frames } = earlyJumpThenStop(early);
+      for (let k = 1; k < frames.length; k++) {
+        expect(Math.abs(frames[k].h - frames[k - 1].h), `jump ${early} m before`).toBeLessThan(0.2);
+      }
+    }
+  });
+
+  it('passes the obstacle high in the air, also for late jumps', () => {
+    for (const early of [8.5, 2, 0.4]) {
+      const race = new Race(new Track(straight(120, [{ at: fenceAt, type: 'wall' }])), 1, cfg());
+      race.horses[0].speed = CONFIG.horse.maxSpeed;
+      let jumped = false;
+      let heightAtFence = 0;
+      ride(race, 8, (p, r) => {
+        const horse = r.horses[p];
+        if (Math.abs(horse.s - fenceAt) < 0.2) heightAtFence = Math.max(heightAtFence, horse.height);
+        const jump = !jumped && fenceAt - horse.s <= early;
+        if (jump) jumped = true;
+        return input({ drive: 1, jump });
+      });
+      expect(race.obstacles[0][0].result, `jump ${early} m before`).toBe('cleared');
+      if (early > 1) expect(heightAtFence, `jump ${early} m before`).toBeGreaterThan(CONFIG.obstacles.fenceHeight);
+    }
+  });
+
+  it('a slow horse takes off closer and does not speed up in the air', () => {
+    const race = new Race(new Track(straight(120, [{ at: fenceAt, type: 'fence' }])), 1, cfg());
+    race.horses[0].speed = 4;
+    let jumped = false;
+    let maxAirSpeed = 0;
+    ride(race, 12, (p, r) => {
+      const horse = r.horses[p];
+      if (horse.airborne) maxAirSpeed = Math.max(maxAirSpeed, horse.speed);
+      const jump = !jumped && fenceAt - horse.s <= 7;
+      if (jump) jumped = true;
+      return input({ drive: 0.45, jump });
+    });
+    expect(race.obstacles[0][0].result).toBe('cleared');
+    expect(maxAirSpeed).toBeLessThan(5);
+  });
+});

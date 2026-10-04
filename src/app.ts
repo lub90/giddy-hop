@@ -380,7 +380,8 @@ export class App {
       faults: h.faults,
       time: h.finishTime ?? race.time,
       progress: Math.min(1, h.s / race.track.length),
-      jumpZone: this.flow.phase === 'race' && race.inJumpZone(i) && !h.airborne,
+      // "HOPP!" until the jump is triggered (then the horse takes off by itself).
+      jumpZone: this.flow.phase === 'race' && race.inJumpZone(i) && !h.airborne && h.pendingJump === null,
       lostTracking: !!slot && slot.kind === 'pose' && t - slot.gestures.lastSeen > CONFIG.tracking.lostHintSeconds,
       steerHint: h.lateral > edge ? -1 : h.lateral < -edge ? 1 : 0,
       finished: h.finished,

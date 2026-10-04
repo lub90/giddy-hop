@@ -187,7 +187,8 @@ export class Race {
     // Brake hard after a fault, and after the finish (the horse stops in the run-out to celebrate).
     const decel = hc.decel * (h.stumble > 0 ? 4 : h.finished ? 2.5 : 1);
     h.speed = approach(h.speed, target, (target > h.speed ? accel : decel) * dt);
-    if (h.air?.kind === 'assisted') h.speed = Math.max(h.speed, ja.minAirSpeed);
+    // In the air the horse keeps its take-off speed – no hanging, no sudden drop.
+    if (h.air?.kind === 'assisted') h.speed = h.air.speed;
 
     // --- sideways: steering against the outward drift in curves ---
     const drift = -sample.curvature * h.speed * h.speed * hc.driftFactor;
@@ -202,7 +203,8 @@ export class Race {
     }
 
     // --- jump start ---
-    if (input.jump && !h.air && !h.finished && !over) this.startJump(i, h);
+    if (input.jump && !h.air && h.pendingJump === null && !h.finished && !over) this.requestJump(i, h);
+    if (h.pendingJump !== null && !h.air) this.takeOffIfReady(i, h);
 
     // --- move forward ---
     // `speed` is the real ground speed. Progress along the center line depends on
@@ -213,7 +215,8 @@ export class Race {
 
     // --- jump progress ---
     if (h.air?.kind === 'assisted') {
-      const p = (h.s - h.air.from) / (h.air.to - h.air.from);
+      h.air.elapsed += dt;
+      const p = h.air.elapsed / h.air.duration;
       if (p >= 1) this.land(h);
       else h.height = ja.height * 4 * p * (1 - p);
     } else if (h.air?.kind === 'free') {
@@ -232,15 +235,37 @@ export class Race {
     }
   }
 
-  private startJump(i: number, h: Horse): void {
-    const ja = this.cfg.jumpAssist;
+  /**
+   * The player jumped. In the jump zone the jump is remembered and the horse
+   * takes off by itself at the right spot; elsewhere it hops right away.
+   */
+  private requestJump(i: number, h: Horse): void {
     const next = this.nextJump(i);
-    if (next && next.distance >= 0 && next.distance <= ja.zoneBefore) {
-      const half = Math.max(next.distance, ja.minHalfLength);
-      h.air = { kind: 'assisted', from: h.s, to: next.state.def.s + half, obstacleId: next.state.def.id };
+    if (next && next.distance >= 0 && next.distance <= this.cfg.jumpAssist.zoneBefore) {
+      h.pendingJump = next.state.def.id;
+      this.takeOffIfReady(i, h);
     } else {
-      h.air = { kind: 'free', vy: ja.freeJumpVelocity };
+      h.air = { kind: 'free', vy: this.cfg.jumpAssist.freeJumpVelocity };
+      this.emit(i, 'jump');
     }
+  }
+
+  /** Takes off for a remembered jump once the obstacle is close enough. */
+  private takeOffIfReady(i: number, h: Horse): void {
+    const ja = this.cfg.jumpAssist;
+    const state = this.obstacles[i].find((o) => o.def.id === h.pendingJump);
+    if (!state || state.result !== 'pending') {
+      h.pendingJump = null;
+      return;
+    }
+    const distance = state.def.s - h.s;
+    // Take off so that the obstacle is passed in the middle of the flight.
+    const airSpeed = Math.max(h.speed, ja.minAirSpeed);
+    if (distance > (airSpeed * ja.airTime) / 2) return;
+    // A late jump (closer than ideal) still clears it, just earlier in the flight.
+    const speed = Math.max(airSpeed, (2 * Math.max(distance, 0)) / ja.airTime);
+    h.air = { kind: 'assisted', elapsed: 0, duration: ja.airTime, speed, obstacleId: state.def.id };
+    h.pendingJump = null;
     this.emit(i, 'jump');
   }
 
