@@ -59,7 +59,7 @@ export class App {
     this.renderer = new SplitRenderer(el.canvas, CONFIG.render);
     this.overview = new OverviewCamera(this.track, CONFIG.render.viewDistance);
     this.cameraView = new CameraView(el.video);
-    this.hud = new Hud(el.hud);
+    this.hud = new Hud(el.hud, CONFIG.hud.gaitThresholds);
     this.screens = new Screens(el.overlay);
     this.debug = new DebugPanel(el.debug, this.cameraView, () => this.renderer.setPixelRatio(CONFIG.render.pixelRatio));
 
@@ -204,6 +204,8 @@ export class App {
       lostTracking: !!slot && slot.kind === 'pose' && t - slot.gestures.lastSeen > CONFIG.tracking.lostHintSeconds,
       steerHint: h.lateral > edge ? -1 : h.lateral < -edge ? 1 : 0,
       finished: h.finished,
+      speed: h.speed / CONFIG.horse.maxSpeed,
+      slowdown: race.slowdownReason(i),
     };
   }
 

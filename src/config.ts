@@ -128,6 +128,11 @@ export const CONFIG = {
     resultsDelaySeconds: 2,
   },
 
+  hud: {
+    /** Speed fractions (of horse.maxSpeed) where the gauge switches Schritt → Trab → Galopp. */
+    gaitThresholds: { trot: 0.3, gallop: 0.65 },
+  },
+
   render: {
     /** Resolution factor (1 = CSS pixels). Lower = faster. */
     pixelRatio: 1,

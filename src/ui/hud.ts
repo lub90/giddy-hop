@@ -1,4 +1,5 @@
-import type { RaceEventType } from '../game/race';
+import { GAIT_LABELS, gaitOf, type Gait, type GaitThresholds } from '../game/gait';
+import type { RaceEventType, SlowdownReason } from '../game/race';
 import type { Rect } from '../render/layout';
 
 export interface HudState {
@@ -8,11 +9,20 @@ export interface HudState {
   time: number;
   /** 0..1 */
   progress: number;
+  /** Current horse speed as a fraction of the maximum speed (0..1). */
+  speed: number;
+  /** Why the horse is slowed down by the track (grass / rail), if at all. */
+  slowdown: SlowdownReason;
   jumpZone: boolean;
   lostTracking: boolean;
   /** Suggests leaning: -1 = lean left, +1 = lean right, 0 = fine. */
   steerHint: -1 | 0 | 1;
   finished: boolean;
+}
+
+export interface Hint {
+  text: string;
+  warn: boolean;
 }
 
 const TOASTS: Partial<Record<RaceEventType, string>> = {
@@ -23,6 +33,16 @@ const TOASTS: Partial<Record<RaceEventType, string>> = {
 };
 
 const TOAST_SECONDS = 1.2;
+const GAITS: Gait[] = ['walk', 'trot', 'gallop'];
+
+/** The hint line at the bottom of a player's view, most important first. */
+export function hintFor(s: HudState): Hint {
+  if (s.lostTracking) return { text: '👀 Ich sehe dich nicht – stell dich wieder hin!', warn: true };
+  const lean = s.steerHint === -1 ? '⬅️ nach links lehnen' : s.steerHint === 1 ? 'nach rechts lehnen ➡️' : '';
+  if (s.slowdown === 'rail') return { text: `🚧 Zaun! ${lean}`.trim(), warn: true };
+  if (s.slowdown === 'grass') return { text: `🌱 Wiese! ${lean}`.trim(), warn: true };
+  return { text: lean, warn: false };
+}
 
 /** Cheap DOM updates: only touch the DOM when the text actually changes. */
 function setText(el: HTMLElement, text: string): void {
@@ -32,6 +52,39 @@ function toggle(el: HTMLElement, cls: string, on: boolean): void {
   if (el.classList.contains(cls) !== on) el.classList.toggle(cls, on);
 }
 
+/** Vertical speed gauge with tick marks for Schritt / Trab / Galopp. */
+class SpeedGauge {
+  readonly el = document.createElement('div');
+  private readonly fill: HTMLElement;
+  private readonly labels = new Map<Gait, HTMLElement>();
+
+  constructor(thresholds: GaitThresholds) {
+    this.el.className = 'hud-gauge';
+    // Each gait label sits in the middle of its band; ticks mark the band borders.
+    const bands: Record<Gait, [number, number]> = {
+      walk: [0, thresholds.trot],
+      trot: [thresholds.trot, thresholds.gallop],
+      gallop: [thresholds.gallop, 1],
+    };
+    const ticks = [thresholds.trot, thresholds.gallop]
+      .map((f) => `<div class="gauge-tick" style="bottom:${f * 100}%"></div>`)
+      .join('');
+    const labels = GAITS.map((g) => {
+      const [lo, hi] = bands[g];
+      return `<span class="gauge-label" data-gait="${g}" style="bottom:${((lo + hi) / 2) * 100}%">${GAIT_LABELS[g]}</span>`;
+    }).join('');
+    this.el.innerHTML = `<div class="gauge-track"><div class="gauge-fill"></div>${ticks}</div>${labels}`;
+    this.fill = this.el.querySelector('.gauge-fill')!;
+    for (const g of GAITS) this.labels.set(g, this.el.querySelector(`[data-gait="${g}"]`)!);
+  }
+
+  update(speed: number, gait: Gait, slowed: boolean): void {
+    this.fill.style.height = `${(Math.min(1, Math.max(0, speed)) * 100).toFixed(1)}%`;
+    toggle(this.el, 'slowed', slowed);
+    for (const [g, label] of this.labels) toggle(label, 'active', g === gait);
+  }
+}
+
 class PlayerHud {
   readonly el = document.createElement('div');
   private readonly stats: HTMLElement;
@@ -39,9 +92,10 @@ class PlayerHud {
   private readonly toast: HTMLElement;
   private readonly hint: HTMLElement;
   private readonly bar: HTMLElement;
+  private readonly gauge: SpeedGauge;
   private toastUntil = 0;
 
-  constructor(name: string, color: string) {
+  constructor(name: string, color: string, private readonly thresholds: GaitThresholds) {
     this.el.className = 'hud-panel';
     this.el.style.setProperty('--player', color);
     this.el.innerHTML = `
@@ -56,6 +110,8 @@ class PlayerHud {
     this.toast = this.el.querySelector('.hud-toast')!;
     this.hint = this.el.querySelector('.hud-hint')!;
     this.bar = this.el.querySelector('.hud-bar')!;
+    this.gauge = new SpeedGauge(thresholds);
+    this.el.appendChild(this.gauge.el);
   }
 
   place(r: Rect): void {
@@ -76,6 +132,7 @@ class PlayerHud {
     const sec = Math.floor(s.time % 60).toString().padStart(2, '0');
     setText(this.stats, `🥕 ${s.carrots}   ❌ ${s.faults}   ⏱ ${m}:${sec}`);
     this.bar.style.width = `${(s.progress * 100).toFixed(1)}%`;
+    this.gauge.update(s.speed, gaitOf(s.speed, this.thresholds), s.slowdown !== null);
 
     let big = '';
     if (s.finished) big = 'ZIEL! 🏁';
@@ -83,26 +140,26 @@ class PlayerHud {
     setText(this.big, big);
     toggle(this.big, 'jump', s.jumpZone && !s.finished);
 
-    let hint = '';
-    if (s.lostTracking) hint = '👀 Ich sehe dich nicht – stell dich wieder hin!';
-    else if (s.steerHint === -1) hint = '⬅️ nach links lehnen';
-    else if (s.steerHint === 1) hint = 'nach rechts lehnen ➡️';
-    setText(this.hint, hint);
-    toggle(this.hint, 'warn', s.lostTracking);
+    const hint = hintFor(s);
+    setText(this.hint, hint.text);
+    toggle(this.hint, 'warn', hint.warn);
 
     if (now > this.toastUntil) toggle(this.toast, 'show', false);
   }
 }
 
-/** HTML overlays on top of each player's viewport (name, stats, hints, progress). */
+/** HTML overlays on top of each player's viewport (name, stats, hints, speed gauge, progress). */
 export class Hud {
   private panels: PlayerHud[] = [];
 
-  constructor(private readonly container: HTMLElement) {}
+  constructor(
+    private readonly container: HTMLElement,
+    private readonly thresholds: GaitThresholds,
+  ) {}
 
   setup(names: readonly string[], colors: readonly string[]): void {
     this.clear();
-    this.panels = names.map((n, i) => new PlayerHud(n, colors[i]));
+    this.panels = names.map((n, i) => new PlayerHud(n, colors[i], this.thresholds));
     for (const p of this.panels) this.container.appendChild(p.el);
   }
 

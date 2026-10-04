@@ -246,6 +246,60 @@ h2 {
   background: var(--player);
 }
 
+/* Speed gauge on the right edge: Schritt / Trab / Galopp */
+.hud-gauge {
+  position: absolute;
+  right: 14px;
+  top: 64px;
+  bottom: 44px;
+  width: 22px;
+}
+.gauge-track {
+  position: absolute;
+  inset: 0;
+  border-radius: 11px;
+  background: rgba(0, 0, 0, 0.45);
+  border: 2px solid rgba(255, 255, 255, 0.6);
+  overflow: hidden;
+}
+.gauge-fill {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 0;
+  background: linear-gradient(to top, #8fd46b, var(--player));
+  transition: height 0.15s linear, background 0.2s;
+}
+.hud-gauge.slowed .gauge-fill {
+  background: #ff9a3c;
+}
+.gauge-tick {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 3px;
+  margin-bottom: -1.5px;
+  background: rgba(255, 255, 255, 0.85);
+}
+.gauge-label {
+  position: absolute;
+  right: 30px;
+  transform: translateY(50%);
+  font-size: clamp(0.85rem, 1.3vw, 1.2rem);
+  font-weight: bold;
+  white-space: nowrap;
+  opacity: 0.55;
+  text-shadow: 0 2px 3px #000;
+  transition: opacity 0.2s, transform 0.2s;
+}
+.gauge-label.active {
+  opacity: 1;
+  color: var(--player);
+  transform: translateY(50%) scale(1.2);
+  transform-origin: right center;
+}
+
 @keyframes pulse {
   from { transform: scale(1); }
   to { transform: scale(1.15); }

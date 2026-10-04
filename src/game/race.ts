@@ -16,6 +16,8 @@ export interface ObstacleState {
   changedAt: number;
 }
 
+export type SlowdownReason = 'grass' | 'rail' | null;
+
 export type RaceEventType = 'jump' | 'fence-cleared' | 'fence-fault' | 'cone-hit' | 'carrot' | 'finish';
 
 export interface RaceEvent {
@@ -106,6 +108,15 @@ export class Race {
 
   isOffTrack(player: number): boolean {
     return Math.abs(this.horses[player].lateral) > this.track.halfWidth;
+  }
+
+  /** Why the track currently slows this horse down (null = full speed possible). */
+  slowdownReason(player: number): SlowdownReason {
+    const h = this.horses[player];
+    if (h.finished) return null;
+    if (h.touchingRail) return 'rail';
+    if (this.isOffTrack(player)) return 'grass';
+    return null;
   }
 
   results(): RaceResult[] {
