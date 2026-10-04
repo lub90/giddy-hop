@@ -50,7 +50,7 @@ from the internet on start, so an internet connection is required.
 | Esc | Anywhere else | Back to registration |
 | Backspace | Registration | Unregister everyone |
 | T | Registration | Add a keyboard rider (testing without camera; becomes ready with Space) |
-| F | Anywhere | Toggle fullscreen |
+| F or button in the start menu | Anywhere | Toggle fullscreen (Esc leaves it without affecting the game) |
 | Ctrl+Alt+D | Anywhere | Toggle debug panel |
 
 Keyboard riders (also usable alongside body control):

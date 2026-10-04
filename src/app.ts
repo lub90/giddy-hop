@@ -67,6 +67,7 @@ export class App {
   private lastPhase: Phase = 'startup';
   private cameraProblem: string | null = null;
   private fps = 60;
+  private fullscreenChangedAt = Number.NEGATIVE_INFINITY;
 
   constructor(private readonly el: AppElements) {
     this.poses = new PoseService(el.video);
@@ -84,6 +85,18 @@ export class App {
   async start(): Promise<void> {
     window.addEventListener('resize', () => this.renderer.resize());
     window.addEventListener('keydown', (e) => this.onKey(e));
+    // Buttons inside the overlays (re-rendered often, so use event delegation).
+    this.el.overlay.addEventListener('click', (e) => {
+      const button = (e.target as HTMLElement).closest<HTMLElement>('[data-action="fullscreen"]');
+      if (!button) return;
+      // Drop focus so a later Space press (start) does not click the button again.
+      button.blur();
+      this.toggleFullscreen();
+    });
+    document.addEventListener('fullscreenchange', () => {
+      document.body.classList.toggle('is-fullscreen', !!document.fullscreenElement);
+      this.fullscreenChangedAt = now();
+    });
     this.keyboard.attach(window);
     requestAnimationFrame(() => this.frame());
 
@@ -271,6 +284,8 @@ export class App {
         }
         break;
       case 'Escape':
+        // Esc that leaves fullscreen must not also abort the game.
+        if (document.fullscreenElement || now() - this.fullscreenChangedAt < 0.5) break;
         if (phase === 'loading') this.flow.cancelLoading();
         else this.flow.toRegistration();
         break;
@@ -281,10 +296,15 @@ export class App {
         if (phase === 'register') this.tracker.addKeyboardPlayer();
         break;
       case 'KeyF':
-        if (document.fullscreenElement) void document.exitFullscreen();
-        else void document.documentElement.requestFullscreen();
+        this.toggleFullscreen();
         break;
     }
+  }
+
+  /** Fullscreen for the whole page; leaving works with Esc (handled by the browser). */
+  private toggleFullscreen(): void {
+    if (document.fullscreenElement) void document.exitFullscreen();
+    else void document.documentElement.requestFullscreen().catch((err) => console.warn('Fullscreen refused', err));
   }
 
   private disposeRace(): void {

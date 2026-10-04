@@ -101,3 +101,22 @@ test('four players get a 2×2 split screen', async ({ page }) => {
   await page.screenshot({ path: 'test-results/05-four-players.png' });
   expect(errors).toEqual([]);
 });
+
+test('fullscreen button in the start menu', async ({ page }) => {
+  const errors = trackErrors(page);
+  await page.goto('/');
+  await expect(page.locator('#overlay h1')).toContainText('Reitturnier', { timeout: 60_000 });
+  const button = page.locator('[data-action="fullscreen"]');
+  await expect(button).toBeVisible();
+
+  await button.click();
+  await expect.poll(() => page.evaluate(() => !!document.fullscreenElement)).toBe(true);
+  await expect(button).toBeHidden();
+  await page.screenshot({ path: 'test-results/06-fullscreen.png' });
+
+  // Esc is handled by the browser itself; simulate leaving fullscreen.
+  await page.evaluate(() => document.exitFullscreen());
+  await expect.poll(() => page.evaluate(() => !!document.fullscreenElement)).toBe(false);
+  await expect(button).toBeVisible();
+  expect(errors).toEqual([]);
+});

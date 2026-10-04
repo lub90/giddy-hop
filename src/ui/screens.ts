@@ -70,6 +70,7 @@ export class Screens {
        ${cameraProblem ? `<p class="hint err">${escapeHtml(cameraProblem)}</p>` : '<div class="camera-slot"></div>'}
        <div class="slots"></div>
        <p class="hint">Wenn alle bereit sind, geht's los!</p>
+       <button class="fullscreen-btn" data-action="fullscreen" tabindex="-1">⛶ Vollbild (Esc = beenden)</button>
        <p class="hint small"><b>Leertaste</b> = alle bereit · <b>Rücktaste</b> = alle abmelden ·
        <b>T</b> = Tastatur-Reiter · <b>F</b> = Vollbild</p>`,
     );

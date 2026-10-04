@@ -92,6 +92,26 @@ h2 {
   white-space: nowrap;
 }
 
+.fullscreen-btn {
+  padding: 10px 22px;
+  border: 0;
+  border-radius: 12px;
+  font: inherit;
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: #1c160f;
+  background: var(--accent);
+  cursor: pointer;
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.35);
+}
+.fullscreen-btn:hover {
+  filter: brightness(1.1);
+}
+/* Only offered while not in fullscreen. */
+.is-fullscreen .fullscreen-btn {
+  display: none;
+}
+
 .camera-slot {
   width: min(70vw, 960px);
   aspect-ratio: 16 / 9;
