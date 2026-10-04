@@ -153,7 +153,7 @@ export const CONFIG = {
     /** Volume of the sound effects (0 = off … 1). */
     volume: 0.5,
     /** Hoofbeats relative to the other sounds (0 = off … 1). */
-    hoofVolume: 0.5,
+    hoofVolume: 1,
   },
 
   hud: {

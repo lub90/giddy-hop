@@ -70,10 +70,14 @@ export class DebugPanel {
   private readonly gui: GUI;
   private lastLiveUpdate = 0;
 
+  /**
+   * @param soundTests buttons to listen to the sound effects while tuning their volume
+   */
   constructor(
     host: HTMLElement,
     private readonly cameraView: CameraView,
     onRenderChange: () => void,
+    soundTests?: { whinny: () => void; snort: () => void; hoofs: () => void },
   ) {
     this.root.className = 'debug hidden';
     this.cameraSlot.className = 'debug-camera';
@@ -95,12 +99,19 @@ export class DebugPanel {
         });
       }
     }
+    if (soundTests) {
+      const sound = this.gui.addFolder('sound test');
+      sound.close();
+      sound.add(soundTests, 'whinny').name('🐴 Whinny');
+      sound.add(soundTests, 'snort').name('💨 Snort');
+      sound.add(soundTests, 'hoofs').name('🐎 Hoofbeats (gallop)');
+    }
     this.gui.add(
       {
         copy: () => void navigator.clipboard?.writeText(JSON.stringify(CONFIG, null, 2)),
       },
       'copy',
-    ).name('📋 Config kopieren (JSON)');
+    ).name('📋 Copy config (JSON)');
     this.gui.add(
       {
         reset: () => {

@@ -121,7 +121,18 @@ export class App {
     this.cameraView = new CameraView(el.video);
     this.hud = new Hud(el.hud, CONFIG.hud.gaitThresholds);
     this.screens = new Screens(el.overlay);
-    this.debug = new DebugPanel(el.debug, this.cameraView, () => this.renderer.setPixelRatio(CONFIG.render.pixelRatio));
+    this.debug = new DebugPanel(el.debug, this.cameraView, () => this.renderer.setPixelRatio(CONFIG.render.pixelRatio), {
+      whinny: () => this.sounds.whinny(),
+      snort: () => this.sounds.snort(),
+      // Two seconds of galloping: three-beat strides at full speed.
+      hoofs: () => {
+        for (let stride = 0; stride < 4; stride++) {
+          [0, 0.08, 0.16].forEach((offset, beat) =>
+            setTimeout(() => this.sounds.hoof(1, 0, 'sand', beat === 2), (stride * 0.5 + offset) * 1000),
+          );
+        }
+      },
+    });
 
     setupEnvironment(this.scene, CONFIG.render.viewDistance);
     this.buildScenery();
