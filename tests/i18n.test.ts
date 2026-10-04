@@ -67,6 +67,15 @@ describe('Translations', () => {
     expect(slotStatus(undefined).text).toBe('frei');
   });
 
+  it('the game is called "Giddy Hop!" in every language, with a localized subtitle', () => {
+    setLanguage('de');
+    expect(t('title')).toBe('Giddy Hop!');
+    expect(t('subtitle')).toBe('Auf die Pferde, fertig, los!');
+    setLanguage('en');
+    expect(t('title')).toBe('Giddy Hop!');
+    expect(t('subtitle')).toBe('On your horses, get set, go!');
+  });
+
   it('uses singular and plural forms in the course facts', () => {
     setLanguage('en');
     expect(t('course.jumps', { count: 1 })).toBe('1 jump');

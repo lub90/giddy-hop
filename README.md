@@ -1,5 +1,7 @@
 # Giddy Hop! 🐴
 
+*Auf die Pferde, fertig, los! – On your horses, get set, go!*
+
 A webcam motion game for a kids' birthday party with a horse-show theme.
 Up to four children stand in front of the laptop webcam and ride a parcours
 in first-person view on a split screen – controlled only by their bodies:

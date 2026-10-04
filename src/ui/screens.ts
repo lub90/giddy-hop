@@ -56,7 +56,10 @@ export class Screens {
 
   /** Message while camera and model start up. */
   startup(message: string): void {
-    this.show('startup', `<h1>🐴 ${t('title')}</h1><p class="hint">${escapeHtml(message)}</p>`);
+    this.show(
+      'startup',
+      `<h1>🐴 ${t('title')}</h1><p class="subtitle">${t('subtitle')}</p><p class="hint">${escapeHtml(message)}</p>`,
+    );
   }
 
   /** Puts the camera preview into the registration screen (if it is showing). */
@@ -81,7 +84,8 @@ export class Screens {
     const languageOptions = LANGUAGES.map((l) => option(l, LANGUAGE_NAMES[l], l === lang)).join('');
     this.show(
       'register',
-      `<h1>🐴 ${t('title')} – ${t('subtitle')}</h1>
+      `<h1>🐴 ${t('title')}</h1>
+       <p class="subtitle">${t('subtitle')}</p>
        <p class="hint">${t('register.position')}<br>
        <span class="nowrap">${t('register.gestureJoin')}</span> ·
        <span class="nowrap">${t('register.gestureReady')}</span> ·

@@ -14,7 +14,13 @@ function trackErrors(page: Page): string[] {
   return errors;
 }
 
-const progressWidth = (page: Page, i: number) =>
+/** Waits for the start screen (not the startup message, which shows the subtitle too). */
+async function expectStartScreen(page: Page, subtitle: string): Promise<void> {
+  await expect(page.locator('#overlay .course-picker')).toBeVisible({ timeout: 60_000 });
+  await expect(page.locator('#overlay .subtitle')).toContainText(subtitle);
+}
+
+const progressWidth =(page: Page, i: number) =>
   page.locator('.hud-bar').nth(i).evaluate((el) => parseFloat((el as HTMLElement).style.width) || 0);
 
 test('registration → race with keyboard players → results', async ({ page }) => {
@@ -22,7 +28,7 @@ test('registration → race with keyboard players → results', async ({ page })
   await page.goto('/');
 
   // Registration screen appears once camera + model are ready (or failed gracefully).
-  await expect(page.locator('#overlay h1')).toContainText('Reitturnier', { timeout: 60_000 });
+  await expectStartScreen(page, 'Auf die Pferde');
   await expect(page.locator('.slot')).toHaveCount(4);
   await page.screenshot({ path: 'test-results/01-registration.png' });
 
@@ -37,7 +43,7 @@ test('registration → race with keyboard players → results', async ({ page })
   await expect(page.locator('.slot.ready')).toHaveCount(2);
   await page.screenshot({ path: 'test-results/02-loading.png' });
   await page.keyboard.press('Escape');
-  await expect(page.locator('#overlay h1')).toContainText('Reitturnier');
+  await expectStartScreen(page, 'Auf die Pferde');
 
   // Again, and skip the wait: countdown 3-2-1, then "Los!".
   await page.keyboard.press('Space');
@@ -69,7 +75,7 @@ test('registration → race with keyboard players → results', async ({ page })
 
   // Escape goes back to the registration.
   await page.keyboard.press('Escape');
-  await expect(page.locator('#overlay h1')).toContainText('Reitturnier');
+  await expectStartScreen(page, 'Auf die Pferde');
 
   expect(errors).toEqual([]);
 });
@@ -77,7 +83,7 @@ test('registration → race with keyboard players → results', async ({ page })
 test('four players get a 2×2 split screen', async ({ page }) => {
   const errors = trackErrors(page);
   await page.goto('/');
-  await expect(page.locator('#overlay h1')).toContainText('Reitturnier', { timeout: 60_000 });
+  await expectStartScreen(page, 'Auf die Pferde');
   for (let i = 0; i < 5; i++) await page.keyboard.press('t');
   await expect(page.locator('.slot.registered')).toHaveCount(4);
   await page.keyboard.press('Space');
@@ -105,7 +111,7 @@ test('four players get a 2×2 split screen', async ({ page }) => {
 test('fullscreen button in the start menu', async ({ page }) => {
   const errors = trackErrors(page);
   await page.goto('/');
-  await expect(page.locator('#overlay h1')).toContainText('Reitturnier', { timeout: 60_000 });
+  await expectStartScreen(page, 'Auf die Pferde');
   const button = page.locator('[data-action="fullscreen"]');
   await expect(button).toBeVisible();
 
@@ -124,7 +130,7 @@ test('fullscreen button in the start menu', async ({ page }) => {
 test('course selection on the start screen', async ({ page }) => {
   const errors = trackErrors(page);
   await page.goto('/');
-  await expect(page.locator('#overlay h1')).toContainText('Reitturnier', { timeout: 60_000 });
+  await expectStartScreen(page, 'Auf die Pferde');
   const select = page.locator('select[data-action="course"]');
   await expect(select.locator('option')).toHaveCount(2);
   const before = await page.locator('.course-info').textContent();
@@ -152,7 +158,7 @@ test('course selection on the start screen', async ({ page }) => {
 test('live placement is shown top left', async ({ page }) => {
   const errors = trackErrors(page);
   await page.goto('/');
-  await expect(page.locator('#overlay h1')).toContainText('Reitturnier', { timeout: 60_000 });
+  await expectStartScreen(page, 'Auf die Pferde');
   for (let i = 0; i < 3; i++) await page.keyboard.press('t');
   await page.keyboard.press('Space');
   await page.keyboard.press('Space');
@@ -179,22 +185,22 @@ test.describe('English browser', () => {
   test('shows the English UI and can switch to German', async ({ page }) => {
     const errors = trackErrors(page);
     await page.goto('/');
-    await expect(page.locator('#overlay h1')).toContainText('The big horse show', { timeout: 60_000 });
+    await expectStartScreen(page, 'On your horses');
     await expect(page.locator('html')).toHaveAttribute('lang', 'en');
     await expect(page.locator('.slot').first()).toContainText('free');
     await expect(page.locator('.course-info')).toContainText('jumps');
     await page.screenshot({ path: 'test-results/10-english.png' });
 
     await page.locator('select[data-action="language"]').selectOption('de');
-    await expect(page.locator('#overlay h1')).toContainText('Das große Reitturnier');
+    await expectStartScreen(page, 'Auf die Pferde');
     await expect(page.locator('.slot').first()).toContainText('frei');
     // The choice is remembered across reloads.
     await page.reload();
-    await expect(page.locator('#overlay h1')).toContainText('Das große Reitturnier', { timeout: 60_000 });
+    await expectStartScreen(page, 'Auf die Pferde');
 
     // A URL parameter overrides everything.
     await page.goto('/?lang=en');
-    await expect(page.locator('#overlay h1')).toContainText('The big horse show', { timeout: 60_000 });
+    await expectStartScreen(page, 'On your horses');
 
     // The race HUD is translated, too.
     await page.keyboard.press('t');
@@ -212,6 +218,6 @@ test.describe('Unsupported browser language', () => {
 
   test('falls back to English', async ({ page }) => {
     await page.goto('/');
-    await expect(page.locator('#overlay h1')).toContainText('The big horse show', { timeout: 60_000 });
+    await expectStartScreen(page, 'On your horses');
   });
 });
