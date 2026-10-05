@@ -3,10 +3,15 @@ import { CONFIG } from '../src/config';
 import { GameFlow } from '../src/game/gameFlow';
 import { Race } from '../src/game/race';
 import { Track } from '../src/game/track';
-import { celebrationPose, cyclesCompleted, MAX_PITCH, orbitProgress, ORBIT_SECONDS } from '../src/render/celebration';
+import { celebrationPose, MAX_PITCH, rearingsStarted, orbitProgress, ORBIT_SECONDS } from '../src/render/celebration';
 import { podiumOrder } from '../src/ui/screens';
 
-const timing = { delay: CONFIG.race.celebrationDelaySeconds, cycle: CONFIG.race.celebrationCycleSeconds };
+const timing = {
+  delay: CONFIG.race.celebrationDelaySeconds,
+  cycle: CONFIG.race.celebrationCycleSeconds,
+  pause: CONFIG.race.celebrationPauseSeconds,
+};
+const period = timing.cycle + timing.pause;
 
 describe('Finish celebration – camera orbit', () => {
   it('starts at the rider view and ends in front of the horse (180°)', () => {
@@ -49,12 +54,20 @@ describe('Finish celebration – rearing up', () => {
     expect(pose(timing.delay + timing.cycle * 0.95)).toEqual({ pitch: 0, frontLegs: 0, headShake: 0 });
   });
 
-  it('repeats in cycles', () => {
+  it('rests on all fours for the pause, then rears up again', () => {
+    const rest = { pitch: 0, frontLegs: 0, headShake: 0 };
+    for (let t = timing.cycle; t < period; t += 0.1) expect(pose(timing.delay + t)).toEqual(rest);
     const a = pose(timing.delay + timing.cycle * 0.4);
-    const b = pose(timing.delay + timing.cycle * 1.4);
+    const b = pose(timing.delay + period + timing.cycle * 0.4);
     expect(b.pitch).toBeCloseTo(a.pitch, 1);
-    expect(cyclesCompleted(timing.delay + timing.cycle * 2.5, timing)).toBe(2);
-    expect(cyclesCompleted(0, timing)).toBe(0);
+  });
+
+  it('counts the rearings (one whinny each)', () => {
+    expect(rearingsStarted(0, timing)).toBe(0);
+    expect(rearingsStarted(timing.delay, timing)).toBe(1);
+    expect(rearingsStarted(timing.delay + period - 0.01, timing)).toBe(1);
+    expect(rearingsStarted(timing.delay + period, timing)).toBe(2);
+    expect(rearingsStarted(timing.delay + period * 2.5, timing)).toBe(3);
   });
 });
 

@@ -51,7 +51,7 @@ const TUNABLES: Record<string, Record<string, Range>> = {
   jumpAssist: { zoneBefore: [2, 15, 0.5], airTime: [0.4, 1.5, 0.05], height: [0.8, 3, 0.1], freeJumpVelocity: [2, 8, 0.1] },
   tracking: { maxMatchDistance: [0.05, 0.4, 0.01], registerHoldSeconds: [0.2, 3, 0.1] },
   detection: { minKeypointScore: [0.1, 0.8, 0.05] },
-  race: { timeoutSeconds: [30, 300, 5] },
+  race: { timeoutSeconds: [30, 300, 5], celebrationPauseSeconds: [0, 10, 0.5] },
   render: { pixelRatio: [0.5, 2, 0.25] },
   audio: { volume: [0, 1, 0.05], hoofVolume: [0, 5, 0.05], whinnyVolume: [0, 2, 0.05] },
 };

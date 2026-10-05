@@ -2,14 +2,16 @@
  * Timing of the finish celebration (pure math, no three.js):
  *  - the camera orbits 180° around the horse and ends up looking back along the track
  *  - the horse rears up, paddles with its front hooves, shakes its head and lands again,
- *    repeated in cycles
+ *    repeated after a pause
  */
 
 export interface CelebrationTiming {
   /** Delay after crossing the line before the first rearing (s). */
   delay: number;
-  /** Length of one rearing cycle (s). */
+  /** Length of one rearing, from rising up to standing again (s). */
   cycle: number;
+  /** Rest on all fours between two rearings (s). */
+  pause: number;
 }
 
 export interface CelebrationPose {
@@ -35,9 +37,13 @@ export function orbitProgress(elapsed: number): number {
   return smooth(elapsed / ORBIT_SECONDS);
 }
 
-/** Number of complete rearing cycles since crossing the line. */
-export function cyclesCompleted(elapsed: number, timing: CelebrationTiming): number {
-  return Math.max(0, Math.floor((elapsed - timing.delay) / timing.cycle));
+/** Time from the start of one rearing to the start of the next (s). */
+const period = (timing: CelebrationTiming) => timing.cycle + timing.pause;
+
+/** Number of rearings started since crossing the line (each one comes with a whinny). */
+export function rearingsStarted(elapsed: number, timing: CelebrationTiming): number {
+  const local = elapsed - timing.delay;
+  return local < 0 ? 0 : Math.floor(local / period(timing)) + 1;
 }
 
 /** Pose of the horse `elapsed` seconds after crossing the finish line. */
@@ -46,8 +52,10 @@ export function celebrationPose(elapsed: number, timing: CelebrationTiming): Cel
   const local = elapsed - timing.delay;
   if (local < 0) return rest;
 
-  // Phases within one cycle, as fractions of the cycle length.
-  const c = (local % timing.cycle) / timing.cycle;
+  const within = local % period(timing);
+  if (within >= timing.cycle) return rest;
+  // Phases within one rearing, as fractions of its length.
+  const c = within / timing.cycle;
   const RISE = 0.2;
   const HOLD = 0.65;
   const LAND = 0.85;

@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import type { Race } from '../game/race';
 import { RiderCamera } from './cameras';
-import { celebrationPose, type CelebrationTiming } from './celebration';
+import { celebrationPose, rearingsStarted, type CelebrationTiming } from './celebration';
 import { HorseModel } from './horseModel';
 import { horseLayers, LAYER_OVERVIEW, playerLayer, setLayer, setLayers } from './layers';
 import { PlayerObstacles } from './obstacleViews';
@@ -80,9 +80,9 @@ export class RaceView {
       const celebrating = finishedAt === null ? null : time - finishedAt;
       const pose = celebrating === null ? null : celebrationPose(celebrating, this.timing);
       if (celebrating !== null) {
-        const cycle = Math.floor((celebrating - this.timing.delay) / this.timing.cycle);
-        if (celebrating >= this.timing.delay && cycle > this.rearCount[i] - 1) {
-          this.rearCount[i] = cycle + 1;
+        const started = rearingsStarted(celebrating, this.timing);
+        if (started > this.rearCount[i]) {
+          this.rearCount[i] = started;
           this.onRear?.(i);
         }
       }

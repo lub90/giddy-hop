@@ -353,7 +353,11 @@ export class App {
           this.playerColors(),
           CONFIG.render.fov,
           CONFIG.render.viewDistance,
-          { delay: CONFIG.race.celebrationDelaySeconds, cycle: CONFIG.race.celebrationCycleSeconds },
+          {
+            delay: CONFIG.race.celebrationDelaySeconds,
+            cycle: CONFIG.race.celebrationCycleSeconds,
+            pause: CONFIG.race.celebrationPauseSeconds,
+          },
           (player) => this.sounds.whinny(HORSE_VOICES[this.tracker.slots[player]?.number ?? 0]),
         );
         this.hud.setup(

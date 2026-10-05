@@ -150,8 +150,10 @@ export const CONFIG = {
     resultsDelaySeconds: 2,
     /** Finish celebration: delay after crossing the line before the horse rears (s). */
     celebrationDelaySeconds: 1.2,
-    /** Finish celebration: one rearing cycle (s). Results wait until the last horse finished one. */
+    /** Finish celebration: one rearing (s). Results wait until the last horse finished one. */
     celebrationCycleSeconds: 2.6,
+    /** Finish celebration: rest between two rearings (s). */
+    celebrationPauseSeconds: 3,
   },
 
   audio: {
@@ -160,7 +162,7 @@ export const CONFIG = {
     /** Hoofbeats relative to the other sounds (0 = off … 1). */
     hoofVolume: 3,
     /** Whinny and snort of the finish celebration relative to the other sounds. */
-    whinnyVolume: 0.5,
+    whinnyVolume: 0.25,
   },
 
   hud: {
