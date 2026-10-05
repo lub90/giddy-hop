@@ -7,3 +7,6 @@ playwright-report/
 
 # Local Claude Code settings – never publish
 .claude/
+
+# Own sound files for local use only (not licensed for redistribution) – see README
+local-assets/

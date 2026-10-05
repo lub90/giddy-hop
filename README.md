@@ -87,6 +87,15 @@ last selection is remembered). The format is documented in
 [courses/README.md](courses/README.md); `npm test` validates every course
 (format, no self-crossing, at least one jump).
 
+## Own sound recordings (local only)
+
+All sounds are synthesized in the browser. To use a real whinny instead, put
+one or more recordings named `whinny*.mp3` / `.wav` / `.ogg` / `.m4a` into the
+folder `local-assets/` (one is picked at random each time). The folder is
+git-ignored: recordings from the internet usually allow private use but not
+redistribution, so they never end up in the repository. They are bundled into
+`dist/index.html` when building, so the game still works by double-click.
+
 ## Languages
 
 The UI is available in German and English ([src/i18n/](src/i18n/), one JSON

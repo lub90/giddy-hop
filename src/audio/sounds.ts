@@ -1,5 +1,8 @@
+import { localSampleUrls } from './localSamples';
+
 /**
- * Synthesized sound effects (Web Audio API, no sound files).
+ * Sound effects (Web Audio API). Synthesized by default; the whinny uses an own
+ * recording instead when one is placed in local-assets/ (see localSamples.ts).
  *
  * Browsers only allow audio after a user interaction; call `unlock()` from a
  * key press or click (the App does this on every key/pointer event).
@@ -9,17 +12,55 @@ export class Sounds {
   private ctx: BaseAudioContext | null = null;
   private bus: AudioNode | null = null;
   private noise: AudioBuffer | null = null;
+  /** Decoded own whinny recordings (empty = use the synthesis). */
+  private whinnySamples: AudioBuffer[] = [];
 
   /**
    * @param volume master volume, @param hoofVolume / @param whinnyVolume relative volume of the
    *   hoofbeats and of the whinny + snort –
    *   all read on every sound, so changes in the debug panel apply immediately.
+   * @param whinnyUrls own whinny recordings (default: local-assets/whinny*)
    */
   constructor(
     private readonly volume: () => number,
     private readonly hoofVolume: () => number = () => 1,
     private readonly whinnyVolume: () => number = () => 1,
+    private readonly whinnyUrls: readonly string[] = localSampleUrls('whinny'),
   ) {}
+
+  /** True when an own whinny recording is used instead of the synthesis. */
+  get usesRecordedWhinny(): boolean {
+    return this.whinnySamples.length > 0;
+  }
+
+  /** Decodes the own recordings for this context (failures fall back to the synthesis). */
+  private async loadSamples(ctx: BaseAudioContext): Promise<void> {
+    const decoded = await Promise.all(
+      this.whinnyUrls.map(async (url) => {
+        try {
+          const data = await (await fetch(url)).arrayBuffer();
+          return await ctx.decodeAudioData(data);
+        } catch (err) {
+          console.warn('Could not load whinny recording', url, err);
+          return null;
+        }
+      }),
+    );
+    if (this.ctx === ctx) this.whinnySamples = decoded.filter((b): b is AudioBuffer => b !== null);
+  }
+
+  /** Plays one of the own recordings; `pitch` slightly varies the voice per horse. */
+  private playRecordedWhinny(ctx: BaseAudioContext, bus: AudioNode, volume: number, pitch: number): void {
+    const buffer = this.whinnySamples[Math.floor(Math.random() * this.whinnySamples.length)];
+    const src = ctx.createBufferSource();
+    src.buffer = buffer;
+    // Small pitch differences only, so the recording stays natural.
+    src.playbackRate.value = 1 + (pitch - 1) * 0.5;
+    const gain = ctx.createGain();
+    gain.gain.value = volume;
+    src.connect(gain).connect(bus);
+    src.start(ctx.currentTime + 0.02);
+  }
 
   /** Creates/resumes the audio context; must run inside a user gesture. */
   unlock(): void {
@@ -41,6 +82,8 @@ export class Sounds {
     comp.ratio.value = 4;
     comp.connect(ctx.destination);
     this.bus = comp;
+    this.whinnySamples = [];
+    if (this.whinnyUrls.length > 0) void this.loadSamples(ctx);
   }
 
   /** Context ready to play right now, or null. */
@@ -65,6 +108,10 @@ export class Sounds {
     const volume = this.volume() * this.whinnyVolume();
     if (!r || volume <= 0) return;
     const { ctx, bus } = r;
+    if (this.whinnySamples.length > 0) {
+      this.playRecordedWhinny(ctx, bus, volume, pitch);
+      return;
+    }
     const t0 = ctx.currentTime + 0.02;
     const dur = WHINNY.duration;
     const at = (frac: number) => t0 + frac * dur;
