@@ -20,6 +20,8 @@
     "whenReady": "Wenn alle bereit sind, geht's los!",
     "course": "🏇 Strecke:",
     "language": "🌐 Sprache:",
+    "camera": "📷 Kamera:",
+    "cameraFallback": "Kamera",
     "cones": "🔶 Hütchen",
     "carrots": "🥕 Karotten",
     "fullscreen": "⛶ Vollbild (Esc = beenden)",

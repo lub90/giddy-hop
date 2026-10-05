@@ -57,6 +57,10 @@ npm run build      # type check + production build → dist/index.html (single f
 npm run preview    # serve the build → http://localhost:4173
 ```
 
+With several cameras connected, the start screen shows a camera dropdown; the
+choice is remembered (falling back to the default camera when it is not
+connected) and the list updates when a camera is plugged in or out.
+
 `dist/index.html` is self-contained and can also be opened by double-click
 (Firefox asks for camera permission). The MoveNet model weights are downloaded
 from the internet on start, so an internet connection is required.

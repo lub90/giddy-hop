@@ -20,7 +20,9 @@ export class PoseService {
 
   constructor(private readonly video: HTMLVideoElement) {}
 
+  /** Loads the model (only once; later calls return immediately). */
   async init(): Promise<void> {
+    if (this.detector) return;
     await tf.setBackend('webgl');
     await tf.ready();
     this.detector = await poseDetection.createDetector(poseDetection.SupportedModels.MoveNet, {

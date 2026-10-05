@@ -1,6 +1,7 @@
 import { courseStats, type CourseInfo, type CourseOptions } from '../game/courseFormat';
 import type { RaceResult } from '../game/race';
 import { currentLanguage, LANGUAGE_NAMES, LANGUAGES, localized, t } from '../i18n';
+import type { CameraInfo } from '../pose/camera';
 import type { PlayerSlot, PlayerTracker } from '../pose/playerTracker';
 
 const ROSETTES = ['🥇', '🥈', '🥉', '🎀'];
@@ -90,6 +91,8 @@ export class Screens {
     courses: readonly CourseInfo[],
     selected: CourseInfo,
     options: CourseOptions,
+    cameras: readonly CameraInfo[] = [],
+    selectedCamera: string | null = null,
   ): void {
     const toggle = (key: keyof CourseOptions) =>
       `<label class="toggle"><input type="checkbox" data-action="${key}"${options[key] ? ' checked' : ''} tabindex="-1"> ${t(`register.${key}`)}</label>`;
@@ -101,6 +104,13 @@ export class Screens {
       .join('');
     const lang = currentLanguage();
     const languageOptions = LANGUAGES.map((l) => option(l, LANGUAGE_NAMES[l], l === lang)).join('');
+    // Only offer a choice when there is one to make.
+    const cameraPicker =
+      cameras.length > 1
+        ? `<label>${t('register.camera')} <select data-action="camera">${cameras
+            .map((c) => option(c.id, c.label, c.id === selectedCamera))
+            .join('')}</select></label>`
+        : '';
     this.show(
       'register',
       `<h1>🐴 ${t('title')}</h1>
@@ -115,6 +125,7 @@ export class Screens {
          <div class="pickers">
            <label>${t('register.course')} <select data-action="course">${courseOptions}</select></label>
            <label>${t('register.language')} <select data-action="language">${languageOptions}</select></label>
+           ${cameraPicker}
            ${toggle('cones')}
            ${toggle('carrots')}
          </div>

@@ -20,6 +20,8 @@
     "whenReady": "As soon as everyone is ready, off we go!",
     "course": "🏇 Course:",
     "language": "🌐 Language:",
+    "camera": "📷 Camera:",
+    "cameraFallback": "Camera",
     "cones": "🔶 Cones",
     "carrots": "🥕 Carrots",
     "fullscreen": "⛶ Fullscreen (Esc = exit)",

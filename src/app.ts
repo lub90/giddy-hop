@@ -12,7 +12,7 @@ import { Lobby } from './game/lobby';
 import { Track } from './game/track';
 import { KeyboardInput } from './input/keyboardInput';
 import { mergeInputs, NEUTRAL_INPUT, type PlayerInput } from './input/playerInput';
-import { startCamera } from './pose/camera';
+import { activeCameraId, chooseCamera, listCameras, startCamera, type CameraInfo } from './pose/camera';
 import { PlayerTracker, type TrackerMode } from './pose/playerTracker';
 import { PoseService } from './pose/poseService';
 import { OverviewCamera } from './render/cameras';
@@ -36,6 +36,7 @@ export interface AppElements {
 const now = () => performance.now() / 1000;
 
 const COURSE_SETTING_KEY = 'giddyhop.course';
+const CAMERA_SETTING_KEY = 'giddyhop.camera';
 
 /** Voice pitch per player number, so every horse sounds a bit different. */
 const HORSE_VOICES = [1, 0.85, 1.15, 0.95];
@@ -112,6 +113,9 @@ export class App {
   private lastPhase: Phase = 'startup';
   /** Why camera/detection failed (technical message), or null. */
   private cameraError: string | null = null;
+  /** Connected cameras and the one in use (null = browser default). */
+  private cameras: CameraInfo[] = [];
+  private cameraId: string | null = null;
   private fps = 60;
   private fullscreenChangedAt = Number.NEGATIVE_INFINITY;
 
@@ -198,8 +202,51 @@ export class App {
 
   private showRegistration(): void {
     const problem = this.cameraError ? t('startup.cameraProblem', { message: this.cameraError }) : null;
-    this.screens.registration(problem, COURSES, this.course, this.options);
+    this.screens.registration(problem, COURSES, this.course, this.options, this.cameras, this.cameraId);
     this.mountCameraPreview();
+  }
+
+  /**
+   * Starts the given camera (null = browser default) and pose detection.
+   * A remembered camera that is gone falls back to the default one.
+   */
+  private async openCamera(id: string | null): Promise<void> {
+    const { width, height } = CONFIG.camera;
+    try {
+      try {
+        await startCamera(this.el.video, width, height, id);
+      } catch (err) {
+        if (!id) throw err;
+        console.warn('Camera not available, using the default one', err);
+        await startCamera(this.el.video, width, height);
+      }
+      this.cameraError = null;
+      if (this.flow.phase === 'startup') this.screens.startup(t('startup.model'));
+      await this.poses.init();
+      this.poses.start();
+    } catch (err) {
+      console.error(err);
+      this.cameraError = err instanceof Error ? err.message : String(err);
+    }
+    this.cameraId = activeCameraId(this.el.video);
+    // Device names are only available once camera permission was granted.
+    this.cameras = await listCameras().catch(() => []);
+  }
+
+  /** Camera selection on the start screen. */
+  private async selectCamera(id: string): Promise<void> {
+    if (id === this.cameraId) return;
+    saveSetting(CAMERA_SETTING_KEY, id);
+    await this.openCamera(id);
+    if (this.flow.phase === 'register') this.showRegistration();
+  }
+
+  /** A camera was plugged in or out: update the list, replace a vanished camera. */
+  private async onDevicesChanged(): Promise<void> {
+    this.cameras = await listCameras().catch(() => []);
+    const current = chooseCamera(this.cameraId, this.cameras);
+    if (!current && this.cameras.length > 0) await this.openCamera(chooseCamera(loadSetting(CAMERA_SETTING_KEY), this.cameras));
+    if (this.flow.phase === 'register') this.showRegistration();
   }
 
   async start(): Promise<void> {
@@ -221,6 +268,7 @@ export class App {
       const action = control.dataset.action;
       if (action === 'course') this.selectCourse(control.value);
       else if (action === 'language') this.selectLanguage(control.value);
+      else if (action === 'camera') void this.selectCamera(control.value);
       else if (isOptionKey(action) && control instanceof HTMLInputElement) this.setOption(action, control.checked);
       // Arrow keys and Space are game keys – give the focus back to the page.
       control.blur();
@@ -233,16 +281,8 @@ export class App {
     requestAnimationFrame(() => this.frame());
 
     this.screens.startup(t('startup.camera'));
-    try {
-      await startCamera(this.el.video, CONFIG.camera.width, CONFIG.camera.height);
-      this.screens.startup(t('startup.model'));
-      await this.poses.init();
-      this.poses.start();
-    } catch (err) {
-      console.error(err);
-      const msg = err instanceof Error ? err.message : String(err);
-      this.cameraError = msg;
-    }
+    await this.openCamera(loadSetting(CAMERA_SETTING_KEY));
+    navigator.mediaDevices?.addEventListener?.('devicechange', () => void this.onDevicesChanged());
     this.flow.ready();
   }
 
