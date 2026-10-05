@@ -1,8 +1,9 @@
-import { localSampleUrls } from './localSamples';
+import { localSamples, pickRandom, SAMPLE_KINDS, type SampleKind } from './localSamples';
 
 /**
- * Sound effects (Web Audio API). Synthesized by default; the whinny uses an own
- * recording instead when one is placed in local-assets/ (see localSamples.ts).
+ * Sound effects (Web Audio API). Synthesized by default; whinny, snort and
+ * hoofbeat each use own recordings instead when they are placed in
+ * local-assets/ (see localSamples.ts) – a random one each time.
  *
  * Browsers only allow audio after a user interaction; call `unlock()` from a
  * key press or click (the App does this on every key/pointer event).
@@ -12,54 +13,78 @@ export class Sounds {
   private ctx: BaseAudioContext | null = null;
   private bus: AudioNode | null = null;
   private noise: AudioBuffer | null = null;
-  /** Decoded own whinny recordings (empty = use the synthesis). */
-  private whinnySamples: AudioBuffer[] = [];
+  /** Decoded own recordings per kind (empty = use the synthesis). */
+  private samples: Record<SampleKind, AudioBuffer[]> = { whinny: [], snort: [], hoof: [] };
 
   /**
    * @param volume master volume, @param hoofVolume / @param whinnyVolume relative volume of the
    *   hoofbeats and of the whinny + snort –
    *   all read on every sound, so changes in the debug panel apply immediately.
-   * @param whinnyUrls own whinny recordings (default: local-assets/whinny*)
+   * @param sampleUrls own recordings per kind (default: from local-assets/)
    */
   constructor(
     private readonly volume: () => number,
     private readonly hoofVolume: () => number = () => 1,
     private readonly whinnyVolume: () => number = () => 1,
-    private readonly whinnyUrls: readonly string[] = localSampleUrls('whinny'),
+    private readonly sampleUrls: Record<SampleKind, readonly string[]> = localSamples(),
   ) {}
 
-  /** True when an own whinny recording is used instead of the synthesis. */
-  get usesRecordedWhinny(): boolean {
-    return this.whinnySamples.length > 0;
+  /** True when own recordings are used instead of the synthesis for this kind. */
+  usesRecording(kind: SampleKind): boolean {
+    return this.samples[kind].length > 0;
   }
 
   /** Decodes the own recordings for this context (failures fall back to the synthesis). */
   private async loadSamples(ctx: BaseAudioContext): Promise<void> {
-    const decoded = await Promise.all(
-      this.whinnyUrls.map(async (url) => {
-        try {
-          const data = await (await fetch(url)).arrayBuffer();
-          return await ctx.decodeAudioData(data);
-        } catch (err) {
-          console.warn('Could not load whinny recording', url, err);
-          return null;
-        }
+    await Promise.all(
+      SAMPLE_KINDS.map(async (kind) => {
+        const decoded = await Promise.all(
+          this.sampleUrls[kind].map(async (url) => {
+            try {
+              const data = await (await fetch(url)).arrayBuffer();
+              return await ctx.decodeAudioData(data);
+            } catch (err) {
+              console.warn(`Could not load ${kind} recording`, url, err);
+              return null;
+            }
+          }),
+        );
+        if (this.ctx === ctx) this.samples[kind] = decoded.filter((b): b is AudioBuffer => b !== null);
       }),
     );
-    if (this.ctx === ctx) this.whinnySamples = decoded.filter((b): b is AudioBuffer => b !== null);
   }
 
-  /** Plays one of the own recordings; `pitch` slightly varies the voice per horse. */
-  private playRecordedWhinny(ctx: BaseAudioContext, bus: AudioNode, volume: number, pitch: number): void {
-    const buffer = this.whinnySamples[Math.floor(Math.random() * this.whinnySamples.length)];
+  /**
+   * Plays a random own recording of `kind` into `dest`.
+   * @param rate playback rate (slight variation keeps repeated sounds natural)
+   * @param filter optional low-pass cutoff in Hz (e.g. duller hoofbeats on grass)
+   */
+  private playRecording(
+    kind: SampleKind,
+    ctx: BaseAudioContext,
+    dest: AudioNode,
+    gain: number,
+    when: number,
+    rate = 1,
+    filter?: number,
+  ): void {
+    const buffer = pickRandom(this.samples[kind]);
+    if (!buffer) return;
     const src = ctx.createBufferSource();
     src.buffer = buffer;
-    // Small pitch differences only, so the recording stays natural.
-    src.playbackRate.value = 1 + (pitch - 1) * 0.5;
-    const gain = ctx.createGain();
-    gain.gain.value = volume;
-    src.connect(gain).connect(bus);
-    src.start(ctx.currentTime + 0.02);
+    src.playbackRate.value = rate;
+    const g = ctx.createGain();
+    g.gain.value = gain;
+    if (filter) {
+      const lp = ctx.createBiquadFilter();
+      lp.type = 'lowpass';
+      lp.frequency.value = filter;
+      src.connect(lp).connect(g);
+    } else {
+      src.connect(g);
+    }
+    g.connect(dest);
+    src.start(when);
   }
 
   /** Creates/resumes the audio context; must run inside a user gesture. */
@@ -82,8 +107,8 @@ export class Sounds {
     comp.ratio.value = 4;
     comp.connect(ctx.destination);
     this.bus = comp;
-    this.whinnySamples = [];
-    if (this.whinnyUrls.length > 0) void this.loadSamples(ctx);
+    this.samples = { whinny: [], snort: [], hoof: [] };
+    if (SAMPLE_KINDS.some((k) => this.sampleUrls[k].length > 0)) void this.loadSamples(ctx);
   }
 
   /** Context ready to play right now, or null. */
@@ -110,8 +135,9 @@ export class Sounds {
     const volume = this.volume() * this.whinnyVolume();
     if (!r || volume <= 0) return;
     const { ctx, bus } = r;
-    if (this.whinnySamples.length > 0) {
-      this.playRecordedWhinny(ctx, bus, volume, pitch);
+    if (this.usesRecording('whinny')) {
+      // Small pitch differences only, so the recording stays natural.
+      this.playRecording('whinny', ctx, bus, volume, ctx.currentTime + 0.02, 1 + (pitch - 1) * 0.5);
       return;
     }
     const t0 = ctx.currentTime + 0.02;
@@ -246,6 +272,12 @@ export class Sounds {
     panner.pan.value = Math.max(-1, Math.min(1, pan));
     out.connect(panner).connect(bus);
 
+    if (this.usesRecording('hoof')) {
+      // A single recorded hoofbeat; slight speed variation, muffled on grass.
+      this.playRecording('hoof', ctx, out, 1, t, 0.92 + Math.random() * 0.16, surface === 'grass' ? 1500 : undefined);
+      return;
+    }
+
     // Deep thump: low sine with a pitch drop – the body of the hoofbeat.
     const thump = ctx.createOscillator();
     thump.frequency.setValueAtTime(surface === 'grass' ? 80 : 95, t);
@@ -277,6 +309,10 @@ export class Sounds {
    * soft attack, about 0.7 s, low and muffled.
    */
   private snortAt(ctx: BaseAudioContext, out: AudioNode, t: number): void {
+    if (this.usesRecording('snort')) {
+      this.playRecording('snort', ctx, out, 0.7, t, 0.95 + Math.random() * 0.1);
+      return;
+    }
     const dur = 0.85;
     const air = this.noiseSource(ctx, dur);
     // Two low-pass stages: a soft, muffled "pfff" instead of a sharp crack.

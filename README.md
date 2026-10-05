@@ -89,12 +89,22 @@ last selection is remembered). The format is documented in
 
 ## Own sound recordings (local only)
 
-All sounds are synthesized in the browser. To use a real whinny instead, put
-one or more recordings named `whinny*.mp3` / `.wav` / `.ogg` / `.m4a` into the
-folder `local-assets/` (one is picked at random each time). The folder is
-git-ignored: recordings from the internet usually allow private use but not
-redistribution, so they never end up in the repository. They are bundled into
-`dist/index.html` when building, so the game still works by double-click.
+All sounds are synthesized in the browser. Real recordings can replace them:
+put files (`.mp3` / `.wav` / `.ogg` / `.m4a`) into the folder `local-assets/`;
+the start of the file name decides what they are used for:
+
+| File name | Used as |
+| --- | --- |
+| `whinny*` | whinny at the finish celebration |
+| `snort*` | snort after the whinny |
+| `hoof*` | **one single hoofbeat** – the gait rhythm is made by the game |
+
+With several files of one kind, a random one is played each time; kinds without
+files keep the synthesized sound. Other files in the folder (e.g. long reference
+recordings) are ignored. The folder is git-ignored: recordings from the internet
+usually allow private use but not redistribution, so they never end up in the
+repository. They are bundled into `dist/index.html` when building, so the game
+still works by double-click.
 
 ## Languages
 
