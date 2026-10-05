@@ -6,10 +6,12 @@
  * it replaces the synthesized sound; otherwise the synthesis is used.
  *
  *   local-assets/whinny*.mp3|wav|ogg|m4a   → whinny at the finish celebration
+ *   (other files in the folder, e.g. reference recordings, are ignored and not bundled)
  *
  * The files are bundled into the build (inlined into dist/index.html).
  */
-const files = import.meta.glob('../../local-assets/*.{mp3,wav,ogg,m4a}', {
+// Only files meant for playback are bundled – other files (e.g. reference recordings) stay out of the build.
+const files = import.meta.glob(['../../local-assets/whinny*.{mp3,wav,ogg,m4a}', '../../local-assets/Whinny*.{mp3,wav,ogg,m4a}'], {
   query: '?url',
   import: 'default',
   eager: true,
