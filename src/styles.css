@@ -696,23 +696,28 @@ h2 {
 
 /* ---------- Rider portraits before the start ---------- */
 
+/*
+ * A picture in the upper part of each quadrant; the race view with the own
+ * horse stays visible around and below it.
+ */
 .portrait {
   position: absolute;
   z-index: 2;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2%;
-  padding: 3% 3% 9%;
-  background: color-mix(in srgb, var(--player) 22%, #14100c);
-  border: 2px solid #000;
+  gap: 1.5%;
+  padding-top: max(56px, 8%);
+  pointer-events: none;
 }
 .portrait-frame {
   position: relative;
-  flex: 1 1 0;
-  width: 100%;
-  min-height: 0;
+  flex: 0 0 auto;
+  height: 42%;
+  max-width: 90%;
+  aspect-ratio: 4 / 3;
   border: 6px solid var(--player);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.6);
   border-radius: 18px;
   overflow: hidden;
   background: #000;
@@ -737,7 +742,10 @@ h2 {
   display: flex;
 }
 .portrait-name {
-  font-size: clamp(1.3rem, 4.5vmin, 3.2rem);
+  padding: 0.1em 0.6em;
+  border-radius: 999px;
+  background: rgba(10, 8, 6, 0.55);
+  font-size: clamp(1.1rem, 3.6vmin, 2.6rem);
   font-weight: 900;
   color: var(--player);
   text-shadow: 0 2px 0 #000, 0 0 10px #000;
