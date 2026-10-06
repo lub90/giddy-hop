@@ -143,10 +143,16 @@ h2 {
   display: none;
 }
 
+/*
+ * As high as the window allows, but at least 260 px; the width follows the
+ * aspect ratio of the camera (set from the video by CameraView), so there are
+ * no black bars and the picture is never squeezed.
+ */
 .camera-slot {
-  width: min(70vw, 960px);
-  aspect-ratio: 16 / 9;
-  max-height: 52vh;
+  width: min(100%, calc(clamp(260px, 45vh, 720px) * var(--camera-aspect, 1.7778)));
+  min-height: 260px;
+  flex-shrink: 0;
+  aspect-ratio: var(--camera-aspect, 1.7778);
   border: 3px solid var(--accent);
   border-radius: 14px;
   overflow: hidden;

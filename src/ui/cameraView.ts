@@ -29,6 +29,10 @@ export class CameraView {
     ctx.fillStyle = '#000';
     ctx.fillRect(0, 0, w, h);
     if (!video.videoWidth) return;
+    // Let the surrounding box take the camera's aspect ratio (no black bars).
+    const aspect = (video.videoWidth / video.videoHeight).toFixed(4);
+    const box = canvas.parentElement;
+    if (box && box.style.getPropertyValue('--camera-aspect') !== aspect) box.style.setProperty('--camera-aspect', aspect);
 
     // Fit the video into the canvas (contain) and mirror it like a real mirror.
     const scale = Math.min(w / video.videoWidth, h / video.videoHeight);
