@@ -48,7 +48,13 @@
   },
   "countdown": {
     "controls": "Wippen = Galopp · Lehnen = Lenken · Hochspringen = Hopp!",
-    "go": "Los!"
+    "go": "Los!",
+    "keys": "Im Rennen: <b>Leertaste</b> = Pause · <b>B</b> = beenden · <b>Q</b> = abbrechen"
+  },
+  "pause": {
+    "title": "⏸ Pause",
+    "resume": "<b>Leertaste</b> = weiterreiten",
+    "keys": "<b>B</b> = Rennen beenden und Siegerehrung · <b>Q</b> = abbrechen, zurück zum Start"
   },
   "results": {
     "title": "🏆 Siegerehrung",

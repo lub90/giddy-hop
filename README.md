@@ -75,6 +75,9 @@ from the internet on start, so an internet connection is required.
 | --- | --- | --- |
 | Space | Registration | Mark everyone ready (starts "Laden …") |
 | Space | Laden … | Skip the wait |
+| Space | Countdown / race | Pause and resume |
+| Q | Countdown / race | Abort, back to the start screen |
+| B | Race | End now: horses still riding are ranked by their position, then the award ceremony |
 | Esc | Laden … | Cancel back to the registration |
 | Esc | Anywhere else | Back to registration |
 | Backspace | Registration | Unregister everyone |

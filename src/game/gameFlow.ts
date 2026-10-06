@@ -13,12 +13,17 @@ export type Phase = 'startup' | 'register' | 'loading' | 'countdown' | 'race' | 
  *                ↑  ↑        │                            │
  *                │  └ cancel ┘                            │
  *                └──── after resultsSeconds (or Esc) ─────┘
+ *
+ * Countdown and race can be paused; the race can be aborted (back to
+ * registration) or ended early (straight to the results).
  */
 export class GameFlow {
   phase: Phase = 'startup';
   /** Seconds since the current phase began. */
   phaseTime = 0;
   race: Race | null = null;
+  /** Countdown or race on hold: nothing moves, the clock stands still. */
+  paused = false;
 
   private overFor = 0;
   private playerCount = 0;
@@ -69,6 +74,21 @@ export class GameFlow {
     this.enter('register');
   }
 
+  /** Pauses or resumes countdown and race. Returns false if there is nothing to pause. */
+  togglePause(): boolean {
+    if (this.phase !== 'countdown' && this.phase !== 'race') return false;
+    this.paused = !this.paused;
+    return true;
+  }
+
+  /** Ends the race now and goes to the results; unfinished horses are ranked by distance. */
+  endRace(): boolean {
+    if (this.phase !== 'race' || !this.race) return false;
+    this.race.stop();
+    this.enter('results');
+    return true;
+  }
+
   /** 0..1 progress of the loading wait. */
   get loadingProgress(): number {
     return this.phase === 'loading' ? Math.min(1, this.phaseTime / this.cfg.race.loadingSeconds) : 0;
@@ -100,6 +120,7 @@ export class GameFlow {
   }
 
   update(dt: number, inputs: readonly PlayerInput[]): void {
+    if (this.paused) return;
     this.phaseTime += dt;
     if (this.phase === 'loading' && this.phaseTime >= this.cfg.race.loadingSeconds) {
       this.beginCountdown();
@@ -124,6 +145,7 @@ export class GameFlow {
 
   private enter(phase: Phase): void {
     this.phase = phase;
+    this.paused = false;
     this.phaseTime = 0;
   }
 }

@@ -688,3 +688,8 @@ h2 {
   width: min(50vw, 420px);
   height: 8px;
 }
+
+/* Pause: the frozen race stays visible behind. */
+.overlay.pause-screen {
+  background: rgba(10, 8, 6, 0.55);
+}

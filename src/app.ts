@@ -495,6 +495,8 @@ export class App {
           this.flow.startLoading(this.tracker.slots.length);
         } else if (phase === 'loading') {
           this.flow.skipLoading();
+        } else if (this.flow.togglePause()) {
+          this.showPauseState();
         }
         break;
       case 'Escape':
@@ -502,6 +504,14 @@ export class App {
         if (document.fullscreenElement || now() - this.fullscreenChangedAt < 0.5) break;
         if (phase === 'loading') this.flow.cancelLoading();
         else this.flow.toRegistration();
+        break;
+      case 'KeyQ':
+        // Abort the race: back to the start screen.
+        if (phase === 'countdown' || phase === 'race') this.flow.toRegistration();
+        break;
+      case 'KeyB':
+        // End the race now: rank by current position, then the award ceremony.
+        this.flow.endRace();
         break;
       case 'Backspace':
         if (phase === 'register') this.tracker.clear();
@@ -513,6 +523,13 @@ export class App {
         this.toggleFullscreen();
         break;
     }
+  }
+
+  /** Pause screen on top of the frozen race, or back to what was shown before. */
+  private showPauseState(): void {
+    if (this.flow.paused) this.screens.pause();
+    else if (this.flow.phase === 'countdown') this.screens.countdown();
+    else this.screens.hide();
   }
 
   /** Fullscreen for the whole page; leaving works with Esc (handled by the browser). */

@@ -76,8 +76,18 @@ export class Race {
   }
 
   get isOver(): boolean {
-    return this.horses.every((h) => h.finished) || this.time >= this.cfg.race.timeoutSeconds;
+    return this.stopped || this.horses.every((h) => h.finished) || this.time >= this.cfg.race.timeoutSeconds;
   }
+
+  /**
+   * Ends the race now (key B): horses still on the course are ranked by the
+   * distance they have ridden, like at the timeout.
+   */
+  stop(): void {
+    this.stopped = true;
+  }
+
+  private stopped = false;
 
   update(dt: number, inputs: readonly PlayerInput[]): void {
     // After the race the horses keep moving (they gallop out and stop), but the

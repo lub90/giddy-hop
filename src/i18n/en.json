@@ -48,7 +48,13 @@
   },
   "countdown": {
     "controls": "Bounce = gallop · Lean = steer · Jump up = hop!",
-    "go": "Go!"
+    "go": "Go!",
+    "keys": "During the race: <b>Space</b> = pause · <b>B</b> = end · <b>Q</b> = abort"
+  },
+  "pause": {
+    "title": "⏸ Paused",
+    "resume": "<b>Space</b> = ride on",
+    "keys": "<b>B</b> = end the race and go to the award ceremony · <b>Q</b> = abort, back to the start"
   },
   "results": {
     "title": "🏆 Award ceremony",

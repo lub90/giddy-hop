@@ -203,7 +203,8 @@ export class Screens {
     this.show(
       'countdown',
       `<div class="countdown"></div>
-       <p class="hint big">${t('countdown.controls')}</p>`,
+       <p class="hint big">${t('countdown.controls')}</p>
+       <p class="hint small">${t('countdown.keys')}</p>`,
       'overlay translucent',
     );
     this.countdownEl = this.root.querySelector('.countdown');
@@ -214,6 +215,17 @@ export class Screens {
       const text = String(value);
       if (this.countdownEl.textContent !== text) this.countdownEl.textContent = text;
     }
+  }
+
+  /** Race on hold (Space). */
+  pause(): void {
+    this.show(
+      'pause',
+      `<h1>${t('pause.title')}</h1>
+       <p class="hint big">${t('pause.resume')}</p>
+       <p class="hint">${t('pause.keys')}</p>`,
+      'overlay pause-screen',
+    );
   }
 
   /** "Go!" at the start of the race. */

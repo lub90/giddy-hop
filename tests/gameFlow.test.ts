@@ -98,6 +98,62 @@ describe('GameFlow – phases', () => {
   });
 });
 
+describe('GameFlow – pause, abort and end during the race', () => {
+  const two = [full[0], full[0]];
+  function racing() {
+    const flow = loading(2);
+    flow.skipLoading();
+    advance(flow, R.countdownSeconds + 1, two);
+    expect(flow.phase).toBe('race');
+    return flow;
+  }
+
+  it('pause freezes horses and race clock, Space again rides on', () => {
+    const flow = racing();
+    expect(flow.togglePause()).toBe(true);
+    const time = flow.race!.time;
+    const s = flow.race!.horses[0].s;
+    advance(flow, 3, two);
+    expect(flow.race!.time).toBe(time);
+    expect(flow.race!.horses[0].s).toBe(s);
+    expect(flow.togglePause()).toBe(true);
+    advance(flow, 0.5, two);
+    expect(flow.race!.horses[0].s).toBeGreaterThan(s);
+  });
+
+  it('the countdown can be paused too, but not the registration', () => {
+    const flow = loading(1);
+    expect(flow.togglePause()).toBe(false);
+    flow.skipLoading();
+    flow.togglePause();
+    advance(flow, R.countdownSeconds + 1);
+    expect(flow.phase).toBe('countdown');
+  });
+
+  it('ending the race ranks unfinished horses by position and shows the results', () => {
+    const flow = racing();
+    // Player 2 rides on, player 1 stops.
+    advance(flow, 2, [{ drive: 0, steer: 0, jump: false }, full[0]]);
+    flow.togglePause();
+    expect(flow.endRace()).toBe(true);
+    expect(flow.phase).toBe('results');
+    expect(flow.paused).toBe(false);
+    const results = flow.race!.results();
+    expect(results.every((r) => !r.finished)).toBe(true);
+    expect(results[1].rank).toBe(1);
+    expect(results[0].rank).toBe(2);
+  });
+
+  it('aborting goes back to registration without results', () => {
+    const flow = racing();
+    flow.togglePause();
+    flow.toRegistration();
+    expect(flow.phase).toBe('register');
+    expect(flow.paused).toBe(false);
+    expect(flow.race).toBeNull();
+  });
+});
+
 describe('splitLayout – split screen', () => {
   it('uses the full screen for one player', () => {
     expect(splitLayout(1, 1920, 1080).players).toEqual([{ x: 0, y: 0, w: 1920, h: 1080 }]);

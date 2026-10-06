@@ -294,3 +294,45 @@ test('finish celebration, then the award ceremony with podium and table', async 
   await expect(page.locator('.slot.registered')).toHaveCount(2);
   expect(errors).toEqual([]);
 });
+
+test('during the race: Space pauses, B ends with the award ceremony, Q aborts', async ({ page }) => {
+  const errors = trackErrors(page);
+  await page.goto('/');
+  await expectStartScreen(page, 'Auf die Pferde');
+  const startRace = async () => {
+    await page.keyboard.press('t');
+    await page.keyboard.press('Space');
+    await page.keyboard.press('Space');
+    await expect(page.locator('#overlay')).toHaveClass(/hidden/, { timeout: 6_000 });
+  };
+  await page.keyboard.press('t');
+  await startRace();
+
+  // Pause: overlay with the keys, the race clock stands still.
+  await page.keyboard.down('KeyW');
+  await page.waitForTimeout(1_000);
+  await page.keyboard.press('Space');
+  await expect(page.locator('#overlay h1')).toContainText('Pause');
+  await page.screenshot({ path: 'test-results/13-pause.png' });
+  const clock = () => page.locator('.hud-stats').first().textContent();
+  const before = await clock();
+  await page.waitForTimeout(1_500);
+  expect(await clock()).toBe(before);
+  await page.keyboard.press('Space');
+  await expect(page.locator('#overlay')).toHaveClass(/hidden/);
+  await page.keyboard.up('KeyW');
+
+  // B: end now, nobody finished – still an award ceremony, ranked by position.
+  await page.keyboard.press('b');
+  await expect(page.locator('.podium')).toBeVisible();
+  await expect(page.locator('.results-table tbody tr')).toHaveCount(2);
+  await expect(page.locator('.results-table tbody tr').first()).toContainText('Blitz');
+
+  // Q aborts a race straight back to the start screen.
+  await page.keyboard.press('Escape');
+  await expectStartScreen(page, 'Auf die Pferde');
+  await startRace();
+  await page.keyboard.press('q');
+  await expectStartScreen(page, 'Auf die Pferde');
+  expect(errors).toEqual([]);
+});
