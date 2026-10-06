@@ -100,15 +100,102 @@ h2 {
   white-space: nowrap;
 }
 
-.course-picker {
+/* ---------- Start screen: players left, settings right ---------- */
+
+.overlay.register-screen {
+  justify-content: flex-start;
+  gap: 10px;
+  padding: 16px 24px;
+  /* Never squeeze the camera: on small windows the screen scrolls instead. */
+  overflow-y: auto;
+}
+.register-screen > * {
+  flex-shrink: 0;
+}
+.reg-header .subtitle {
+  margin: 0;
+}
+.reg-main {
   display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 24px;
+  width: 100%;
+  max-width: 1500px;
+  margin: auto 0;
+}
+.reg-players {
+  display: flex;
+  flex: 1 1 0;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  font-size: 1.15rem;
+  gap: 12px;
+  min-width: 0;
 }
-.course-picker select {
-  margin-left: 6px;
+.reg-settings {
+  display: flex;
+  flex: 0 0 300px;
+  flex-direction: column;
+  gap: 18px;
+  padding: 18px;
+  border-radius: 16px;
+  background: rgba(42, 36, 30, 0.85);
+  text-align: left;
+}
+/* Narrow windows: settings below the players. */
+@media (max-width: 1000px) {
+  .reg-main {
+    flex-direction: column;
+    align-items: center;
+  }
+  .reg-players {
+    flex-basis: auto;
+    width: 100%;
+  }
+  .reg-settings {
+    flex-basis: auto;
+    width: min(100%, 520px);
+  }
+}
+
+.gestures {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: clamp(1rem, 1.4vw, 1.25rem);
+}
+.gestures li {
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  white-space: nowrap;
+}
+
+.course-picker,
+.settings-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-size: 1.1rem;
+}
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-weight: bold;
+}
+.toggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 22px;
+}
+.course-picker select,
+.settings-group select {
+  width: 100%;
   padding: 6px 10px;
   border-radius: 8px;
   border: 2px solid var(--accent);
@@ -120,6 +207,7 @@ h2 {
 }
 .course-info {
   font-size: 0.95rem;
+  line-height: 1.35;
   opacity: 0.8;
 }
 
@@ -151,7 +239,6 @@ h2 {
 .camera-slot {
   width: min(100%, calc(clamp(260px, 45vh, 720px) * var(--camera-aspect, 1.7778)));
   min-height: 260px;
-  flex-shrink: 0;
   aspect-ratio: var(--camera-aspect, 1.7778);
   border: 3px solid var(--accent);
   border-radius: 14px;
@@ -548,13 +635,6 @@ h2 {
 }
 .debug .lil-gui.root {
   width: 100% !important;
-}
-
-.pickers {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 8px 28px;
 }
 
 /* Cone / carrot switches on the start screen */

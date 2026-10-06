@@ -105,36 +105,49 @@ export class Screens {
       .join('');
     const lang = currentLanguage();
     const languageOptions = LANGUAGES.map((l) => option(l, LANGUAGE_NAMES[l], l === lang)).join('');
+    const field = (label: string, control: string) => `<label class="field"><span>${label}</span>${control}</label>`;
     // Only offer a choice when there is one to make.
     const cameraPicker =
       cameras.length > 1
-        ? `<label>${t('register.camera')} <select data-action="camera">${cameras
-            .map((c) => option(c.id, c.label, c.id === selectedCamera))
-            .join('')}</select></label>`
+        ? field(
+            t('register.camera'),
+            `<select data-action="camera">${cameras.map((c) => option(c.id, c.label, c.id === selectedCamera)).join('')}</select>`,
+          )
         : '';
+    // Left: who plays (camera, gestures, player cards). Right: settings for the race.
     this.show(
       'register',
-      `<h1>🐴 ${t('title')}</h1>
-       <p class="subtitle">${t('subtitle')}</p>
-       <p class="hint">${t('register.position')}<br>
-       <span class="nowrap">${t('register.gestureJoin')}</span> ·
-       <span class="nowrap">${t('register.gestureReady')}</span> ·
-       <span class="nowrap">${t('register.gestureBack')}</span></p>
-       ${cameraProblem ? `<p class="hint err">${escapeHtml(cameraProblem)}</p>` : '<div class="camera-slot"></div>'}
-       <div class="slots"></div>
-       <div class="course-picker">
-         <div class="pickers">
-           <label>${t('register.course')} <select data-action="course">${courseOptions}</select></label>
-           <label>${t('register.language')} <select data-action="language">${languageOptions}</select></label>
-           ${cameraPicker}
-           ${toggle('cones')}
-           ${toggle('carrots')}
-         </div>
-         <div class="course-info"></div>
+      `<header class="reg-header">
+         <h1>🐴 ${t('title')}</h1>
+         <p class="subtitle">${t('subtitle')}</p>
+       </header>
+       <div class="reg-main">
+         <section class="reg-players">
+           <p class="hint">${t('register.position')}</p>
+           ${cameraProblem ? `<p class="hint err">${escapeHtml(cameraProblem)}</p>` : '<div class="camera-slot"></div>'}
+           <ul class="gestures">
+             <li>${t('register.gestureJoin')}</li>
+             <li>${t('register.gestureReady')}</li>
+             <li>${t('register.gestureBack')}</li>
+           </ul>
+           <div class="slots"></div>
+           <p class="hint">${t('register.whenReady')}</p>
+         </section>
+         <aside class="reg-settings">
+           <div class="course-picker">
+             ${field(t('register.course'), `<select data-action="course">${courseOptions}</select>`)}
+             <div class="course-info"></div>
+             <div class="toggles">${toggle('cones')}${toggle('carrots')}</div>
+           </div>
+           <div class="settings-group">
+             ${field(t('register.language'), `<select data-action="language">${languageOptions}</select>`)}
+             ${cameraPicker}
+           </div>
+           <button class="fullscreen-btn" data-action="fullscreen" tabindex="-1">${t('register.fullscreen')}</button>
+         </aside>
        </div>
-       <p class="hint">${t('register.whenReady')}</p>
-       <button class="fullscreen-btn" data-action="fullscreen" tabindex="-1">${t('register.fullscreen')}</button>
-       <p class="hint small">${t('register.keys')}</p>`,
+       <p class="hint small reg-keys">${t('register.keys')}</p>`,
+      'overlay register-screen',
     );
     this.slotsEl = this.root.querySelector('.slots');
     this.updateCourseInfo(selected);
