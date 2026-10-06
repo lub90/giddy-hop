@@ -1,0 +1,17 @@
+# Just straight ahead, no obstacles: for practising the gallop (bouncing)
+# and for the very first race of a party.
+# Format: see courses/README.md
+
+name:
+  de: Galopp-Gerade
+  en: Gallop Straight
+description:
+  de: Nur geradeaus, ohne Hindernisse – einfach so schnell wie möglich galoppieren.
+  en: Straight ahead, no obstacles – just gallop as fast as you can.
+order: 5
+
+width: 10
+grass: 4
+
+segments:
+  - straight: 150

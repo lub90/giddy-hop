@@ -67,6 +67,14 @@ describe('Translations', () => {
     expect(slotStatus(undefined).text).toBe('frei');
   });
 
+  it('courses without jumps or curves say so in words', () => {
+    const straight = COURSES.find((c) => c.id === 'gallop-straight')!;
+    expect(courseInfoText(straight)).toContain('keine Sprünge · keine Kurven');
+    setLanguage('en');
+    expect(courseInfoText(straight)).toContain('no jumps · no curves');
+    setLanguage('de');
+  });
+
   it('the game is called "Giddy Hop!" in every language, with a localized subtitle', () => {
     setLanguage('de');
     expect(t('title')).toBe('Giddy Hop!');

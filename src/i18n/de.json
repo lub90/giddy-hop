@@ -28,8 +28,10 @@
     "keys": "<b>Leertaste</b> = alle bereit · <b>Rücktaste</b> = alle abmelden · <b>T</b> = Tastatur-Reiter · <b>F</b> = Vollbild"
   },
   "course": {
+    "jumps_zero": "keine Sprünge",
     "jumps_one": "{{count}} Sprung",
     "jumps_other": "{{count}} Sprünge",
+    "curves_zero": "keine Kurven",
     "curves_one": "{{count}} Kurve",
     "curves_other": "{{count}} Kurven"
   },

@@ -95,7 +95,8 @@ Courses are YAML files in [courses/](courses/) – one file per course, picked
 up automatically and offered in the course dropdown on the start screen (the
 last selection is remembered). The format is documented in
 [courses/README.md](courses/README.md); `npm test` validates every course
-(format, no self-crossing, at least one jump).
+(format, no self-crossing). Besides the jump courses there is a practice
+course without any obstacles: *Galopp-Gerade* (150 m straight ahead).
 
 ## Own sound recordings (local only)
 

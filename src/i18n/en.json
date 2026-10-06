@@ -28,8 +28,10 @@
     "keys": "<b>Space</b> = everyone ready · <b>Backspace</b> = unregister all · <b>T</b> = keyboard rider · <b>F</b> = fullscreen"
   },
   "course": {
+    "jumps_zero": "no jumps",
     "jumps_one": "{{count}} jump",
     "jumps_other": "{{count}} jumps",
+    "curves_zero": "no curves",
     "curves_one": "{{count}} curve",
     "curves_other": "{{count}} curves"
   },

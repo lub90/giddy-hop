@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { COURSES } from '../src/game/courses';
+import { courseStats } from '../src/game/courseFormat';
 import { isJump, Track, rightOf, segmentLength, type CourseDef } from '../src/game/track';
 
 describe('Courses – every file in courses/ is a valid, rideable course', () => {
@@ -27,9 +28,8 @@ describe('Courses – every file in courses/ is a valid, rideable course', () =>
       });
 
       if (!course.hidden) {
-        it('is a real course for the menu: longer than 100 m with at least one jump', () => {
+        it('is a real course for the menu: longer than 100 m', () => {
           expect(track.length).toBeGreaterThan(100);
-          expect(track.obstacles.some((o) => isJump(o.type))).toBe(true);
         });
       }
 
@@ -144,8 +144,27 @@ describe('Courses – show jumping and racetrack', () => {
   };
   const grand = byId('grand-parcours').track;
 
-  it('all four courses are offered: Grand Parcours, Pony Loop, Show Jumping, Racetrack', () => {
-    expect(COURSES.filter((c) => !c.hidden).map((c) => c.id)).toEqual(['grand-parcours', 'pony-loop', 'show-jumping', 'racetrack']);
+  it('all courses are offered in their order, the practice courses last', () => {
+    expect(COURSES.filter((c) => !c.hidden).map((c) => c.id)).toEqual([
+      'grand-parcours',
+      'pony-loop',
+      'show-jumping',
+      'racetrack',
+      'gallop-straight',
+    ]);
+  });
+
+  it('the jump courses have jumps', () => {
+    for (const id of ['grand-parcours', 'pony-loop', 'show-jumping', 'racetrack']) {
+      expect(byId(id).track.obstacles.some((o) => isJump(o.type))).toBe(true);
+    }
+  });
+
+  it('gallop straight: only straight ahead, nothing on the track', () => {
+    const { track, course } = byId('gallop-straight');
+    expect(track.obstacles).toHaveLength(0);
+    expect(courseStats(course.def).curves).toBe(0);
+    expect(track.length).toBeGreaterThanOrEqual(100);
   });
 
   it('show jumping: longer than the longest course so far, more jumps, at least two double jumps', () => {
