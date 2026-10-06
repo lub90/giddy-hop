@@ -30,7 +30,7 @@ track (riders still coming are visible); the horse rears up, paddles with its
 front hooves, shakes its head and whinnies – repeated until everyone has
 finished and the last horse has celebrated once. Then the award ceremony shows
 a podium with the horse names and a table with time, knock-downs and carrots,
-with the celebrating horses in the background. After 25 s (`race.resultsSeconds`)
+with the celebrating horses in the background. After 7 s (`race.resultsSeconds`)
 the game goes back to the registration by itself; the players stay registered
 and confirm "ready" again for the next race. Hoofbeats follow each horse's
 speed and gait and come from the side of its rider's screen. (Sound is synthesized in the
