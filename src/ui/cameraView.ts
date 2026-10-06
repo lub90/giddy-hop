@@ -5,6 +5,46 @@ import { SKELETON_EDGES, type DetectedPose } from '../pose/poseTypes';
 const ONE_ARM_COLOR = '#ffd24a';
 const BOTH_ARMS_COLOR = '#ff6a4a';
 
+const RING_RADIUS = 18;
+const LABEL_HEIGHT = 28;
+/** Gap between ring and label, and to the canvas edge. */
+const MARGIN = 6;
+
+interface Box {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+const clamp = (v: number, lo: number, hi: number) => Math.min(Math.max(v, lo), Math.max(lo, hi));
+
+/** Center of a name label above the head, kept inside the canvas. */
+export function placeLabel(x: number, y: number, width: number, canvasW: number, canvasH: number): { x: number; y: number } {
+  return {
+    x: clamp(x, width / 2 + MARGIN, canvasW - width / 2 - MARGIN),
+    y: clamp(y, LABEL_HEIGHT / 2 + MARGIN, canvasH - LABEL_HEIGHT / 2 - MARGIN),
+  };
+}
+
+/**
+ * Center of a progress ring, always fully inside the canvas: above the label
+ * (or above the head), or – when a child stands so close to the top edge that
+ * there is no room – beside the label.
+ */
+export function placeRing(x: number, y: number, canvasW: number, canvasH: number, label?: Box): { x: number; y: number } {
+  const r = RING_RADIUS + 3;
+  let ry = label ? label.y - label.h / 2 - MARGIN - r : y;
+  let rx = x;
+  if (label && ry < r + MARGIN) {
+    ry = label.y;
+    rx = label.x + label.w / 2 + MARGIN + r;
+    // No room on the right either: left of the label.
+    if (rx > canvasW - r - MARGIN) rx = label.x - label.w / 2 - MARGIN - r;
+  }
+  return { x: clamp(rx, r + MARGIN, canvasW - r - MARGIN), y: clamp(ry, r + MARGIN, canvasH - r - MARGIN) };
+}
+
 /**
  * Mirrored webcam image with skeletons drawn on top. One instance is moved
  * between the registration screen (large) and the debug panel (small).
@@ -56,9 +96,9 @@ export class CameraView {
       if (!slot.pose) continue;
       const n = slot.number;
       this.skeleton(slot.pose, colors[n], map, 4);
-      this.label(slot.pose, `${n + 1} ${names[n]}${slot.ready ? ' ✅' : ''}`, colors[n], map);
+      const label = this.label(slot.pose, `${n + 1} ${names[n]}${slot.ready ? ' ✅' : ''}`, colors[n], map);
       if (slot.arms.progress > 0) {
-        this.progressRing(slot.pose, slot.arms.progress, slot.arms.holding === 2 ? BOTH_ARMS_COLOR : ONE_ARM_COLOR, map, -44);
+        this.progressRing(slot.pose, slot.arms.progress, slot.arms.holding === 2 ? BOTH_ARMS_COLOR : ONE_ARM_COLOR, map, label);
       }
     }
   }
@@ -90,37 +130,39 @@ export class CameraView {
     progress: number,
     color: string,
     map: (x: number, y: number) => readonly [number, number],
-    offsetY = 0,
+    label?: Box | null,
   ): void {
     const p = this.headPoint(pose);
     if (!p) return;
-    const [x, my] = map(p.x, p.y);
-    const y = my + offsetY;
+    const [hx, hy] = map(p.x, p.y);
+    const { x, y } = placeRing(hx, hy, this.canvas.width, this.canvas.height, label ?? undefined);
     const { ctx } = this;
     ctx.lineWidth = 6;
     ctx.strokeStyle = 'rgba(0,0,0,0.4)';
     ctx.beginPath();
-    ctx.arc(x, y, 18, 0, Math.PI * 2);
+    ctx.arc(x, y, RING_RADIUS, 0, Math.PI * 2);
     ctx.stroke();
     ctx.strokeStyle = color;
     ctx.beginPath();
-    ctx.arc(x, y, 18, -Math.PI / 2, -Math.PI / 2 + progress * Math.PI * 2);
+    ctx.arc(x, y, RING_RADIUS, -Math.PI / 2, -Math.PI / 2 + progress * Math.PI * 2);
     ctx.stroke();
   }
 
-  private label(pose: DetectedPose, text: string, color: string, map: (x: number, y: number) => readonly [number, number]): void {
+  /** Draws the name label above the head; returns where it ended up. */
+  private label(pose: DetectedPose, text: string, color: string, map: (x: number, y: number) => readonly [number, number]): Box | null {
     const p = this.headPoint(pose);
-    if (!p) return;
-    const [x, y] = map(p.x, p.y);
+    if (!p) return null;
     const { ctx } = this;
     ctx.font = 'bold 18px system-ui, sans-serif';
     ctx.textAlign = 'center';
     const tw = ctx.measureText(text).width + 16;
+    const { x, y } = placeLabel(...map(p.x, p.y), tw, this.canvas.width, this.canvas.height);
     ctx.fillStyle = color;
     ctx.beginPath();
-    ctx.roundRect(x - tw / 2, y - 16, tw, 28, 14);
+    ctx.roundRect(x - tw / 2, y - LABEL_HEIGHT / 2, tw, LABEL_HEIGHT, LABEL_HEIGHT / 2);
     ctx.fill();
     ctx.fillStyle = '#111';
-    ctx.fillText(text, x, y + 4);
+    ctx.fillText(text, x, y + 6);
+    return { x, y, w: tw, h: LABEL_HEIGHT };
   }
 }
