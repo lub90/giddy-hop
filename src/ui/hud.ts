@@ -3,6 +3,7 @@ import { t } from '../i18n';
 import type { RaceEvent, RaceEventType, SlowdownReason } from '../game/race';
 import type { Rect } from '../render/layout';
 import { EgoHorse } from './egoHorse';
+import { horseIconSvg, type HorseCoat } from './horseIcon';
 
 export interface HudState {
   /** Live placement, 1 = leading. */
@@ -28,11 +29,6 @@ export interface HudState {
   finished: boolean;
   /** Drawn own horse: shown while riding, with gait bounce (m) and steering tilt (degrees). */
   ego: { visible: boolean; bob: number; tilt: number };
-}
-
-export interface HorseCoat {
-  coat: string;
-  mane: string;
 }
 
 export interface Hint {
@@ -135,7 +131,9 @@ class PlayerHud {
       <div class="hud-toast"></div>
       <div class="hud-hint"></div>
       <div class="hud-progress"><div class="hud-bar"></div></div>`;
-    this.el.querySelector<HTMLElement>('.hud-name')!.textContent = `🐴 ${name}`;
+    const nameEl = this.el.querySelector<HTMLElement>('.hud-name')!;
+    nameEl.textContent = ` ${name}`;
+    if (coat) nameEl.insertAdjacentHTML('afterbegin', horseIconSvg(coat));
     this.pos = this.el.querySelector('.hud-pos')!;
     this.stats = this.el.querySelector('.hud-stats')!;
     this.big = this.el.querySelector('.hud-big')!;

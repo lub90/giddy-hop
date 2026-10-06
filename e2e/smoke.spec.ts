@@ -30,6 +30,8 @@ test('registration → race with keyboard players → results', async ({ page })
   // Registration screen appears once camera + model are ready (or failed gracefully).
   await expectStartScreen(page, 'Auf die Pferde');
   await expect(page.locator('.slot')).toHaveCount(4);
+  // Every player card shows its horse in the horse's own colors.
+  await expect(page.locator('.slot .horse-icon')).toHaveCount(4);
   await page.screenshot({ path: 'test-results/01-registration.png' });
 
   // Two keyboard riders: registered, not ready yet.

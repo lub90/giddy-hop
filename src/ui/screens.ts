@@ -2,6 +2,7 @@ import { courseStats, type CourseInfo, type CourseOptions } from '../game/course
 import type { RaceResult } from '../game/race';
 import { currentLanguage, LANGUAGE_NAMES, LANGUAGES, localized, t } from '../i18n';
 import type { CameraInfo } from '../pose/camera';
+import { horseIconSvg, type HorseCoat } from './horseIcon';
 import type { PlayerSlot, PlayerTracker } from '../pose/playerTracker';
 
 const ROSETTES = ['🥇', '🥈', '🥉', '🎀'];
@@ -159,7 +160,13 @@ export class Screens {
   }
 
   /** Player cards (registration and loading screen), one per player number. */
-  updateSlots(tracker: PlayerTracker, maxPlayers: number, names: readonly string[], colors: readonly string[]): void {
+  updateSlots(
+    tracker: PlayerTracker,
+    maxPlayers: number,
+    names: readonly string[],
+    colors: readonly string[],
+    coats: readonly HorseCoat[],
+  ): void {
     if (!this.slotsEl) return;
     const cards: string[] = [];
     for (let n = 0; n < maxPlayers; n++) {
@@ -167,7 +174,7 @@ export class Screens {
       const status = slotStatus(slot);
       cards.push(
         `<div class="slot ${status.state}" style="--player:${colors[n]}">
-           <div class="slot-name">${n + 1}. 🐴 ${escapeHtml(names[n])}</div><div class="slot-state">${status.text}</div>
+           <div class="slot-name">${n + 1}. ${horseIconSvg(coats[n])} ${escapeHtml(names[n])}</div><div class="slot-state">${status.text}</div>
          </div>`,
       );
     }
@@ -205,12 +212,17 @@ export class Screens {
    * knock-downs and carrots below. The background stays see-through so the
    * celebrating horses remain visible.
    */
-  results(results: readonly RaceResult[], names: readonly string[], colors: readonly string[]): void {
+  results(
+    results: readonly RaceResult[],
+    names: readonly string[],
+    colors: readonly string[],
+    coats: readonly HorseCoat[],
+  ): void {
     const rosette = (rank: number) => ROSETTES[Math.min(rank - 1, ROSETTES.length - 1)];
     const podium = podiumOrder(results)
       .map(
         (r) => `<div class="podium-place rank-${r.rank}">
-          <div class="podium-name" style="--player:${colors[r.player]}">🐴 ${escapeHtml(names[r.player])}</div>
+          <div class="podium-name" style="--player:${colors[r.player]}">${horseIconSvg(coats[r.player])} ${escapeHtml(names[r.player])}</div>
           <div class="podium-step"><span class="rosette">${rosette(r.rank)}</span><span class="podium-rank">${r.rank}</span></div>
         </div>`,
       )
@@ -219,7 +231,7 @@ export class Screens {
       .sort((a, b) => a.rank - b.rank)
       .map(
         (r) => `<tr style="--player:${colors[r.player]}">
-          <td>${rosette(r.rank)} ${r.rank}.</td><td class="result-name">${escapeHtml(names[r.player])}</td>
+          <td>${rosette(r.rank)} ${r.rank}.</td><td class="result-name">${horseIconSvg(coats[r.player])} ${escapeHtml(names[r.player])}</td>
           <td>⏱ ${formatTime(r.time)}</td><td>❌ ${r.faults}</td><td>🥕 ${r.carrots}</td>
         </tr>`,
       )

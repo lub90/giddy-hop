@@ -7,7 +7,15 @@
  */
 export const CONFIG = {
   maxPlayers: 4,
+  /** Saddle cloth color per player number. */
   playerColors: ['#ff4f81', '#3fa9f5', '#ffc93c', '#7bd34f'],
+  /** Horse coat and mane per player number: bay, grey, black, chestnut with flaxen mane. */
+  horseCoats: [
+    { coat: '#8b5a2b', mane: '#2b1a0e' },
+    { coat: '#efe9dc', mane: '#b8ab95' },
+    { coat: '#2e2620', mane: '#111111' },
+    { coat: '#c47a3a', mane: '#f0d9a8' },
+  ],
 
   camera: {
     width: 1280,

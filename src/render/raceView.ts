@@ -5,15 +5,9 @@ import { celebrationPose, rearingsStarted, type CelebrationTiming } from './cele
 import { HorseModel } from './horseModel';
 import { horseLayers, LAYER_OVERVIEW, playerLayer, setLayer, setLayers } from './layers';
 import { PlayerObstacles } from './obstacleViews';
+import type { HorseCoat } from '../ui/horseIcon';
 
 /** Coat and mane colors per player (also used for the drawn rider-view overlay). */
-export const COATS = [
-  { coat: '#8b5a2b', mane: '#2b1a0e' },
-  { coat: '#efe9dc', mane: '#b8ab95' },
-  { coat: '#2e2620', mane: '#111111' },
-  { coat: '#c47a3a', mane: '#f0d9a8' },
-];
-
 /** All 3D objects that belong to one race; added on start, removed on dispose. */
 export class RaceView {
   readonly cameras: RiderCamera[];
@@ -33,6 +27,7 @@ export class RaceView {
     private readonly scene: THREE.Scene,
     private readonly race: Race,
     colors: readonly string[],
+    coats: readonly HorseCoat[],
     fov: number,
     far: number,
     private readonly timing: CelebrationTiming,
@@ -42,7 +37,7 @@ export class RaceView {
     this.finishedAt = race.horses.map(() => null);
     this.rearCount = race.horses.map(() => 0);
     this.models = race.horses.map((_, i) => {
-      const c = COATS[i % COATS.length];
+      const c = coats[i];
       const m = new HorseModel(c.coat, c.mane, colors[i]);
       // In its own rider view the horse is a drawn overlay (cheaper and prettier than the boxes).
       setLayers(m.root, horseLayers(i, n, false));

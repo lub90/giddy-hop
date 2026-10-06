@@ -18,11 +18,12 @@ import { PoseService } from './pose/poseService';
 import { OverviewCamera } from './render/cameras';
 import { splitLayout } from './render/layout';
 import { buildStaticObstacles } from './render/obstacleViews';
-import { COATS, RaceView } from './render/raceView';
+import { RaceView } from './render/raceView';
 import { SplitRenderer, type View } from './render/splitRenderer';
 import { buildCourseScenery, disposeTree, setupEnvironment } from './render/world';
 import { CameraView } from './ui/cameraView';
 import { Hud, type HudState } from './ui/hud';
+import type { HorseCoat } from './ui/horseIcon';
 import { Screens } from './ui/screens';
 
 export interface AppElements {
@@ -322,12 +323,15 @@ export class App {
     );
   }
 
-  /** Horse names / colors in race order (by player number). */
+  /** Horse names / colors / coats in race order (by player number). */
   private playerNames(): string[] {
     return this.tracker.slots.map((s) => horseName(s.number));
   }
   private playerColors(): string[] {
     return this.tracker.slots.map((s) => CONFIG.playerColors[s.number]);
+  }
+  private playerCoats(): HorseCoat[] {
+    return this.tracker.slots.map((s) => CONFIG.horseCoats[s.number]);
   }
 
   private enterPhase(phase: Phase, previous: Phase): void {
@@ -351,6 +355,7 @@ export class App {
           this.scene,
           race,
           this.playerColors(),
+          this.playerCoats(),
           CONFIG.render.fov,
           CONFIG.render.viewDistance,
           {
@@ -363,7 +368,7 @@ export class App {
         this.hud.setup(
           this.playerNames(),
           this.playerColors(),
-          race.horses.map((_, i) => COATS[i % COATS.length]),
+          this.playerCoats(),
         );
         this.screens.countdown();
         break;
@@ -374,7 +379,7 @@ export class App {
       case 'results':
         // The award ceremony replaces the race HUD; the celebrating horses stay visible behind it.
         this.hud.clear();
-        this.screens.results(this.flow.race!.results(), this.playerNames(), this.playerColors());
+        this.screens.results(this.flow.race!.results(), this.playerNames(), this.playerColors(), this.playerCoats());
         break;
       case 'startup':
         break;
@@ -418,7 +423,7 @@ export class App {
     const race = this.flow.race;
 
     if (phase === 'register' || phase === 'loading') {
-      this.screens.updateSlots(this.tracker, CONFIG.maxPlayers, names, colors);
+      this.screens.updateSlots(this.tracker, CONFIG.maxPlayers, names, colors, CONFIG.horseCoats);
     }
     if (phase === 'loading') this.screens.updateLoading(this.flow.loadingProgress);
     if (phase === 'countdown') this.screens.updateCountdown(this.flow.countdownValue);

@@ -588,3 +588,11 @@ h2 {
   width: 100%;
   height: auto;
 }
+
+/* Horse head in the horse's coat colors next to its name (light halo so dark horses show on dark backgrounds). */
+.horse-icon {
+  width: 1.35em;
+  height: 1.35em;
+  vertical-align: -0.3em;
+  filter: drop-shadow(0 0 1.5px rgba(255, 255, 255, 0.85));
+}
