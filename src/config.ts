@@ -154,7 +154,9 @@ export const CONFIG = {
   race: {
     /** "Laden …" wait after everyone is ready (s). */
     loadingSeconds: 10,
-    countdownSeconds: 3,
+    countdownSeconds: 10,
+    /** First part of the countdown: each quadrant shows the child riding that horse (s). */
+    portraitSeconds: 5,
     /** How long "Los!" is shown at the start of the race (s). */
     goSeconds: 1,
     timeoutSeconds: 150,

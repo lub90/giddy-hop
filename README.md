@@ -49,7 +49,7 @@ gaps and a wrist missed for a frame do not restart the progress ring.
 | Registered | hold one arm up again | Ready |
 | Ready | hold both arms up | Not ready any more |
 | Registered, not ready | hold both arms up | Unregister (the number becomes free; the others keep theirs) |
-| – | everyone ready | "Laden …" for 10 s, then countdown 3, 2, 1, "Los!" – only then the horses move |
+| – | everyone ready | "Laden …" for 10 s, then countdown 10 … 1, "Los!" – only then the horses move. During the first 5 s of the countdown every quadrant shows the camera picture of its rider (head and shoulders), so each child knows which screen is theirs |
 | Any player during "Laden …" | hold both arms up | Cancel; that player is not ready any more |
 
 ## Running

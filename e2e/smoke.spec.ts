@@ -47,14 +47,18 @@ test('registration → race with keyboard players → results', async ({ page })
   await page.keyboard.press('Escape');
   await expectStartScreen(page, 'Auf die Pferde');
 
-  // Again, and skip the wait: countdown 3-2-1, then "Los!".
+  // Again, and skip the wait: countdown 10…1, then "Los!".
   await page.keyboard.press('Space');
   await expect(page.locator('#overlay h1')).toContainText('Laden');
   await page.keyboard.press('Space');
-  await expect(page.locator('.countdown')).toHaveText('3');
+  await expect(page.locator('.countdown')).toHaveText('10');
   await expect(page.locator('.hud-panel')).toHaveCount(2);
+  // First five seconds: every quadrant shows its rider (keyboard riders: their horse).
+  await expect(page.locator('.portrait')).toHaveCount(2);
+  await expect(page.locator('.portrait-name').first()).toContainText('Blitz');
   await page.screenshot({ path: 'test-results/02-countdown.png' });
-  await expect(page.locator('.countdown')).toHaveText('Los!', { timeout: 5_000 });
+  await expect(page.locator('.portrait')).toHaveCount(0, { timeout: 7_000 });
+  await expect(page.locator('.countdown')).toHaveText('Los!', { timeout: 7_000 });
 
   // Race: player 1 gallops (W), player 2 only trots.
   await expect(page.locator('#overlay')).toHaveClass(/hidden/, { timeout: 3_000 });
@@ -91,7 +95,7 @@ test('four players get a 2×2 split screen', async ({ page }) => {
   await page.keyboard.press('Space');
   await expect(page.locator('#overlay h1')).toContainText('Laden');
   await page.keyboard.press('Space');
-  await expect(page.locator('#overlay')).toHaveClass(/hidden/, { timeout: 6_000 });
+  await expect(page.locator('#overlay')).toHaveClass(/hidden/, { timeout: 14_000 });
 
   const boxes = await page.locator('.hud-panel').evaluateAll((els) =>
     els.map((e) => {
@@ -149,7 +153,7 @@ test('course selection on the start screen', async ({ page }) => {
   await page.keyboard.press('t');
   await page.keyboard.press('Space');
   await page.keyboard.press('Space');
-  await expect(page.locator('#overlay')).toHaveClass(/hidden/, { timeout: 6_000 });
+  await expect(page.locator('#overlay')).toHaveClass(/hidden/, { timeout: 14_000 });
   await page.keyboard.down('w');
   await page.waitForTimeout(2_000);
   expect(await progressWidth(page, 0)).toBeGreaterThan(0);
@@ -164,7 +168,7 @@ test('live placement is shown top left', async ({ page }) => {
   for (let i = 0; i < 3; i++) await page.keyboard.press('t');
   await page.keyboard.press('Space');
   await page.keyboard.press('Space');
-  await expect(page.locator('#overlay')).toHaveClass(/hidden/, { timeout: 6_000 });
+  await expect(page.locator('#overlay')).toHaveClass(/hidden/, { timeout: 14_000 });
   // Player 2 gallops and must lead.
   await page.keyboard.down('KeyI');
   await page.waitForTimeout(2_500);
@@ -210,7 +214,7 @@ test.describe('English browser', () => {
     await page.keyboard.press('Space');
     await expect(page.locator('#overlay h1')).toContainText('Loading');
     await page.keyboard.press('Space');
-    await expect(page.locator('.countdown')).toHaveText('Go!', { timeout: 5_000 });
+    await expect(page.locator('.countdown')).toHaveText('Go!', { timeout: 12_000 });
     await expect(page.locator('.gauge-label').first()).toHaveText('Walk');
     expect(errors).toEqual([]);
   });
@@ -264,7 +268,7 @@ test('finish celebration, then the award ceremony with podium and table', async 
   await page.keyboard.press('t');
   await page.keyboard.press('Space');
   await page.keyboard.press('Space');
-  await expect(page.locator('#overlay')).toHaveClass(/hidden/, { timeout: 6_000 });
+  await expect(page.locator('#overlay')).toHaveClass(/hidden/, { timeout: 14_000 });
   await page.keyboard.down('KeyW');
   await page.waitForTimeout(2_000);
   await page.keyboard.down('KeyI');
@@ -303,7 +307,7 @@ test('during the race: Space pauses, B ends with the award ceremony, Q aborts', 
     await page.keyboard.press('t');
     await page.keyboard.press('Space');
     await page.keyboard.press('Space');
-    await expect(page.locator('#overlay')).toHaveClass(/hidden/, { timeout: 6_000 });
+    await expect(page.locator('#overlay')).toHaveClass(/hidden/, { timeout: 14_000 });
   };
   await page.keyboard.press('t');
   await startRace();

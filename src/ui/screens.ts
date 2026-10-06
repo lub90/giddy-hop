@@ -210,7 +210,9 @@ export class Screens {
     this.countdownEl = this.root.querySelector('.countdown');
   }
 
-  updateCountdown(value: number): void {
+  /** @param compact small, at the bottom – while the rider portraits are shown */
+  updateCountdown(value: number, compact = false): void {
+    if (this.current === 'countdown') this.root.classList.toggle('compact', compact);
     if (this.countdownEl) {
       const text = String(value);
       if (this.countdownEl.textContent !== text) this.countdownEl.textContent = text;

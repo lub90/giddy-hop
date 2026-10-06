@@ -21,7 +21,7 @@ function loading(players = 1) {
 }
 
 describe('GameFlow – phases', () => {
-  it('startup → registration → loading (10 s) → countdown 3-2-1 → race with "Los!" → results', () => {
+  it('startup → registration → loading (10 s) → countdown 10…1 (riders shown first) → race with "Los!" → results', () => {
     const flow = new GameFlow(shortTrack, structuredClone(CONFIG));
     expect(flow.phase).toBe('startup');
     flow.ready();
@@ -34,11 +34,15 @@ describe('GameFlow – phases', () => {
     advance(flow, 0.6);
     expect(flow.phase).toBe('countdown');
     const shown = new Set<number>();
+    const withPortraits = new Set<number>();
     while (flow.phase === 'countdown') {
       shown.add(flow.countdownValue);
+      if (flow.showPortraits) withPortraits.add(flow.countdownValue);
       advance(flow, 1 / 60);
     }
-    expect([...shown]).toEqual([3, 2, 1]);
+    expect([...shown]).toEqual([10, 9, 8, 7, 6, 5, 4, 3, 2, 1]);
+    // The first five seconds show each child in their quadrant.
+    expect([...withPortraits]).toEqual([10, 9, 8, 7, 6]);
     expect(flow.phase).toBe('race');
     expect(flow.showGo).toBe(true);
     advance(flow, R.goSeconds + 0.1);

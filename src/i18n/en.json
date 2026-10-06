@@ -51,6 +51,9 @@
     "go": "Go!",
     "keys": "During the race: <b>Space</b> = pause · <b>B</b> = end · <b>Q</b> = abort"
   },
+  "portrait": {
+    "thatsYou": "You ride"
+  },
   "pause": {
     "title": "⏸ Paused",
     "resume": "<b>Space</b> = ride on",

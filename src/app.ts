@@ -23,6 +23,7 @@ import { SplitRenderer, type View } from './render/splitRenderer';
 import { buildCourseScenery, disposeTree, setupEnvironment } from './render/world';
 import { CameraView } from './ui/cameraView';
 import { Hud, type HudState } from './ui/hud';
+import { RiderPortraits } from './ui/riderPortraits';
 import type { HorseCoat } from './ui/horseIcon';
 import { Screens } from './ui/screens';
 
@@ -98,6 +99,7 @@ export class App {
   private readonly overview: OverviewCamera;
   private readonly cameraView: CameraView;
   private readonly hud: Hud;
+  private readonly portraits: RiderPortraits;
   private readonly screens: Screens;
   private readonly debug: DebugPanel;
   private readonly sounds: Sounds = new Sounds(
@@ -126,6 +128,7 @@ export class App {
     this.overview = new OverviewCamera(this.flow.currentTrack, CONFIG.render.viewDistance);
     this.cameraView = new CameraView(el.video);
     this.hud = new Hud(el.hud, CONFIG.hud.gaitThresholds);
+    this.portraits = new RiderPortraits(el.hud, el.video);
     this.screens = new Screens(el.overlay);
     this.debug = new DebugPanel(el.debug, this.cameraView, () => this.renderer.setPixelRatio(CONFIG.render.pixelRatio), {
       whinny: () => this.sounds.whinny(),
@@ -371,6 +374,8 @@ export class App {
           this.playerCoats(),
         );
         this.screens.countdown();
+        // First the children see themselves in their quadrant, then their horse.
+        this.portraits.show(this.playerNames(), this.playerColors(), this.playerCoats());
         break;
       }
       case 'race':
@@ -409,6 +414,7 @@ export class App {
         views.push({ camera: this.overview.camera, rect: layout.spare, noFog: true });
       }
       this.hud.layout(layout.players);
+      this.portraits.layout(layout.players);
     } else {
       this.overview.orbit(t);
       views.push({ camera: this.overview.camera, rect: { x: 0, y: 0, w: width, h: height }, noFog: true });
@@ -427,7 +433,9 @@ export class App {
     }
     if (phase === 'loading') this.screens.updateProgress(this.flow.loadingProgress);
     if (phase === 'results') this.screens.updateProgress(1 - this.flow.resultsProgress);
-    if (phase === 'countdown') this.screens.updateCountdown(this.flow.countdownValue);
+    if (phase === 'countdown') this.screens.updateCountdown(this.flow.countdownValue, this.flow.showPortraits);
+    if (this.flow.showPortraits) this.portraits.draw(this.tracker.slots);
+    else if (this.portraits.visible) this.portraits.hide();
     if (phase === 'race' && !this.flow.showGo && this.screens.showing === 'go') this.screens.hide();
     if (phase === 'register' || this.debug.showsCamera) this.cameraView.draw(this.tracker, names, colors);
 

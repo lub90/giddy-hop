@@ -114,6 +114,11 @@ export class GameFlow {
     return this.phase === 'results' ? Math.min(1, this.phaseTime / this.cfg.race.resultsSeconds) : 0;
   }
 
+  /** True in the first part of the countdown, while the riders are shown in their quadrants. */
+  get showPortraits(): boolean {
+    return this.phase === 'countdown' && this.phaseTime < this.cfg.race.portraitSeconds;
+  }
+
   /** True during the first moment of the race, while "Los!" is shown. */
   get showGo(): boolean {
     return this.phase === 'race' && this.phaseTime < this.cfg.race.goSeconds;

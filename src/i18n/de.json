@@ -51,6 +51,9 @@
     "go": "Los!",
     "keys": "Im Rennen: <b>Leertaste</b> = Pause · <b>B</b> = beenden · <b>Q</b> = abbrechen"
   },
+  "portrait": {
+    "thatsYou": "Du reitest"
+  },
   "pause": {
     "title": "⏸ Pause",
     "resume": "<b>Leertaste</b> = weiterreiten",
