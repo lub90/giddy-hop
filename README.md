@@ -30,7 +30,9 @@ track (riders still coming are visible); the horse rears up, paddles with its
 front hooves, shakes its head and whinnies – repeated until everyone has
 finished and the last horse has celebrated once. Then the award ceremony shows
 a podium with the horse names and a table with time, knock-downs and carrots,
-with the celebrating horses in the background. Hoofbeats follow each horse's
+with the celebrating horses in the background. After 25 s (`race.resultsSeconds`)
+the game goes back to the registration by itself; the players stay registered
+and confirm "ready" again for the next race. Hoofbeats follow each horse's
 speed and gait and come from the side of its rider's screen. (Sound is synthesized in the
 browser; browsers only allow it after a key press or click.)
 
@@ -73,7 +75,6 @@ from the internet on start, so an internet connection is required.
 | --- | --- | --- |
 | Space | Registration | Mark everyone ready (starts "Laden …") |
 | Space | Laden … | Skip the wait |
-| Space | Results | Rematch with the same players |
 | Esc | Laden … | Cancel back to the registration |
 | Esc | Anywhere else | Back to registration |
 | Backspace | Registration | Unregister everyone |

@@ -10,9 +10,9 @@ export type Phase = 'startup' | 'register' | 'loading' | 'countdown' | 'race' | 
  * unit tested; the App reacts to `phase` changes.
  *
  *   startup → register → loading → countdown → race → results
- *                ↑  ↑        │          ↑                 │
- *                │  └ cancel ┘          └──── rematch ────┤
- *                └──────────── new registration ──────────┘
+ *                ↑  ↑        │                            │
+ *                │  └ cancel ┘                            │
+ *                └──── after resultsSeconds (or Esc) ─────┘
  */
 export class GameFlow {
   phase: Phase = 'startup';
@@ -62,13 +62,6 @@ export class GameFlow {
     if (this.phase === 'loading') this.beginCountdown();
   }
 
-  /** Same players, new race (from the results screen). */
-  rematch(): boolean {
-    if (this.phase !== 'results') return false;
-    this.beginCountdown();
-    return true;
-  }
-
   /** Abort / finish and go back to registration. */
   toRegistration(): void {
     if (this.phase === 'startup') return;
@@ -96,6 +89,11 @@ export class GameFlow {
     return Math.max(r.resultsDelaySeconds, r.celebrationDelaySeconds + r.celebrationCycleSeconds);
   }
 
+  /** 0..1 progress of the award ceremony; at 1 the game goes back to registration. */
+  get resultsProgress(): number {
+    return this.phase === 'results' ? Math.min(1, this.phaseTime / this.cfg.race.resultsSeconds) : 0;
+  }
+
   /** True during the first moment of the race, while "Los!" is shown. */
   get showGo(): boolean {
     return this.phase === 'race' && this.phaseTime < this.cfg.race.goSeconds;
@@ -113,6 +111,8 @@ export class GameFlow {
         this.overFor += dt;
         if (this.overFor >= this.resultsDelay) this.enter('results');
       }
+    } else if (this.phase === 'results' && this.phaseTime >= this.cfg.race.resultsSeconds) {
+      this.toRegistration();
     }
   }
 

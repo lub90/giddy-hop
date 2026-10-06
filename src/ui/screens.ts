@@ -168,7 +168,8 @@ export class Screens {
     this.progressEl = this.root.querySelector('.loading-fill');
   }
 
-  updateLoading(progress: number): void {
+  /** Fills the bar of the loading screen, or of the award ceremony (time left). */
+  updateProgress(progress: number): void {
     if (this.progressEl) this.progressEl.style.width = `${(progress * 100).toFixed(1)}%`;
   }
 
@@ -259,9 +260,11 @@ export class Screens {
          <tbody>${rows}</tbody>
        </table>
        <p class="hint">${t('results.ribbon')}</p>
-       <p class="hint small">${t('results.keys')}</p>`,
+       <div class="loading-bar results-timer"><div class="loading-fill"></div></div>
+       <p class="hint small">${t('results.backSoon')}</p>`,
       'overlay results-screen',
     );
+    this.progressEl = this.root.querySelector('.loading-fill');
   }
 
   private show(name: string, html: string, className = 'overlay'): void {

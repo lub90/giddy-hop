@@ -77,13 +77,21 @@ describe('GameFlow – phases', () => {
     expect(flow.phase).toBe('register');
   });
 
-  it('supports a rematch and going back to registration', () => {
+  it('the award ceremony ends by itself and goes back to registration', () => {
     const flow = loading(2);
-    advance(flow, R.loadingSeconds + 20, [full[0], full[0]]);
-    expect(flow.rematch()).toBe(true);
-    expect(flow.phase).toBe('countdown');
-    expect(flow.race!.horses).toHaveLength(2);
-    expect(flow.race!.horses[0].s).toBe(0);
+    for (let i = 0; i < 60 * 60 && flow.phase !== 'results'; i++) flow.update(1 / 60, [full[0], full[0]]);
+    expect(flow.phase).toBe('results');
+    advance(flow, R.resultsSeconds * 0.5, [full[0], full[0]]);
+    expect(flow.phase).toBe('results');
+    expect(flow.resultsProgress).toBeCloseTo(0.5, 1);
+    advance(flow, R.resultsSeconds * 0.5 + 0.1, [full[0], full[0]]);
+    expect(flow.phase).toBe('register');
+    expect(flow.race).toBeNull();
+  });
+
+  it('can go back to registration at any time', () => {
+    const flow = loading(2);
+    advance(flow, R.loadingSeconds + 5, [full[0], full[0]]);
     flow.toRegistration();
     expect(flow.phase).toBe('register');
     expect(flow.race).toBeNull();

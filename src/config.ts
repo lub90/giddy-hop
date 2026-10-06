@@ -160,6 +160,8 @@ export const CONFIG = {
     timeoutSeconds: 150,
     /** Wait at least this long after the race ends before showing the results. */
     resultsDelaySeconds: 2,
+    /** How long the award ceremony is shown before the game goes back to registration (s). */
+    resultsSeconds: 25,
     /** Finish celebration: delay after crossing the line before the horse rears (s). */
     celebrationDelaySeconds: 1.2,
     /** Finish celebration: one rearing (s). Results wait until the last horse finished one. */

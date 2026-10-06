@@ -253,6 +253,8 @@ test('cones and carrots can be switched off on the start screen', async ({ page 
 test('finish celebration, then the award ceremony with podium and table', async ({ page }) => {
   test.setTimeout(120_000);
   const errors = trackErrors(page);
+  // Short award ceremony (saved tuning value), so the automatic return is quick to test.
+  await page.addInitScript(() => localStorage.setItem('giddyhop.config.v1', JSON.stringify({ race: { resultsSeconds: 6 } })));
   await page.goto('/?course=test-sprint');
   await expectStartScreen(page, 'Auf die Pferde');
   // Hidden course: not in the dropdown for normal use, but selected via the URL.
@@ -286,8 +288,9 @@ test('finish celebration, then the award ceremony with podium and table', async 
   await expect(page.locator('.results-table tbody tr').first()).toContainText('Blitz');
   await page.screenshot({ path: 'test-results/12-award-ceremony.png' });
 
-  // Space = ride again with the same players.
-  await page.keyboard.press('Space');
-  await expect(page.locator('.countdown')).toBeVisible();
+  // No key needed: after a while the game goes back to registration by itself,
+  // the players stay registered but have to confirm "ready" again.
+  await expectStartScreen(page, 'Auf die Pferde');
+  await expect(page.locator('.slot.registered')).toHaveCount(2);
   expect(errors).toEqual([]);
 });

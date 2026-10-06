@@ -425,7 +425,8 @@ export class App {
     if (phase === 'register' || phase === 'loading') {
       this.screens.updateSlots(this.tracker, CONFIG.maxPlayers, names, colors, CONFIG.horseCoats);
     }
-    if (phase === 'loading') this.screens.updateLoading(this.flow.loadingProgress);
+    if (phase === 'loading') this.screens.updateProgress(this.flow.loadingProgress);
+    if (phase === 'results') this.screens.updateProgress(1 - this.flow.resultsProgress);
     if (phase === 'countdown') this.screens.updateCountdown(this.flow.countdownValue);
     if (phase === 'race' && !this.flow.showGo && this.screens.showing === 'go') this.screens.hide();
     if (phase === 'register' || this.debug.showsCamera) this.cameraView.draw(this.tracker, names, colors);
@@ -494,8 +495,6 @@ export class App {
           this.flow.startLoading(this.tracker.slots.length);
         } else if (phase === 'loading') {
           this.flow.skipLoading();
-        } else if (phase === 'results') {
-          this.flow.rematch();
         }
         break;
       case 'Escape':

@@ -682,3 +682,9 @@ h2 {
   vertical-align: -0.3em;
   filter: drop-shadow(0 0 1.5px rgba(255, 255, 255, 0.85));
 }
+
+/* Time left until the award ceremony returns to registration. */
+.results-timer {
+  width: min(50vw, 420px);
+  height: 8px;
+}
