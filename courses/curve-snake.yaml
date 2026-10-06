@@ -1,0 +1,43 @@
+# Winding track with left and right curves, no obstacles: for practising
+# steering (leaning) without having to jump.
+# The curves alternate, so the track snakes forward like an S (it never
+# comes back on itself).
+# Format: see courses/README.md
+
+name:
+  de: Kurven-Schlange
+  en: Curve Snake
+description:
+  de: Links- und Rechtskurven ohne Hindernisse – zum Lenken üben.
+  en: Left and right curves without obstacles – to practise steering.
+order: 6
+
+width: 9
+grass: 4
+
+segments:
+  - straight: 20
+
+  - curve: left
+    angle: 90
+    radius: 25
+
+  - straight: 20
+
+  - curve: right
+    angle: 180
+    radius: 25
+
+  - straight: 20
+
+  - curve: left
+    angle: 180
+    radius: 25
+
+  - straight: 20
+
+  - curve: right
+    angle: 90
+    radius: 25
+
+  - straight: 20

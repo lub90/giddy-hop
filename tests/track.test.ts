@@ -151,6 +151,7 @@ describe('Courses – show jumping and racetrack', () => {
       'show-jumping',
       'racetrack',
       'gallop-straight',
+      'curve-snake',
     ]);
   });
 
@@ -165,6 +166,14 @@ describe('Courses – show jumping and racetrack', () => {
     expect(track.obstacles).toHaveLength(0);
     expect(courseStats(course.def).curves).toBe(0);
     expect(track.length).toBeGreaterThanOrEqual(100);
+  });
+
+  it('curve snake: left and right curves, nothing on the track', () => {
+    const { track, course } = byId('curve-snake');
+    expect(track.obstacles).toHaveLength(0);
+    const curves = course.def.segments.filter((s) => s.kind === 'curve');
+    expect(curves.length).toBeGreaterThanOrEqual(4);
+    expect(new Set(curves.map((s) => (s.kind === 'curve' ? Math.sign(s.angle) : 0))).size).toBe(2);
   });
 
   it('show jumping: longer than the longest course so far, more jumps, at least two double jumps', () => {
