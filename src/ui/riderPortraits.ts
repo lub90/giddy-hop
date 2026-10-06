@@ -38,6 +38,14 @@ export class RiderPortraits {
     });
   }
 
+  /**
+   * Still picture of every child as currently shown (JPEG data URL), null
+   * where there is no camera picture (keyboard riders). Kept in memory only.
+   */
+  snapshot(): (string | null)[] {
+    return this.cards.map((c) => (c.crop && c.canvas.width > 0 ? c.canvas.toDataURL('image/jpeg', 0.85) : null));
+  }
+
   hide(): void {
     for (const c of this.cards) c.el.remove();
     this.cards = [];

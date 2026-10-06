@@ -284,6 +284,9 @@ test('finish celebration, then the award ceremony with podium and table', async 
   const names = await page.locator('.podium-name').allTextContents();
   expect(names.map((n) => n.replace('🐴', '').trim())).toEqual(['Sternchen', 'Blitz']);
   await expect(page.locator('.podium-place.rank-1 .podium-rank')).toHaveText('1');
+  // A photo frame per rider; keyboard riders have no camera picture, so they get their horse.
+  await expect(page.locator('.podium-photo')).toHaveCount(2);
+  await expect(page.locator('.podium-photo .horse-icon')).toHaveCount(2);
   await expect(page.locator('.hud-panel')).toHaveCount(0);
 
   // Table with time, knock-downs and carrots.

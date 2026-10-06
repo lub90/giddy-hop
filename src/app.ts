@@ -100,6 +100,8 @@ export class App {
   private readonly cameraView: CameraView;
   private readonly hud: Hud;
   private readonly portraits: RiderPortraits;
+  /** Photos of the riders (race order) for the podium; memory only, dropped after the race. */
+  private photos: (string | null)[] = [];
   private readonly screens: Screens;
   private readonly debug: DebugPanel;
   private readonly sounds: Sounds = new Sounds(
@@ -344,6 +346,7 @@ export class App {
         this.hud.clear();
         // After a race everyone confirms again; after a cancelled loading the others stay ready.
         if (previous !== 'loading') this.lobby.resetReady();
+        this.photos = [];
         this.showRegistration();
         break;
       case 'loading':
@@ -384,7 +387,7 @@ export class App {
       case 'results':
         // The award ceremony replaces the race HUD; the celebrating horses stay visible behind it.
         this.hud.clear();
-        this.screens.results(this.flow.race!.results(), this.playerNames(), this.playerColors(), this.playerCoats());
+        this.screens.results(this.flow.race!.results(), this.playerNames(), this.playerColors(), this.playerCoats(), this.photos);
         break;
       case 'startup':
         break;
@@ -435,7 +438,10 @@ export class App {
     if (phase === 'results') this.screens.updateProgress(1 - this.flow.resultsProgress);
     if (phase === 'countdown') this.screens.updateCountdown(this.flow.countdownValue, this.flow.showPortraits);
     if (this.flow.showPortraits) this.portraits.draw(this.tracker.slots);
-    else if (this.portraits.visible) this.portraits.hide();
+    else if (this.portraits.visible) {
+      this.photos = this.portraits.snapshot();
+      this.portraits.hide();
+    }
     if (phase === 'race' && !this.flow.showGo && this.screens.showing === 'go') this.screens.hide();
     if (phase === 'register' || this.debug.showsCamera) this.cameraView.draw(this.tracker, names, colors);
 

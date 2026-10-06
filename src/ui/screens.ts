@@ -239,17 +239,24 @@ export class Screens {
    * Award ceremony: podium with the horse names on top, the table with time,
    * knock-downs and carrots below. The background stays see-through so the
    * celebrating horses remain visible.
+   *
+   * @param photos per player: snapshot of the child taken before the start
+   *   (data URL), null for keyboard riders – they get their horse instead
    */
   results(
     results: readonly RaceResult[],
     names: readonly string[],
     colors: readonly string[],
     coats: readonly HorseCoat[],
+    photos: readonly (string | null)[] = [],
   ): void {
     const rosette = (rank: number) => ROSETTES[Math.min(rank - 1, ROSETTES.length - 1)];
     const podium = podiumOrder(results)
       .map(
         (r) => `<div class="podium-place rank-${r.rank}">
+          <div class="podium-photo" style="--player:${colors[r.player]}">${
+            photos[r.player] ? `<img src="${photos[r.player]}" alt="">` : horseIconSvg(coats[r.player])
+          }</div>
           <div class="podium-name" style="--player:${colors[r.player]}">${horseIconSvg(coats[r.player])} ${escapeHtml(names[r.player])}</div>
           <div class="podium-step"><span class="rosette">${rosette(r.rank)}</span><span class="podium-rank">${r.rank}</span></div>
         </div>`,

@@ -316,7 +316,11 @@ h2 {
 .overlay.results-screen {
   background: linear-gradient(rgba(10, 8, 6, 0.15), rgba(10, 8, 6, 0.55) 45%, rgba(10, 8, 6, 0.75));
   justify-content: flex-start;
-  padding-top: 3vh;
+  gap: 1.2vh;
+  padding-top: 2vh;
+}
+.results-screen h1 {
+  margin: 0;
 }
 
 .podium {
@@ -324,13 +328,12 @@ h2 {
   align-items: flex-end;
   justify-content: center;
   gap: 10px;
-  min-height: 34vh;
 }
 .podium-place {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   width: min(20vw, 220px);
   animation: podium-in 0.6s ease-out both;
 }
@@ -363,9 +366,9 @@ h2 {
   color: #4a3a22;
 }
 /* Heights grow with the place; never lower than rosette and number. */
-.rank-1 .podium-step { min-height: max(20vh, 70px); background: linear-gradient(#ffe37a, #e8b023); }
-.rank-2 .podium-step { min-height: max(14vh, 64px); background: linear-gradient(#f3f5f8, #b7bec8); }
-.rank-3 .podium-step { min-height: max(10vh, 58px); background: linear-gradient(#f0b27a, #b86b32); }
+.rank-1 .podium-step { min-height: max(12vh, 64px); background: linear-gradient(#ffe37a, #e8b023); }
+.rank-2 .podium-step { min-height: max(9vh, 60px); background: linear-gradient(#f3f5f8, #b7bec8); }
+.rank-3 .podium-step { min-height: max(7vh, 56px); background: linear-gradient(#f0b27a, #b86b32); }
 .rank-4 .podium-step { min-height: 52px; }
 .rank-1 .podium-name { font-size: clamp(1.2rem, 2.4vw, 2rem); }
 .podium-rank {
@@ -375,6 +378,31 @@ h2 {
 }
 .rosette {
   font-size: clamp(1.4rem, 2.4vw, 2.2rem);
+}
+/* Photo of the child (taken before the start), or the horse for keyboard riders. */
+.podium-photo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: min(11vh, 130px);
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  border: 4px solid var(--player);
+  border-radius: 14px;
+  background: rgba(20, 16, 12, 0.8);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
+}
+.rank-1 .podium-photo {
+  height: min(15vh, 170px);
+}
+.podium-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.podium-photo .horse-icon {
+  width: 60%;
+  height: 60%;
 }
 @keyframes podium-in {
   from { opacity: 0; transform: translateY(40px); }
@@ -393,7 +421,7 @@ h2 {
   opacity: 0.75;
 }
 .results-table td {
-  padding: 6px 16px;
+  padding: 4px 16px;
   background: color-mix(in srgb, var(--player) 25%, rgba(30, 24, 18, 0.85));
 }
 .results-table td:first-child {
