@@ -155,3 +155,61 @@ describe('PlayerTracker – stable identity during the race', () => {
     expect(tr.slots[1].gestures.steer).toBeLessThan(-0.5);
   });
 });
+
+describe('PlayerTracker – two children gesturing at the same time', () => {
+  type Spec = { x: number; arm?: 'none' | 'left' | 'right' | 'both'; trackId?: number };
+  const A = (arm: Spec['arm'] = 'none', trackId: number | undefined = 1): Spec => ({ x: 560, arm, trackId });
+  const B = (arm: Spec['arm'] = 'none', trackId: number | undefined = 2): Spec => ({ x: 740, arm, trackId });
+
+  it('registers both when MoveNet misses one of them in every other frame', () => {
+    const tr = newTracker();
+    let frame = 0;
+    feed(tr, 1.5, () => (frame++ % 2 === 0 ? [A('left'), B('right')] : [A('left')]), 'register');
+    expect(tr.slots).toHaveLength(2);
+  });
+
+  it('registers both when MoveNet swaps their tracker ids', () => {
+    const tr = newTracker();
+    feed(tr, 1.5, (t) => (Math.floor(t / 0.2) % 2 === 0 ? [A('left', 1), B('right', 2)] : [A('left', 2), B('right', 1)]), 'register');
+    expect(tr.slots).toHaveLength(2);
+  });
+
+  it('registers both without tracker ids', () => {
+    const tr = newTracker();
+    feed(tr, 1.5, () => [A('left', undefined), B('right', undefined)], 'register');
+    expect(tr.slots).toHaveLength(2);
+  });
+
+  it('registers despite a single frame without the raised wrist', () => {
+    const tr = newTracker();
+    let frame = 0;
+    feed(tr, 1.5, () => [A(frame++ % 6 === 3 ? 'none' : 'left')], 'register');
+    expect(tr.slots).toHaveLength(1);
+  });
+
+  it('both get ready together, each player stays with their child despite swapped ids', () => {
+    const tr = newTracker();
+    // Register A, then B.
+    let r = feed(tr, 1.2, () => [A('left'), B()], 'register');
+    r = feed(tr, 0.4, () => [A(), B()], 'register', r.t);
+    r = feed(tr, 1.2, () => [A(), B('left')], 'register', r.t);
+    r = feed(tr, 0.4, () => [A(), B()], 'register', r.t);
+    expect(tr.slots).toHaveLength(2);
+    const [first, second] = tr.slots;
+    let frame = 0;
+    const { events } = feed(
+      tr,
+      1.5,
+      (t) => {
+        const swapped = Math.floor(t / 0.2) % 2 === 1;
+        const people = [A('right', swapped ? 2 : 1), B('left', swapped ? 1 : 2)];
+        return frame++ % 3 === 1 ? [people[frame % 2]] : people;
+      },
+      'register',
+      r.t,
+    );
+    expect(events.map((e) => [e.slot.number, e.action]).sort()).toEqual([[first.number, 'one'], [second.number, 'one']]);
+    expect(Math.round(first.anchor!.x * 1280)).toBeCloseTo(560, -1);
+    expect(Math.round(second.anchor!.x * 1280)).toBeCloseTo(740, -1);
+  });
+});

@@ -38,6 +38,8 @@ browser; browsers only allow it after a key press or click.)
 
 Every gesture counts after holding it for a moment (progress ring in the camera
 image); afterwards the arms must come down before the next gesture counts.
+Several children can register or get ready at the same time: short detection
+gaps and a wrist missed for a frame do not restart the progress ring.
 
 | Who | Gesture | Effect |
 | --- | --- | --- |

@@ -46,6 +46,20 @@ export interface SlotEvent {
   action: ArmAction;
 }
 
+/** A not yet registered person being followed while they raise an arm. */
+interface Pending {
+  anchor: Point;
+  trackId: number | undefined;
+  lastSeen: number;
+  readonly arms: ArmGestureDetector;
+}
+
+/** Something followed over time: a player or a person about to register. */
+interface Followed {
+  anchor: Point | null;
+  trackId: number | undefined;
+}
+
 export interface TrackerOptions {
   tracking: TrackingConfig;
   maxPlayers: number;
@@ -57,9 +71,12 @@ export interface TrackerOptions {
  *
  * - Registration: an unassigned person holds one arm up. The player number is
  *   the lowest free one, i.e. the registration order.
- * - Matching: by MoveNet tracker id first, otherwise by nearest remembered
- *   position. People who match no player are ignored (other kids may be in
- *   the picture).
+ * - Matching: by nearest remembered position; the MoveNet tracker id only
+ *   breaks ties (it swaps between people standing close together, e.g. when
+ *   both raise their arms). People who match no player are ignored (other
+ *   kids may be in the picture).
+ * - Short detection gaps and wrists missed for a frame do not restart a
+ *   gesture, so several children can register or get ready at the same time.
  * - Arm gestures of registered players are reported as events; what they mean
  *   (ready, unregister, cancel) is decided by the Lobby.
  */
@@ -71,7 +88,7 @@ export class PlayerTracker {
   lastDropped = 0;
 
   private nextUid = 1;
-  private candidateArms = new Map<string, ArmGestureDetector>();
+  private pending: Pending[] = [];
 
   constructor(
     private readonly opts: TrackerOptions = { tracking: CONFIG.tracking, maxPlayers: CONFIG.maxPlayers, gestures: CONFIG },
@@ -84,7 +101,7 @@ export class PlayerTracker {
   /** Processes one pose frame and returns completed arm gestures of registered players. */
   update(frame: PoseFrame, mode: TrackerMode): SlotEvent[] {
     const t = frame.time;
-    const hold = this.opts.tracking.registerHoldSeconds;
+    const { registerHoldSeconds: hold, armFlickerSeconds: flicker } = this.opts.tracking;
     const unmatched = this.match(frame.poses, t);
     this.lastDropped = 0;
 
@@ -94,19 +111,19 @@ export class PlayerTracker {
 
     this.candidates = [];
     if (mode === 'race') {
-      this.candidateArms.clear();
+      this.pending = [];
       return [];
     }
 
     const events: SlotEvent[] = [];
     for (const slot of this.slots) {
       if (!slot.pose) continue;
-      const action = slot.arms.update(raisedArmCount(slot.pose), t, hold);
+      const action = slot.arms.update(raisedArmCount(slot.pose), t, hold, flicker);
       if (action) events.push({ slot, action });
     }
 
     if (mode === 'register') {
-      this.registerCandidates(unmatched, t, hold);
+      this.registerCandidates(unmatched, t, hold, flicker);
       // Whoever walks away during registration frees their slot again.
       const before = this.slots.length;
       this.slots = this.slots.filter(
@@ -114,7 +131,7 @@ export class PlayerTracker {
       );
       this.lastDropped = before - this.slots.length;
     } else {
-      this.candidateArms.clear();
+      this.pending = [];
     }
     return events;
   }
@@ -132,59 +149,54 @@ export class PlayerTracker {
   clear(): void {
     this.slots = [];
     this.candidates = [];
-    this.candidateArms.clear();
+    this.pending = [];
   }
 
-  private registerCandidates(unmatched: DetectedPose[], t: number, hold: number): void {
-    const seen = new Set<string>();
+  private registerCandidates(unmatched: DetectedPose[], t: number, hold: number, flicker: number): void {
+    const { tracking } = this.opts;
+    const assigned = assign(this.pending, unmatched, tracking.maxMatchDistance);
+    const taken = new Set(assigned.values());
     for (const pose of unmatched) {
-      const key = candidateKey(pose);
-      seen.add(key);
-      let arms = this.candidateArms.get(key);
-      if (!arms) this.candidateArms.set(key, (arms = new ArmGestureDetector()));
-      const action = arms.update(raisedArmCount(pose), t, hold);
+      if (!taken.has(pose)) {
+        const p: Pending = { anchor: { ...pose.center }, trackId: pose.trackId, lastSeen: t, arms: new ArmGestureDetector() };
+        this.pending.push(p);
+        assigned.set(p, pose);
+      }
+    }
+    // Someone briefly not detected keeps their progress.
+    this.pending = this.pending.filter((p) => assigned.has(p) || t - p.lastSeen <= tracking.candidateKeepSeconds);
+
+    for (const [p, pose] of assigned) {
+      follow(p, pose, tracking.anchorFollow);
+      p.lastSeen = t;
+      const action = p.arms.update(raisedArmCount(pose), t, hold, flicker);
       if (action === 'one' && !this.isFull) {
-        this.candidateArms.delete(key);
+        this.pending = this.pending.filter((x) => x !== p);
         const slot = this.addSlot('pose', { ...pose.center }, pose.trackId, t);
         slot.pose = pose;
       } else {
         // Only one raised arm registers; show progress just for that.
-        this.candidates.push({ pose, progress: arms.holding === 1 && !this.isFull ? arms.progress : 0 });
+        this.candidates.push({ pose, progress: p.arms.holding === 1 && !this.isFull ? p.arms.progress : 0 });
       }
     }
-    for (const key of [...this.candidateArms.keys()]) if (!seen.has(key)) this.candidateArms.delete(key);
   }
 
   /** Assigns poses to existing players and returns the remaining ones. */
   private match(poses: DetectedPose[], t: number): DetectedPose[] {
     const { maxMatchDistance, anchorFollow } = this.opts.tracking;
-    const pairs: { slot: PlayerSlot; pose: DetectedPose; cost: number }[] = [];
-    for (const slot of this.slots) {
-      slot.pose = null;
-      if (slot.kind !== 'pose' || !slot.anchor) continue;
-      for (const pose of poses) {
-        const sameId = slot.trackId !== undefined && pose.trackId === slot.trackId;
-        const d = distance(slot.anchor, pose.center);
-        // Same tracker id always wins, unless the person "teleports".
-        if (sameId && d <= maxMatchDistance * 2) pairs.push({ slot, pose, cost: -1 });
-        else if (d <= maxMatchDistance) pairs.push({ slot, pose, cost: d });
-      }
-    }
-    pairs.sort((a, b) => a.cost - b.cost);
-
-    const usedPoses = new Set<DetectedPose>();
-    for (const { slot, pose } of pairs) {
-      if (slot.pose || usedPoses.has(pose) || !slot.anchor) continue;
+    for (const slot of this.slots) slot.pose = null;
+    const assigned = assign(
+      this.slots.filter((s) => s.kind === 'pose'),
+      poses,
+      maxMatchDistance,
+    );
+    for (const [slot, pose] of assigned) {
       slot.pose = pose;
-      usedPoses.add(pose);
-      slot.trackId = pose.trackId;
       slot.lastSeen = t;
-      slot.anchor = {
-        x: lerp(slot.anchor.x, pose.center.x, anchorFollow),
-        y: lerp(slot.anchor.y, pose.center.y, anchorFollow),
-      };
+      follow(slot, pose, anchorFollow);
     }
-    return poses.filter((p) => !usedPoses.has(p));
+    const used = new Set(assigned.values());
+    return poses.filter((p) => !used.has(p));
   }
 
   private addSlot(kind: SlotKind, anchor: Point | null, trackId: number | undefined, lastSeen: number): PlayerSlot {
@@ -210,7 +222,38 @@ export class PlayerTracker {
   }
 }
 
-function candidateKey(pose: DetectedPose): string {
-  if (pose.trackId !== undefined) return `id:${pose.trackId}`;
-  return `pos:${Math.round(pose.center.x * 20)}`;
+/** Moves the remembered position towards the pose and takes over its tracker id. */
+function follow(item: Followed, pose: DetectedPose, rate: number): void {
+  item.trackId = pose.trackId;
+  item.anchor = item.anchor
+    ? { x: lerp(item.anchor.x, pose.center.x, rate), y: lerp(item.anchor.y, pose.center.y, rate) }
+    : { ...pose.center };
+}
+
+/**
+ * Greedy nearest-position assignment of poses to followed people (each at
+ * most once). The same tracker id gives a bonus of half the match distance
+ * and allows twice the distance (fast movements), but a pose clearly closer to
+ * someone's remembered position wins – MoveNet swaps ids between people
+ * standing close together.
+ */
+function assign<T extends Followed>(items: readonly T[], poses: readonly DetectedPose[], maxDistance: number): Map<T, DetectedPose> {
+  const pairs: { item: T; pose: DetectedPose; cost: number }[] = [];
+  for (const item of items) {
+    if (!item.anchor) continue;
+    for (const pose of poses) {
+      const sameId = item.trackId !== undefined && pose.trackId === item.trackId;
+      const d = distance(item.anchor, pose.center);
+      if (d <= (sameId ? maxDistance * 2 : maxDistance)) pairs.push({ item, pose, cost: sameId ? d - maxDistance / 2 : d });
+    }
+  }
+  pairs.sort((a, b) => a.cost - b.cost);
+  const result = new Map<T, DetectedPose>();
+  const usedPoses = new Set<DetectedPose>();
+  for (const { item, pose } of pairs) {
+    if (result.has(item) || usedPoses.has(pose)) continue;
+    result.set(item, pose);
+    usedPoses.add(pose);
+  }
+  return result;
 }

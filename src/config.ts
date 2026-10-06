@@ -30,6 +30,10 @@ export const CONFIG = {
     registerHoldSeconds: 0.8,
     /** During registration: a player is removed when not seen for this long. */
     dropAfterSeconds: 3,
+    /** During registration: someone raising an arm keeps their progress when not detected this long. */
+    candidateKeepSeconds: 0.6,
+    /** Arm up/down changes shorter than this are ignored (wrist missed by the pose model). */
+    armFlickerSeconds: 0.2,
     /** After this time without detection the HUD shows a hint. */
     lostHintSeconds: 0.7,
   },

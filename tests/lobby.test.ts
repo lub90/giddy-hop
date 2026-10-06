@@ -35,6 +35,31 @@ describe('ArmGestureDetector', () => {
   it('can start blocked until the arms come down (right after registering)', () => {
     expect(run(new ArmGestureDetector(true), () => 1, 3)).toEqual([]);
   });
+
+  describe('with flicker filter', () => {
+    const runFiltered = (det: ArmGestureDetector, arms: (t: number) => 0 | 1 | 2, seconds: number) => {
+      const actions: { action: string; t: number }[] = [];
+      simulate(seconds, (t) => {
+        const a = det.update(arms(t), t, 0.8, 0.2);
+        if (a) actions.push({ action: a, t });
+      });
+      return actions;
+    };
+
+    it('ignores a wrist missed for a frame, and the hold time stays the same', () => {
+      const missing = (t: number) => Math.round(t * 25) % 6 === 3;
+      const actions = runFiltered(new ArmGestureDetector(), (t) => (missing(t) ? 0 : 1), 2);
+      expect(actions.map((a) => a.action)).toEqual(['one']);
+      expect(actions[0].t).toBeLessThan(0.85);
+    });
+
+    it('still needs the arms lowered for longer than a flicker between two gestures', () => {
+      const brief = (t: number) => (t > 1 && t < 1.1 ? 0 : 1);
+      expect(runFiltered(new ArmGestureDetector(), brief, 3).map((a) => a.action)).toEqual(['one']);
+      const real = (t: number) => (t > 1 && t < 1.5 ? 0 : 1);
+      expect(runFiltered(new ArmGestureDetector(), real, 3).map((a) => a.action)).toEqual(['one', 'one']);
+    });
+  });
 });
 
 /** Scripted lobby scenario: each step is a scene held for some seconds. */
