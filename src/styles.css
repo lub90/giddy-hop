@@ -349,11 +349,12 @@ h2 {
   box-shadow: 0 4px 0 rgba(0, 0, 0, 0.35), 0 0 18px color-mix(in srgb, var(--player) 60%, transparent);
   text-shadow: 0 2px 2px rgba(0, 0, 0, 0.5);
 }
+/* Rosette and place number side by side, so they fit even on the lowest step. */
 .podium-step {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 6px;
   width: 100%;
   padding-top: 8px;
   border-radius: 10px 10px 0 0;
@@ -361,10 +362,11 @@ h2 {
   box-shadow: inset 0 -6px 0 rgba(0, 0, 0, 0.15);
   color: #4a3a22;
 }
-.rank-1 .podium-step { height: 20vh; background: linear-gradient(#ffe37a, #e8b023); }
-.rank-2 .podium-step { height: 14vh; background: linear-gradient(#f3f5f8, #b7bec8); }
-.rank-3 .podium-step { height: 10vh; background: linear-gradient(#f0b27a, #b86b32); }
-.rank-4 .podium-step { height: 6vh; }
+/* Heights grow with the place; never lower than rosette and number. */
+.rank-1 .podium-step { min-height: max(20vh, 70px); background: linear-gradient(#ffe37a, #e8b023); }
+.rank-2 .podium-step { min-height: max(14vh, 64px); background: linear-gradient(#f3f5f8, #b7bec8); }
+.rank-3 .podium-step { min-height: max(10vh, 58px); background: linear-gradient(#f0b27a, #b86b32); }
+.rank-4 .podium-step { min-height: 52px; }
 .rank-1 .podium-name { font-size: clamp(1.2rem, 2.4vw, 2rem); }
 .podium-rank {
   font-size: clamp(1.6rem, 3vw, 2.6rem);
