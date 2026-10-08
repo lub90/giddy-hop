@@ -78,11 +78,12 @@ from the internet on start, so an internet connection is required.
 | Space | Countdown / race | Pause and resume |
 | Q | Countdown / race | Abort, back to the start screen; nobody is ready any more |
 | B | Race | End now: horses still riding are ranked by their position, then the award ceremony |
-| B or Q | Laden … | Cancel back to the registration; nobody is ready any more (Esc does nothing here, so leaving fullscreen never cancels) |
-| Esc | Anywhere else | Back to registration |
+| B or Q | Laden … | Cancel back to the registration; nobody is ready any more |
+| B or Q | Award ceremony | Back to the start screen right away |
 | Backspace | Registration | Unregister everyone |
 | T | Registration | Add a keyboard rider (testing without camera; becomes ready with Space) |
-| F or button in the start menu | Anywhere | Toggle fullscreen (Esc leaves it without affecting the game) |
+| F or button in the start menu | Anywhere | Toggle fullscreen |
+| Esc | Anywhere | Only leaves fullscreen – it is no game key, so it never cancels or aborts anything |
 | Ctrl+Alt+D | Anywhere | Toggle debug panel |
 
 Keyboard riders (also usable alongside body control):

@@ -91,8 +91,11 @@ test('registration → race with keyboard players → results', async ({ page })
   await page.keyboard.press('Control+Alt+KeyD');
   await expect(page.locator('.debug')).toBeHidden();
 
-  // Escape goes back to the registration.
+  // Esc is no game key: the race goes on. Q goes back to the registration.
   await page.keyboard.press('Escape');
+  await page.waitForTimeout(300);
+  await expect(page.locator('.hud-panel')).toHaveCount(2);
+  await page.keyboard.press('q');
   await expectStartScreen(page, 'Auf die Pferde');
 
   expect(errors).toEqual([]);
@@ -347,9 +350,13 @@ test('during the race: Space pauses, B ends with the award ceremony, Q aborts', 
   await expect(page.locator('.results-table tbody tr')).toHaveCount(2);
   await expect(page.locator('.results-table tbody tr').first()).toContainText('Blitz');
 
-  // Q aborts a race straight back to the start screen.
+  // Esc does not leave the award ceremony; B (or Q) does, straight to the start screen.
   await page.keyboard.press('Escape');
+  await page.waitForTimeout(300);
+  await expect(page.locator('.podium')).toBeVisible();
+  await page.keyboard.press('b');
   await expectStartScreen(page, 'Auf die Pferde');
+  // Q aborts a race straight back to the start screen.
   await startRace();
   await page.keyboard.press('q');
   await expectStartScreen(page, 'Auf die Pferde');

@@ -122,7 +122,6 @@ export class App {
   private cameras: CameraInfo[] = [];
   private cameraId: string | null = null;
   private fps = 60;
-  private fullscreenChangedAt = Number.NEGATIVE_INFINITY;
 
   constructor(private readonly el: AppElements) {
     this.poses = new PoseService(el.video);
@@ -281,7 +280,6 @@ export class App {
     });
     document.addEventListener('fullscreenchange', () => {
       document.body.classList.toggle('is-fullscreen', !!document.fullscreenElement);
-      this.fullscreenChangedAt = now();
     });
     this.keyboard.attach(window);
     requestAnimationFrame(() => this.frame());
@@ -513,20 +511,17 @@ export class App {
           this.showPauseState();
         }
         break;
-      case 'Escape':
-        // Esc that leaves fullscreen must not also abort the game. Not used while
-        // loading at all (B / Q cancel there), so leaving fullscreen never cancels.
-        if (phase === 'loading' || document.fullscreenElement || now() - this.fullscreenChangedAt < 0.5) break;
-        this.flow.toRegistration();
-        break;
+      // Esc is no game key: it only leaves fullscreen (handled by the browser).
       case 'KeyQ':
-        // Cancel the loading or abort the race: back to the start screen.
+        // Cancel the loading, abort the race or leave the award ceremony: back to the start screen.
         if (phase === 'loading') this.flow.cancelLoading();
-        else if (phase === 'countdown' || phase === 'race') this.flow.toRegistration();
+        else if (phase === 'countdown' || phase === 'race' || phase === 'results') this.flow.toRegistration();
         break;
       case 'KeyB':
-        // While loading: cancel. In the race: end now, rank by position, then the award ceremony.
+        // Loading: cancel. Race: end now, rank by position, then the award ceremony.
+        // Award ceremony: straight back to the start screen.
         if (phase === 'loading') this.flow.cancelLoading();
+        else if (phase === 'results') this.flow.toRegistration();
         else this.flow.endRace();
         break;
       case 'Backspace':
