@@ -46,7 +46,7 @@
     "title": "Loading …",
     "getReady": "Get ready – here we go!",
     "cancel": "🙌 Both arms up = cancel",
-    "keys": "<b>Space</b> = start now · <b>Esc</b> = cancel"
+    "keys": "<b>Space</b> = start now · <b>B</b> or <b>Q</b> = cancel"
   },
   "countdown": {
     "controls": "Bounce = gallop · Lean = steer · Jump up = hop!",

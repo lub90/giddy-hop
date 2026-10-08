@@ -26,13 +26,10 @@ export class Lobby {
 
   handle(events: readonly SlotEvent[], phase: 'register' | 'loading'): LobbyCommand {
     if (phase === 'loading') {
-      let cancel = false;
-      for (const { slot, action } of events) {
-        if (action !== 'both') continue;
-        slot.ready = false;
-        cancel = true;
-      }
-      return cancel ? 'cancelLoading' : null;
+      // Both arms of any player cancel; then everyone confirms "ready" again.
+      if (!events.some((e) => e.action === 'both')) return null;
+      this.resetReady();
+      return 'cancelLoading';
     }
 
     let becameReady = false;

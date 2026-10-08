@@ -46,7 +46,7 @@
     "title": "Laden …",
     "getReady": "Stellt euch bereit – gleich geht's los!",
     "cancel": "🙌 Beide Arme hoch = abbrechen",
-    "keys": "<b>Leertaste</b> = sofort starten · <b>Esc</b> = abbrechen"
+    "keys": "<b>Leertaste</b> = sofort starten · <b>B</b> oder <b>Q</b> = abbrechen"
   },
   "countdown": {
     "controls": "Wippen = Galopp · Lehnen = Lenken · Hochspringen = Hopp!",

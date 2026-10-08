@@ -50,7 +50,7 @@ gaps and a wrist missed for a frame do not restart the progress ring.
 | Ready | hold both arms up | Not ready any more |
 | Registered, not ready | hold both arms up | Unregister (the number becomes free; the others keep theirs) |
 | – | everyone ready | "Laden …" for 10 s, then countdown 10 … 1, "Los!" – only then the horses move. During the first 5 s of the countdown every quadrant shows the camera picture of its rider (head and shoulders), so each child knows which screen is theirs |
-| Any player during "Laden …" | hold both arms up | Cancel; that player is not ready any more |
+| Any player during "Laden …" | hold both arms up | Cancel; nobody is ready any more, everyone confirms again |
 
 ## Running
 
@@ -76,9 +76,9 @@ from the internet on start, so an internet connection is required.
 | Space | Registration | Mark everyone ready (starts "Laden …") |
 | Space | Laden … | Skip the wait |
 | Space | Countdown / race | Pause and resume |
-| Q | Countdown / race | Abort, back to the start screen |
+| Q | Countdown / race | Abort, back to the start screen; nobody is ready any more |
 | B | Race | End now: horses still riding are ranked by their position, then the award ceremony |
-| Esc | Laden … | Cancel back to the registration |
+| B or Q | Laden … | Cancel back to the registration; nobody is ready any more (Esc does nothing here, so leaving fullscreen never cancels) |
 | Esc | Anywhere else | Back to registration |
 | Backspace | Registration | Unregister everyone |
 | T | Registration | Add a keyboard rider (testing without camera; becomes ready with Space) |

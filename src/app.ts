@@ -300,7 +300,7 @@ export class App {
 
     this.processPoses();
     this.flow.update(dt, this.readInputs());
-    if (this.flow.phase !== this.lastPhase) this.enterPhase(this.flow.phase, this.lastPhase);
+    if (this.flow.phase !== this.lastPhase) this.enterPhase(this.flow.phase);
     this.lastPhase = this.flow.phase;
 
     this.render(t);
@@ -339,13 +339,13 @@ export class App {
     return this.tracker.slots.map((s) => CONFIG.horseCoats[s.number]);
   }
 
-  private enterPhase(phase: Phase, previous: Phase): void {
+  private enterPhase(phase: Phase): void {
     switch (phase) {
       case 'register':
         this.disposeRace();
         this.hud.clear();
-        // After a race everyone confirms again; after a cancelled loading the others stay ready.
-        if (previous !== 'loading') this.lobby.resetReady();
+        // Back in the registration (after a race, an abort or a cancelled loading) everyone confirms again.
+        this.lobby.resetReady();
         this.photos = [];
         this.showRegistration();
         break;
@@ -514,18 +514,20 @@ export class App {
         }
         break;
       case 'Escape':
-        // Esc that leaves fullscreen must not also abort the game.
-        if (document.fullscreenElement || now() - this.fullscreenChangedAt < 0.5) break;
-        if (phase === 'loading') this.flow.cancelLoading();
-        else this.flow.toRegistration();
+        // Esc that leaves fullscreen must not also abort the game. Not used while
+        // loading at all (B / Q cancel there), so leaving fullscreen never cancels.
+        if (phase === 'loading' || document.fullscreenElement || now() - this.fullscreenChangedAt < 0.5) break;
+        this.flow.toRegistration();
         break;
       case 'KeyQ':
-        // Abort the race: back to the start screen.
-        if (phase === 'countdown' || phase === 'race') this.flow.toRegistration();
+        // Cancel the loading or abort the race: back to the start screen.
+        if (phase === 'loading') this.flow.cancelLoading();
+        else if (phase === 'countdown' || phase === 'race') this.flow.toRegistration();
         break;
       case 'KeyB':
-        // End the race now: rank by current position, then the award ceremony.
-        this.flow.endRace();
+        // While loading: cancel. In the race: end now, rank by position, then the award ceremony.
+        if (phase === 'loading') this.flow.cancelLoading();
+        else this.flow.endRace();
         break;
       case 'Backspace':
         if (phase === 'register') this.tracker.clear();

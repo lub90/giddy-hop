@@ -39,13 +39,25 @@ test('registration → race with keyboard players → results', async ({ page })
   await page.keyboard.press('t');
   await expect(page.locator('.slot.registered')).toHaveCount(2);
 
-  // Space = everyone ready → "Laden …"; Esc cancels back to the registration.
+  // Space = everyone ready → "Laden …"; Q cancels back to the registration, nobody is ready any more.
   await page.keyboard.press('Space');
   await expect(page.locator('#overlay h1')).toContainText('Laden');
   await expect(page.locator('.slot.ready')).toHaveCount(2);
   await page.screenshot({ path: 'test-results/02-loading.png' });
+  // Esc only leaves fullscreen – it does not cancel the loading.
   await page.keyboard.press('Escape');
+  await page.waitForTimeout(300);
+  await expect(page.locator('#overlay h1')).toContainText('Laden');
+  await page.keyboard.press('q');
   await expectStartScreen(page, 'Auf die Pferde');
+  await expect(page.locator('.slot.registered')).toHaveCount(2);
+  await expect(page.locator('.slot.ready')).toHaveCount(0);
+  // B cancels the loading, too.
+  await page.keyboard.press('Space');
+  await expect(page.locator('#overlay h1')).toContainText('Laden');
+  await page.keyboard.press('b');
+  await expectStartScreen(page, 'Auf die Pferde');
+  await expect(page.locator('.slot.ready')).toHaveCount(0);
 
   // Again, and skip the wait: countdown 10…1, then "Los!".
   await page.keyboard.press('Space');
@@ -341,5 +353,8 @@ test('during the race: Space pauses, B ends with the award ceremony, Q aborts', 
   await startRace();
   await page.keyboard.press('q');
   await expectStartScreen(page, 'Auf die Pferde');
+  // After aborting, the players stay registered but nobody is ready.
+  await expect(page.locator('.slot.registered')).toHaveCount(3);
+  await expect(page.locator('.slot.ready')).toHaveCount(0);
   expect(errors).toEqual([]);
 });

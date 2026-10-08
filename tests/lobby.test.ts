@@ -125,13 +125,15 @@ describe('Lobby – register, ready, loading', () => {
     expect(s.tracker.slots[0].ready).toBe(false);
   });
 
-  it('both arms while loading = cancel loading, that player is not ready any more', () => {
+  it('both arms while loading = cancel loading, nobody is ready any more', () => {
     const s = registeredAB().gesture('left', [A, B], 0).gesture('left', [A, B], 1);
     expect(s.phase).toBe('loading');
     s.gesture('both', [A, B], 1);
     expect(s.commands).toEqual(['startLoading', 'cancelLoading']);
-    expect(s.tracker.slots.map((p) => p.ready)).toEqual([true, false]);
-    // Ready again → loading again.
+    expect(s.tracker.slots.map((p) => p.ready)).toEqual([false, false]);
+    // Everyone ready again → loading again.
+    s.gesture('left', [A, B], 0);
+    expect(s.commands).toEqual(['startLoading', 'cancelLoading']);
     s.gesture('left', [A, B], 1);
     expect(s.commands.at(-1)).toBe('startLoading');
   });
