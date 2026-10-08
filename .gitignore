@@ -10,3 +10,6 @@ playwright-report/
 
 # Own sound files for local use only (not licensed for redistribution) – see README
 local-assets/
+
+# Private pictures (e.g. for a printed certificate) – never published
+certificate-assets/
