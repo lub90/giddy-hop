@@ -315,7 +315,8 @@ export class App {
     const events = this.tracker.update(frame, TRACKER_MODE[phase]);
     if (phase !== 'register' && phase !== 'loading') return;
 
-    const command = this.lobby.handle(events, phase);
+    const allowReady = phase !== 'register' || this.flow.phaseTime >= CONFIG.tracking.readyLockSeconds;
+    const command = this.lobby.handle(events, phase, allowReady);
     if (command === 'startLoading') this.flow.startLoading(this.tracker.slots.length);
     else if (command === 'cancelLoading') this.flow.cancelLoading();
   }
@@ -344,6 +345,8 @@ export class App {
         this.hud.clear();
         // Back in the registration (after a race, an abort or a cancelled loading) everyone confirms again.
         this.lobby.resetReady();
+        // Arms still up from the race must not count; and nobody gets ready in the first seconds.
+        this.tracker.blockGestures();
         this.photos = [];
         this.showRegistration();
         break;

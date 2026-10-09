@@ -142,6 +142,15 @@ export class PlayerTracker {
     return this.addSlot('keyboard', null, undefined, Number.POSITIVE_INFINITY);
   }
 
+  /**
+   * Every player has to lower the arms once before the next gesture counts.
+   * During the race gestures are not evaluated, so an arm that is up when the
+   * game returns to the start screen must not count as a new raise.
+   */
+  blockGestures(): void {
+    for (const slot of this.slots) slot.arms.block();
+  }
+
   unregister(slot: PlayerSlot): void {
     this.slots = this.slots.filter((s) => s !== slot);
   }

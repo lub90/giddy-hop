@@ -24,7 +24,11 @@ export class Lobby {
     return slots.length > 0 && slots.every((s) => s.ready);
   }
 
-  handle(events: readonly SlotEvent[], phase: 'register' | 'loading'): LobbyCommand {
+  /**
+   * @param allowReady false right after coming back to the start screen: "one arm"
+   *   does not make anyone ready yet (registering and unregistering still work).
+   */
+  handle(events: readonly SlotEvent[], phase: 'register' | 'loading', allowReady = true): LobbyCommand {
     if (phase === 'loading') {
       // Both arms of any player cancel; then everyone confirms "ready" again.
       if (!events.some((e) => e.action === 'both')) return null;
@@ -35,7 +39,7 @@ export class Lobby {
     let becameReady = false;
     for (const { slot, action } of events) {
       if (action === 'one') {
-        if (!slot.ready) {
+        if (!slot.ready && allowReady) {
           slot.ready = true;
           becameReady = true;
         }

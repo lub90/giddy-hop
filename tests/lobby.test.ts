@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { CONFIG } from '../src/config';
 import { Lobby, type LobbyCommand } from '../src/game/lobby';
 import { ArmGestureDetector } from '../src/pose/armGesture';
 import type { PlayerTracker, TrackerMode } from '../src/pose/playerTracker';
@@ -167,5 +168,58 @@ describe('Lobby cards', () => {
     expect(slotStatus(slot).state).toBe('registered');
     slot.ready = true;
     expect(slotStatus(slot)).toEqual({ text: '✅ bereit!', state: 'ready' });
+  });
+});
+
+describe('Lobby – back on the start screen after a race (e.g. Q)', () => {
+  /** Two ready players, loading, a short race with the arms down, then back to registration. */
+  function backFromRace(armsDuringRace: 'none' | 'left') {
+    const s = registeredAB().gesture('left', [A, B], 0).gesture('left', [A, B], 1);
+    expect(s.phase).toBe('loading');
+    s.hold(1, [A, B]);
+    // The race: gestures are not evaluated. The children raise an arm just when Q is pressed.
+    const raised = [A, B].map((p) => ({ ...p, arm: armsDuringRace }));
+    let t = 30;
+    t = simulate(2, (time) => s.tracker.update(makeFrame(time, raised.map(makePose)), 'race'), t);
+    // Q: like the app on entering the registration.
+    s.lobby.resetReady();
+    s.tracker.blockGestures();
+    s.phase = 'register';
+    s.commands = [];
+    return { s, raised, t };
+  }
+
+  /** Feeds the registration with the lobby lock as in the app (ready only after readyLockSeconds). */
+  function register(s: Scenario, people: PersonSpec[], from: number, seconds: number, enteredAt = from) {
+    const lock = CONFIG.tracking.readyLockSeconds;
+    return simulate(seconds, (time) => {
+      const events = s.tracker.update(makeFrame(time, people.map(makePose)), 'register');
+      const cmd = s.lobby.handle(events, 'register', time - enteredAt >= lock);
+      if (cmd) s.commands.push(cmd);
+    }, from);
+  }
+
+  it('arms still up from the race do not make anyone ready, so loading does not start again', () => {
+    const { s, raised, t } = backFromRace('left');
+    register(s, raised, t, 4);
+    expect(s.tracker.slots.every((p) => !p.ready)).toBe(true);
+    expect(s.commands).toEqual([]);
+  });
+
+  it('nobody can get ready in the first seconds, even after lowering and raising the arm', () => {
+    const { s, t } = backFromRace('none');
+    const up = [A, B].map((p) => ({ ...p, arm: 'left' as const }));
+    const t2 = register(s, [A, B], t, 0.2);
+    register(s, up, t2, 1.2, t);
+    expect(s.tracker.slots.every((p) => !p.ready)).toBe(true);
+  });
+
+  it('after the lock, lowering and raising the arm makes the player ready as usual', () => {
+    const { s, t } = backFromRace('left');
+    const up = [A, B].map((p) => ({ ...p, arm: 'left' as const }));
+    let time = register(s, up, t, 2.5);
+    time = register(s, [A, B], time, 0.4, t);
+    register(s, [{ ...A, arm: 'left' }, B], time, 1.2, t);
+    expect(s.tracker.slots.map((p) => p.ready)).toEqual([true, false]);
   });
 });

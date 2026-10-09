@@ -36,6 +36,8 @@ export const CONFIG = {
     anchorFollow: 0.3,
     /** How long an arm (or both arms) must be held up for a gesture: register, ready, back. */
     registerHoldSeconds: 0.8,
+    /** Back on the start screen nobody can get ready during this time (s); arms must come down first anyway. */
+    readyLockSeconds: 2,
     /** During registration: a player is removed when not seen for this long. */
     dropAfterSeconds: 3,
     /** During registration: someone raising an arm keeps their progress when not detected this long. */

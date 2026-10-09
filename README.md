@@ -40,6 +40,9 @@ browser; browsers only allow it after a key press or click.)
 
 Every gesture counts after holding it for a moment (progress ring in the camera
 image); afterwards the arms must come down before the next gesture counts.
+Back on the start screen (after a race or an abort) everyone has to lower the arms
+once, and nobody can get ready in the first 2 s (`tracking.readyLockSeconds`) – so
+arms still up from the race never start the next loading by accident.
 Several children can register or get ready at the same time: short detection
 gaps and a wrist missed for a frame do not restart the progress ring.
 

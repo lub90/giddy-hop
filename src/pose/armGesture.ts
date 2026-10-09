@@ -34,6 +34,15 @@ export class ArmGestureDetector {
     if (needsRelease) this.stable = 1;
   }
 
+  /** Treats the arms as raised and blocks until they come down (e.g. back on the start screen). */
+  block(): void {
+    this.needsRelease = true;
+    this.holding = 0;
+    this.progress = 0;
+    this.stable = 1;
+    this.differentSince = null;
+  }
+
   update(raw: 0 | 1 | 2, t: number, hold: number, flicker = 0): ArmAction | null {
     const arms = this.filter(raw, t, flicker);
     if (arms === 0) {
