@@ -14,6 +14,45 @@ in first-person view on a split screen – controlled only by their bodies:
 
 Children who do not raise an arm are ignored, so spectators may stand in the picture.
 
+## Play it – no installation needed
+
+**Open the game:** <https://lub90.github.io/giddy-hop/>
+
+You need a laptop or computer with a webcam and a current browser (Chrome,
+Edge, Firefox or Safari). The children stand side by side about 2–3 m in front
+of the camera.
+
+1. **Allow the camera.** The browser asks once whether the game may use the
+   camera – click *Allow*. If you clicked *Block* by mistake: click the lock
+   or camera symbol left of the web address, allow the camera, reload the page.
+2. **Install it as an app (optional).** In Chrome or Edge click the install
+   symbol at the right end of the address bar (or menu → *Install Giddy
+   Hop!*). The game then has its own icon on the desktop / in the start menu
+   and opens in its own window. On an iPad: share button → *Add to Home
+   Screen*.
+3. **Play offline.** After the game has been opened once with internet, it is
+   stored on the device (a short note says so) and then also works without
+   internet – handy for a party in the garden. When a new version is
+   available, a small note *"Neue Version verfügbar – Neu laden"* appears;
+   one click and it is up to date.
+4. **Own sounds (optional).** On the start screen click *🔊 Eigene Sounds*.
+   For whinny, snort and hoofbeat you can choose your own recordings (mp3,
+   ogg or wav), listen to them and go back to the built-in sound at any time.
+   A whole set can also be loaded at once as a `.zip` file whose file names
+   start with `whinny`, `snort` or `hoof`.
+
+**Privacy:** the camera picture is analysed only on your device and never
+leaves it – nothing is sent, recorded or stored, and the game collects no
+data at all (no accounts, no tracking, no cookies). Settings and own sounds
+are kept only in this browser on this device. The game does not even contact
+any server after loading: everything it needs comes with it.
+
+How to play is explained below – the short version: raise one arm to join,
+raise it again when ready, then bounce to gallop, lean to steer and jump to
+hop over the fences.
+
+## How it works
+
 On the course:
 
 | | |
