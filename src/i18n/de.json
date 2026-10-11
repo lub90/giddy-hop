@@ -1,7 +1,12 @@
 {
   "title": "Giddy Hop!",
   "subtitle": "Auf die Pferde, fertig, los!",
-  "horses": ["Blitz", "Sternchen", "Fridolin", "Luna"],
+  "horses": [
+    "Blitz",
+    "Sternchen",
+    "Fridolin",
+    "Luna"
+  ],
   "gate": {
     "start": "START",
     "finish": "ZIEL"
@@ -96,5 +101,47 @@
     "walk": "Schritt",
     "trot": "Trab",
     "gallop": "Galopp"
+  },
+  "sounds": {
+    "button": "🔊 Eigene Sounds",
+    "title": "🔊 Eigene Sounds",
+    "intro": "Eigene Aufnahmen statt der eingebauten Geräusche. Die Dateien bleiben auf diesem Gerät – nichts wird hochgeladen.",
+    "slot": {
+      "whinny": "🐴 Wiehern (im Ziel)",
+      "snort": "💨 Schnauben",
+      "hoof": "🐾 Hufschlag (genau ein Huf pro Datei)"
+    },
+    "source": {
+      "upload_one": "{{count}} eigene Datei",
+      "upload_other": "{{count}} eigene Dateien",
+      "assets_one": "{{count}} Datei aus dem Asset-Ordner",
+      "assets_other": "{{count}} Dateien aus dem Asset-Ordner",
+      "synth": "Eingebauter Sound"
+    },
+    "choose": "📂 Dateien wählen",
+    "play": "▶ Probehören",
+    "reset": "↺ Standard",
+    "package": "📦 Sound-Paket (.zip) laden",
+    "resetAll": "Alle zurücksetzen",
+    "close": "Fertig",
+    "rules": "Formate: mp3, ogg oder wav, höchstens {{mb}} MB pro Datei. Mehrere Dateien pro Geräusch werden abwechselnd gespielt. Ein Sound-Paket ist eine .zip-Datei; der Anfang jedes Dateinamens bestimmt das Geräusch: <b>whinny</b>… = Wiehern, <b>snort</b>… = Schnauben, <b>hoof</b>… = Hufschlag.",
+    "busy": "Wird geprüft …",
+    "resetDone": "Zurückgesetzt.",
+    "saved_one": "✅ {{count}} Datei übernommen.",
+    "saved_other": "✅ {{count}} Dateien übernommen.",
+    "ignored_one": "{{count}} Datei im Paket passt zu keinem Geräusch und wurde übersprungen.",
+    "ignored_other": "{{count}} Dateien im Paket passen zu keinem Geräusch und wurden übersprungen.",
+    "problem": {
+      "format": "{{name}}: Format nicht unterstützt (nur mp3, ogg, wav).",
+      "size": "{{name}}: zu groß (höchstens {{mb}} MB).",
+      "empty": "{{name}}: Die Datei ist leer.",
+      "decode": "{{name}}: kann nicht abgespielt werden – ist das wirklich eine Audiodatei?",
+      "tooMany": "{{name}}: zu viele Dateien für ein Geräusch (höchstens {{max}}).",
+      "noSlot": "{{name}}: passt zu keinem Geräusch."
+    },
+    "notZip": "Das ist keine gültige .zip-Datei.",
+    "packageSize": "Das Sound-Paket ist zu groß (höchstens {{mb}} MB).",
+    "nothing": "Keine passende Datei gefunden.",
+    "storageError": "Speichern nicht möglich: {{message}}"
   }
 }

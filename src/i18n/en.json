@@ -1,7 +1,12 @@
 {
   "title": "Giddy Hop!",
   "subtitle": "On your horses, get set, go!",
-  "horses": ["Flash", "Twinkle", "Freddie", "Luna"],
+  "horses": [
+    "Flash",
+    "Twinkle",
+    "Freddie",
+    "Luna"
+  ],
   "gate": {
     "start": "START",
     "finish": "FINISH"
@@ -96,5 +101,47 @@
     "walk": "Walk",
     "trot": "Trot",
     "gallop": "Gallop"
+  },
+  "sounds": {
+    "button": "🔊 Own sounds",
+    "title": "🔊 Own sounds",
+    "intro": "Own recordings instead of the built-in sounds. The files stay on this device – nothing is uploaded.",
+    "slot": {
+      "whinny": "🐴 Whinny (at the finish)",
+      "snort": "💨 Snort",
+      "hoof": "🐾 Hoofbeat (exactly one hoof per file)"
+    },
+    "source": {
+      "upload_one": "{{count}} own file",
+      "upload_other": "{{count}} own files",
+      "assets_one": "{{count}} file from the asset folder",
+      "assets_other": "{{count}} files from the asset folder",
+      "synth": "Built-in sound"
+    },
+    "choose": "📂 Choose files",
+    "play": "▶ Listen",
+    "reset": "↺ Default",
+    "package": "📦 Load sound package (.zip)",
+    "resetAll": "Reset all",
+    "close": "Done",
+    "rules": "Formats: mp3, ogg or wav, at most {{mb}} MB per file. Several files per sound are played in turn. A sound package is a .zip file; the start of each file name decides the sound: <b>whinny</b>… = whinny, <b>snort</b>… = snort, <b>hoof</b>… = hoofbeat.",
+    "busy": "Checking …",
+    "resetDone": "Reset.",
+    "saved_one": "✅ {{count}} file taken.",
+    "saved_other": "✅ {{count}} files taken.",
+    "ignored_one": "{{count}} file in the package matches no sound and was skipped.",
+    "ignored_other": "{{count}} files in the package match no sound and were skipped.",
+    "problem": {
+      "format": "{{name}}: format not supported (only mp3, ogg, wav).",
+      "size": "{{name}}: too large (at most {{mb}} MB).",
+      "empty": "{{name}}: the file is empty.",
+      "decode": "{{name}}: cannot be played – is it really an audio file?",
+      "tooMany": "{{name}}: too many files for one sound (at most {{max}}).",
+      "noSlot": "{{name}}: matches no sound."
+    },
+    "notZip": "This is not a valid .zip file.",
+    "packageSize": "The sound package is too large (at most {{mb}} MB).",
+    "nothing": "No matching file found.",
+    "storageError": "Could not save: {{message}}"
   }
 }

@@ -1,5 +1,7 @@
 import * as THREE from 'three';
+import { CustomSounds } from './audio/customSounds';
 import { HoofbeatPlayer } from './audio/hoofbeatPlayer';
+import type { SampleKind } from './audio/localSamples';
 import { Sounds } from './audio/sounds';
 import { CONFIG } from './config';
 import { loadSetting, saveSetting } from './core/persist';
@@ -26,6 +28,7 @@ import { Hud, type HudState } from './ui/hud';
 import { RiderPortraits } from './ui/riderPortraits';
 import type { HorseCoat } from './ui/horseIcon';
 import { Screens } from './ui/screens';
+import { SoundSettings } from './ui/soundSettings';
 
 export interface AppElements {
   canvas: HTMLCanvasElement;
@@ -110,6 +113,9 @@ export class App {
     () => CONFIG.audio.whinnyVolume,
   );
   private readonly hoofbeats = new HoofbeatPlayer(this.sounds);
+  /** Own sounds: uploads (IndexedDB) before local-assets/ before the synthesis. */
+  private readonly customSounds = new CustomSounds(this.sounds);
+  private readonly soundSettings = new SoundSettings(this.customSounds, (slot) => this.previewSound(slot));
 
   private raceView: RaceView | null = null;
   private scenery: THREE.Group | null = null;
@@ -134,14 +140,7 @@ export class App {
     this.debug = new DebugPanel(el.debug, this.cameraView, () => this.renderer.setPixelRatio(CONFIG.render.pixelRatio), {
       whinny: () => this.sounds.whinny(),
       snort: () => this.sounds.snort(),
-      // Two seconds of galloping: three-beat strides at full speed.
-      hoofs: () => {
-        for (let stride = 0; stride < 4; stride++) {
-          [0, 0.08, 0.16].forEach((offset, beat) =>
-            setTimeout(() => this.sounds.hoof(1, 0, 'sand', beat === 2), (stride * 0.5 + offset) * 1000),
-          );
-        }
-      },
+      hoofs: () => this.gallopSample(),
     });
 
     setupEnvironment(this.scene, CONFIG.render.viewDistance);
@@ -261,11 +260,12 @@ export class App {
     for (const type of ['keydown', 'pointerdown'] as const) window.addEventListener(type, () => this.sounds.unlock());
     // Buttons inside the overlays (re-rendered often, so use event delegation).
     this.el.overlay.addEventListener('click', (e) => {
-      const button = (e.target as HTMLElement).closest<HTMLElement>('[data-action="fullscreen"]');
+      const button = (e.target as HTMLElement).closest<HTMLElement>('[data-action="fullscreen"], [data-action="sounds"]');
       if (!button) return;
       // Drop focus so a later Space press (start) does not click the button again.
       button.blur();
-      this.toggleFullscreen();
+      if (button.dataset.action === 'sounds') this.soundSettings.open();
+      else this.toggleFullscreen();
     });
     this.el.overlay.addEventListener('change', (e) => {
       const control = (e.target as HTMLElement).closest<HTMLInputElement | HTMLSelectElement>('[data-action]');
@@ -287,6 +287,8 @@ export class App {
     this.screens.startup(t('startup.camera'));
     await this.openCamera(loadSetting(CAMERA_SETTING_KEY));
     navigator.mediaDevices?.addEventListener?.('devicechange', () => void this.onDevicesChanged());
+    // Uploaded sounds come from IndexedDB; meanwhile the asset files / synthesis are used.
+    void this.customSounds.init();
     this.flow.ready();
   }
 
@@ -339,6 +341,8 @@ export class App {
   }
 
   private enterPhase(phase: Phase): void {
+    // The sound dialog belongs to the start screen.
+    if (phase !== 'register') this.soundSettings.close();
     switch (phase) {
       case 'register':
         this.disposeRace();
@@ -501,6 +505,8 @@ export class App {
       return;
     }
     if (e.ctrlKey || e.altKey || e.metaKey || e.repeat) return;
+    // While choosing sounds the keys belong to the dialog, not to the game.
+    if (this.soundSettings.isOpen) return;
     const phase = this.flow.phase;
     switch (e.code) {
       case 'Space':
@@ -536,6 +542,23 @@ export class App {
       case 'KeyF':
         this.toggleFullscreen();
         break;
+    }
+  }
+
+  /** "Listen" in the sound dialog: the slot's current sound. */
+  private previewSound(slot: SampleKind): void {
+    this.sounds.unlock();
+    if (slot === 'whinny') this.sounds.whinny();
+    else if (slot === 'snort') this.sounds.snort();
+    else this.gallopSample();
+  }
+
+  /** Two seconds of galloping: three-beat strides at full speed. */
+  private gallopSample(): void {
+    for (let stride = 0; stride < 4; stride++) {
+      [0, 0.08, 0.16].forEach((offset, beat) =>
+        setTimeout(() => this.sounds.hoof(1, 0, 'sand', beat === 2), (stride * 0.5 + offset) * 1000),
+      );
     }
   }
 

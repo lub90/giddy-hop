@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { zipSync } from 'fflate';
 
 /** Collects uncaught errors and console errors of the page. */
 function trackErrors(page: Page): string[] {
@@ -409,5 +410,81 @@ test('installable app that runs offline after the first visit', async ({ page, c
   await expect(page.locator('.camera-slot canvas')).toBeVisible();
   await page.waitForTimeout(2_000);
   await context.setOffline(false);
+  expect(errors).toEqual([]);
+});
+
+/** A short, valid WAV file (mono, 16 bit, sine tone). */
+function wav(seconds = 0.2, frequency = 440): Buffer {
+  const rate = 8000;
+  const n = Math.round(rate * seconds);
+  const b = Buffer.alloc(44 + n * 2);
+  b.write('RIFF', 0);
+  b.writeUInt32LE(36 + n * 2, 4);
+  b.write('WAVEfmt ', 8);
+  b.writeUInt32LE(16, 16);
+  b.writeUInt16LE(1, 20);
+  b.writeUInt16LE(1, 22);
+  b.writeUInt32LE(rate, 24);
+  b.writeUInt32LE(rate * 2, 28);
+  b.writeUInt16LE(2, 32);
+  b.writeUInt16LE(16, 34);
+  b.write('data', 36);
+  b.writeUInt32LE(n * 2, 40);
+  for (let i = 0; i < n; i++) b.writeInt16LE(Math.round(Math.sin((2 * Math.PI * frequency * i) / rate) * 8000), 44 + i * 2);
+  return b;
+}
+
+test('own sounds: upload per slot, listen, sound package, reset – kept on the device', async ({ page }) => {
+  const errors = trackErrors(page);
+  await page.goto('./');
+  await expectStartScreen(page, 'Auf die Pferde');
+  await page.locator('[data-action="sounds"]').click();
+  const dialog = page.locator('.sound-settings');
+  await expect(dialog).toBeVisible();
+  const slot = (name: string) => dialog.locator(`[data-slot="${name}"]`);
+  const message = dialog.locator('.sound-message');
+
+  // One file for the snort slot.
+  await slot('snort').locator('input[data-input="files"]').setInputFiles({ name: 'snort-mine.wav', mimeType: 'audio/wav', buffer: wav() });
+  await expect(slot('snort')).toHaveAttribute('data-source', 'upload');
+  await expect(message).toContainText('1 Datei übernommen');
+  await expect(slot('snort').locator('.sound-source')).toContainText('1 eigene Datei');
+  await slot('snort').locator('[data-do="play"]').click();
+
+  // Invalid files: clear messages, the slot keeps its sound.
+  await slot('snort').locator('input[data-input="files"]').setInputFiles({ name: 'notes.txt', mimeType: 'text/plain', buffer: Buffer.from('hello') });
+  await expect(message).toContainText('Format nicht unterstützt');
+  await slot('snort').locator('input[data-input="files"]').setInputFiles({ name: 'broken.wav', mimeType: 'audio/wav', buffer: Buffer.from('not really audio') });
+  await expect(message).toContainText('kann nicht abgespielt werden');
+  await expect(slot('snort')).toHaveAttribute('data-source', 'upload');
+
+  // A sound package fills the hoof slot (two files), the readme is skipped.
+  const zip = zipSync({ 'pack/hoof-1.wav': wav(0.1, 200), 'pack/hoof-2.wav': wav(0.1, 250), 'readme.txt': Buffer.from('hi') });
+  await dialog.locator('input[data-input="package"]').setInputFiles({ name: 'sounds.zip', mimeType: 'application/zip', buffer: Buffer.from(zip) });
+  await expect(message).toContainText('2 Dateien übernommen');
+  await expect(message).toContainText('übersprungen');
+  await expect(slot('hoof')).toHaveAttribute('data-source', 'upload');
+  await slot('hoof').locator('[data-do="play"]').click();
+
+  // While the dialog is open, game keys do nothing (T would add a keyboard rider).
+  await page.keyboard.press('t');
+  await dialog.locator('[data-do="close"]').click();
+  await expect(dialog).toBeHidden();
+  await expect(page.locator('.slot.registered')).toHaveCount(0);
+
+  // Kept on the device: still there after a reload.
+  await page.reload();
+  await expectStartScreen(page, 'Auf die Pferde');
+  await page.locator('[data-action="sounds"]').click();
+  await expect(slot('snort')).toHaveAttribute('data-source', 'upload');
+  await expect(slot('hoof').locator('.sound-source')).toContainText('2 eigene Dateien');
+
+  // Back to the default: one slot, then all.
+  await slot('snort').locator('[data-do="reset"]').click();
+  await expect(slot('snort')).not.toHaveAttribute('data-source', 'upload');
+  await expect(slot('hoof')).toHaveAttribute('data-source', 'upload');
+  await dialog.locator('[data-do="resetAll"]').click();
+  await expect(slot('hoof')).not.toHaveAttribute('data-source', 'upload');
+  await page.screenshot({ path: 'test-results/14-own-sounds.png' });
   expect(errors).toEqual([]);
 });

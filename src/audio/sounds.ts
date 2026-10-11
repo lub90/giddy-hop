@@ -2,8 +2,8 @@ import { localSamples, pickRandom, SAMPLE_KINDS, type SampleKind } from './local
 
 /**
  * Sound effects (Web Audio API). Synthesized by default; whinny, snort and
- * hoofbeat each use own recordings instead when they are placed in
- * local-assets/ (see localSamples.ts) – a random one each time.
+ * hoofbeat each use own recordings instead – uploaded in the game or placed in
+ * local-assets/ (see customSounds.ts and localSamples.ts) – a random one each time.
  *
  * Browsers only allow audio after a user interaction; call `unlock()` from a
  * key press or click (the App does this on every key/pointer event).
@@ -15,6 +15,10 @@ export class Sounds {
   private noise: AudioBuffer | null = null;
   /** Decoded own recordings per kind (empty = use the synthesis). */
   private samples: Record<SampleKind, AudioBuffer[]> = { whinny: [], snort: [], hoof: [] };
+  /** Own recordings per kind (URLs); changed at runtime by setSampleUrls. */
+  private sampleUrls: Record<SampleKind, readonly string[]>;
+  /** Increases with every change, so a slow decode of old files is dropped. */
+  private sampleVersion: Record<SampleKind, number> = { whinny: 0, snort: 0, hoof: 0 };
 
   /**
    * @param volume master volume, @param hoofVolume / @param whinnyVolume relative volume of the
@@ -26,8 +30,18 @@ export class Sounds {
     private readonly volume: () => number,
     private readonly hoofVolume: () => number = () => 1,
     private readonly whinnyVolume: () => number = () => 1,
-    private readonly sampleUrls: Record<SampleKind, readonly string[]> = localSamples(),
-  ) {}
+    sampleUrls: Record<SampleKind, readonly string[]> = localSamples(),
+  ) {
+    this.sampleUrls = { ...sampleUrls };
+  }
+
+  /** Uses other recordings for one kind from now on (empty list = synthesis). */
+  setSampleUrls(kind: SampleKind, urls: readonly string[]): void {
+    this.sampleUrls[kind] = [...urls];
+    this.sampleVersion[kind]++;
+    this.samples[kind] = [];
+    if (this.ctx) void this.loadKind(this.ctx, kind);
+  }
 
   /** True when own recordings are used instead of the synthesis for this kind. */
   usesRecording(kind: SampleKind): boolean {
@@ -36,22 +50,25 @@ export class Sounds {
 
   /** Decodes the own recordings for this context (failures fall back to the synthesis). */
   private async loadSamples(ctx: BaseAudioContext): Promise<void> {
-    await Promise.all(
-      SAMPLE_KINDS.map(async (kind) => {
-        const decoded = await Promise.all(
-          this.sampleUrls[kind].map(async (url) => {
-            try {
-              const data = await (await fetch(url)).arrayBuffer();
-              return await ctx.decodeAudioData(data);
-            } catch (err) {
-              console.warn(`Could not load ${kind} recording`, url, err);
-              return null;
-            }
-          }),
-        );
-        if (this.ctx === ctx) this.samples[kind] = decoded.filter((b): b is AudioBuffer => b !== null);
+    await Promise.all(SAMPLE_KINDS.map((kind) => this.loadKind(ctx, kind)));
+  }
+
+  private async loadKind(ctx: BaseAudioContext, kind: SampleKind): Promise<void> {
+    const version = this.sampleVersion[kind];
+    const decoded = await Promise.all(
+      this.sampleUrls[kind].map(async (url) => {
+        try {
+          const data = await (await fetch(url)).arrayBuffer();
+          return await ctx.decodeAudioData(data);
+        } catch (err) {
+          console.warn(`Could not load ${kind} recording`, url, err);
+          return null;
+        }
       }),
     );
+    if (this.ctx === ctx && this.sampleVersion[kind] === version) {
+      this.samples[kind] = decoded.filter((b): b is AudioBuffer => b !== null);
+    }
   }
 
   /**

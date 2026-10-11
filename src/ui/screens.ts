@@ -143,6 +143,7 @@ export class Screens {
              ${field(t('register.language'), `<select data-action="language">${languageOptions}</select>`)}
              ${cameraPicker}
            </div>
+           <button class="settings-btn" data-action="sounds" tabindex="-1">${t('sounds.button')}</button>
            <button class="fullscreen-btn" data-action="fullscreen" tabindex="-1">${t('register.fullscreen')}</button>
          </aside>
        </div>
