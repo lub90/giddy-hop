@@ -25,7 +25,7 @@ const progressWidth =(page: Page, i: number) =>
 
 test('registration → race with keyboard players → results', async ({ page }) => {
   const errors = trackErrors(page);
-  await page.goto('/');
+  await page.goto('./');
 
   // Registration screen appears once camera + model are ready (or failed gracefully).
   await expectStartScreen(page, 'Auf die Pferde');
@@ -103,7 +103,7 @@ test('registration → race with keyboard players → results', async ({ page })
 
 test('four players get a 2×2 split screen', async ({ page }) => {
   const errors = trackErrors(page);
-  await page.goto('/');
+  await page.goto('./');
   await expectStartScreen(page, 'Auf die Pferde');
   for (let i = 0; i < 5; i++) await page.keyboard.press('t');
   await expect(page.locator('.slot.registered')).toHaveCount(4);
@@ -131,7 +131,7 @@ test('four players get a 2×2 split screen', async ({ page }) => {
 
 test('fullscreen button in the start menu', async ({ page }) => {
   const errors = trackErrors(page);
-  await page.goto('/');
+  await page.goto('./');
   await expectStartScreen(page, 'Auf die Pferde');
   const button = page.locator('[data-action="fullscreen"]');
   await expect(button).toBeVisible();
@@ -150,7 +150,7 @@ test('fullscreen button in the start menu', async ({ page }) => {
 
 test('course selection on the start screen', async ({ page }) => {
   const errors = trackErrors(page);
-  await page.goto('/');
+  await page.goto('./');
   await expectStartScreen(page, 'Auf die Pferde');
   const select = page.locator('select[data-action="course"]');
   await expect(select.locator('option')).toHaveCount(6);
@@ -178,7 +178,7 @@ test('course selection on the start screen', async ({ page }) => {
 
 test('live placement is shown top left', async ({ page }) => {
   const errors = trackErrors(page);
-  await page.goto('/');
+  await page.goto('./');
   await expectStartScreen(page, 'Auf die Pferde');
   for (let i = 0; i < 3; i++) await page.keyboard.press('t');
   await page.keyboard.press('Space');
@@ -205,7 +205,7 @@ test.describe('English browser', () => {
 
   test('shows the English UI and can switch to German', async ({ page }) => {
     const errors = trackErrors(page);
-    await page.goto('/');
+    await page.goto('./');
     await expectStartScreen(page, 'On your horses');
     await expect(page.locator('html')).toHaveAttribute('lang', 'en');
     await expect(page.locator('.slot').first()).toContainText('free');
@@ -221,7 +221,7 @@ test.describe('English browser', () => {
     await expectStartScreen(page, 'Auf die Pferde');
 
     // A URL parameter overrides everything.
-    await page.goto('/?lang=en');
+    await page.goto('./?lang=en');
     await expectStartScreen(page, 'On your horses');
 
     // The race HUD is translated, too.
@@ -239,14 +239,14 @@ test.describe('Unsupported browser language', () => {
   test.use({ locale: 'fr-FR' });
 
   test('falls back to English', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('./');
     await expectStartScreen(page, 'On your horses');
   });
 });
 
 test('cones and carrots can be switched off on the start screen', async ({ page }) => {
   const errors = trackErrors(page);
-  await page.goto('/');
+  await page.goto('./');
   await expectStartScreen(page, 'Auf die Pferde');
   const cones = page.locator('input[data-action="cones"]');
   const carrots = page.locator('input[data-action="carrots"]');
@@ -274,7 +274,7 @@ test('finish celebration, then the award ceremony with podium and table', async 
   const errors = trackErrors(page);
   // Short award ceremony (saved tuning value), so the automatic return is quick to test.
   await page.addInitScript(() => localStorage.setItem('giddyhop.config.v1', JSON.stringify({ race: { resultsSeconds: 6 } })));
-  await page.goto('/?course=test-sprint');
+  await page.goto('./?course=test-sprint');
   await expectStartScreen(page, 'Auf die Pferde');
   // Hidden course: not in the dropdown for normal use, but selected via the URL.
   await expect(page.locator('select[data-action="course"]')).toHaveValue('test-sprint');
@@ -319,7 +319,7 @@ test('finish celebration, then the award ceremony with podium and table', async 
 
 test('during the race: Space pauses, B ends with the award ceremony, Q aborts', async ({ page }) => {
   const errors = trackErrors(page);
-  await page.goto('/');
+  await page.goto('./');
   await expectStartScreen(page, 'Auf die Pferde');
   const startRace = async () => {
     await page.keyboard.press('t');
@@ -374,7 +374,7 @@ test('the game never contacts an external server; the pose model ships with it',
     const url = r.url();
     if (!url.startsWith(origin) && !url.startsWith('data:') && !url.startsWith('blob:')) external.push(url);
   });
-  await page.goto('/');
+  await page.goto('./');
   await expectStartScreen(page, 'Auf die Pferde');
   // Camera and pose model started without a problem (the model comes from the game's own files).
   await expect(page.locator('#overlay .hint.err')).toHaveCount(0);

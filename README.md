@@ -60,17 +60,34 @@ gaps and a wrist missed for a frame do not restart the progress ring.
 ```bash
 npm install
 npm run dev        # development server with hot reload → http://localhost:5173
-npm run build      # type check + production build → dist/index.html (single file)
+npm run build      # type check + production build → dist/ (for any web server)
 npm run preview    # serve the build → http://localhost:4173
+npm run build:single  # everything in one file → dist-single/index.html (double-click)
 ```
 
 With several cameras connected, the start screen shows a camera dropdown; the
 choice is remembered (falling back to the default camera when it is not
 connected) and the list updates when a camera is plugged in or out.
 
-`dist/index.html` is self-contained and can also be opened by double-click
-(Firefox asks for camera permission). The MoveNet model weights are downloaded
-from the internet on start, so an internet connection is required.
+`dist-single/index.html` is self-contained and can also be opened by
+double-click (Firefox asks for camera permission).
+
+The game never contacts an external server: all files – including the MoveNet
+pose model ([src/assets/models/](src/assets/models/), Apache 2.0) – are part of
+the build. An e2e test fails if the page requests anything from elsewhere.
+
+### Hosting under a sub-path (GitHub Pages)
+
+The build uses `/` as base path. For a sub-path, pass it on the command line:
+`npm run build -- --base /giddy-hop/`. The workflow
+[.github/workflows/pages.yml](.github/workflows/pages.yml) does exactly this on
+every push to `main` and publishes `dist/` on GitHub Pages (one-time setup in the
+repository: *Settings → Pages → Source: GitHub Actions*). Nothing else in the
+project depends on GitHub Pages.
+
+Note: own sound files in `local-assets/` are bundled into local builds. The
+Pages build runs on GitHub, where that folder does not exist – so they are never
+published there.
 
 ## Keys
 
@@ -202,6 +219,7 @@ Design decisions:
 ```bash
 npm test           # unit tests (Vitest)
 npm run e2e        # builds, serves and runs smoke tests in Microsoft Edge
+npm run e2e:subpath  # the same tests with a build served under /giddy-hop/ (like GitHub Pages)
 npm run typecheck
 ```
 
@@ -223,7 +241,7 @@ the jump zone clears fences, scoring/ranking, game phases and split-screen layou
 | `yaml` | Reads the course files (YAML allows comments, easy to edit by hand) |
 | `i18next` | Translations (German / English), including plural forms |
 | `vite` (dev) | Dev server and build tool |
-| `vite-plugin-singlefile` (dev) | Inlines everything into one `dist/index.html` (works via double-click) |
+| `vite-plugin-singlefile` (dev) | `npm run build:single`: inlines everything into one `dist-single/index.html` (works via double-click) |
 | `typescript`, `@types/three`, `@types/node` (dev) | Type checking |
 | `vitest` (dev) | Unit tests |
 | `@playwright/test` (dev) | End-to-end smoke tests in a real browser |
