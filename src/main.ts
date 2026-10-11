@@ -4,6 +4,7 @@ import { CONFIG } from './config';
 import { loadOverrides, loadSetting } from './core/persist';
 import { detectLanguage, LANGUAGE_SETTING_KEY, setLanguage } from './i18n';
 import { CONFIG_STORAGE_KEY, LEGACY_CONFIG_STORAGE_KEY } from './debug/debugPanel';
+import { registerOfflineApp } from './ui/updateNotice';
 
 // UI language: ?lang=… in the URL, else the remembered choice, else the browser language, else English.
 setLanguage(
@@ -28,3 +29,6 @@ void new App({
   overlay: $('overlay'),
   debug: $('debug-host'),
 }).start();
+
+// Service worker: offline play and "new version" hint (no-op in dev and in the single-file build).
+registerOfflineApp();

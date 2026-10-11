@@ -384,3 +384,30 @@ test('the game never contacts an external server; the pose model ships with it',
   expect(external).toEqual([]);
   expect(errors).toEqual([]);
 });
+
+test('installable app that runs offline after the first visit', async ({ page, context }) => {
+  const errors = trackErrors(page);
+  await page.goto('./');
+  await expectStartScreen(page, 'Auf die Pferde');
+  // Web app manifest with name and icons (needed for "install as app").
+  const manifest = await page.evaluate(async () => {
+    const link = document.querySelector<HTMLLinkElement>('link[rel="manifest"]');
+    return link ? (await fetch(link.href)).json() : null;
+  });
+  expect(manifest).toMatchObject({ name: 'Giddy Hop!', theme_color: '#14100c' });
+  expect(manifest.icons.length).toBeGreaterThanOrEqual(2);
+
+  // The service worker has cached everything …
+  await page.evaluate(() => navigator.serviceWorker.ready);
+  await expect(page.locator('.update-notice')).toContainText('offline', { timeout: 30_000 });
+
+  // … so the game starts without any network, pose model included.
+  await context.setOffline(true);
+  await page.reload();
+  await expectStartScreen(page, 'Auf die Pferde');
+  await expect(page.locator('#overlay .hint.err')).toHaveCount(0);
+  await expect(page.locator('.camera-slot canvas')).toBeVisible();
+  await page.waitForTimeout(2_000);
+  await context.setOffline(false);
+  expect(errors).toEqual([]);
+});

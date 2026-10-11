@@ -61,6 +61,11 @@
     "resume": "<b>Leertaste</b> = weiterreiten",
     "keys": "<b>B</b> = Rennen beenden und Siegerehrung · <b>Q</b> = abbrechen, zurück zum Start"
   },
+  "update": {
+    "available": "Neue Version verfügbar",
+    "reload": "Neu laden",
+    "offlineReady": "Das Spiel ist jetzt auch offline spielbar."
+  },
   "results": {
     "title": "🏆 Siegerehrung",
     "place": "Platz",

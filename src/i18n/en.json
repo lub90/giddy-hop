@@ -61,6 +61,11 @@
     "resume": "<b>Space</b> = ride on",
     "keys": "<b>B</b> = end the race and go to the award ceremony · <b>Q</b> = abort, back to the start"
   },
+  "update": {
+    "available": "New version available",
+    "reload": "Reload",
+    "offlineReady": "The game can now be played offline, too."
+  },
   "results": {
     "title": "🏆 Award ceremony",
     "place": "Place",
