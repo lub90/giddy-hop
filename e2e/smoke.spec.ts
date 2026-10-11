@@ -365,3 +365,22 @@ test('during the race: Space pauses, B ends with the award ceremony, Q aborts', 
   await expect(page.locator('.slot.ready')).toHaveCount(0);
   expect(errors).toEqual([]);
 });
+
+test('the game never contacts an external server; the pose model ships with it', async ({ page, baseURL }) => {
+  const errors = trackErrors(page);
+  const origin = new URL(baseURL!).origin;
+  const external: string[] = [];
+  page.on('request', (r) => {
+    const url = r.url();
+    if (!url.startsWith(origin) && !url.startsWith('data:') && !url.startsWith('blob:')) external.push(url);
+  });
+  await page.goto('/');
+  await expectStartScreen(page, 'Auf die Pferde');
+  // Camera and pose model started without a problem (the model comes from the game's own files).
+  await expect(page.locator('#overlay .hint.err')).toHaveCount(0);
+  await expect(page.locator('.camera-slot canvas')).toBeVisible();
+  // Let the detection loop run for a moment.
+  await page.waitForTimeout(3_000);
+  expect(external).toEqual([]);
+  expect(errors).toEqual([]);
+});

@@ -2,6 +2,7 @@ import '@tensorflow/tfjs-backend-webgl';
 import * as tf from '@tensorflow/tfjs-core';
 import * as poseDetection from '@tensorflow-models/pose-detection';
 import { CONFIG } from '../config';
+import { bundledMoveNet } from './movenetModel';
 import { EMPTY_FRAME, toDetectedPose, type DetectedPose, type PoseFrame } from './poseTypes';
 
 /**
@@ -27,6 +28,8 @@ export class PoseService {
     await tf.ready();
     this.detector = await poseDetection.createDetector(poseDetection.SupportedModels.MoveNet, {
       modelType: poseDetection.movenet.modelType.MULTIPOSE_LIGHTNING,
+      // Shipped with the game – no download from tfhub.dev.
+      modelUrl: bundledMoveNet(),
       enableTracking: true,
       trackerType: poseDetection.TrackerType.BoundingBox,
       multiPoseMaxDimension: CONFIG.detection.multiPoseMaxDimension,
