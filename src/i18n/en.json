@@ -32,7 +32,9 @@
     "fullscreen": "⛶ Fullscreen (Esc = exit)",
     "keys": "<b>Space</b> = everyone ready · <b>Backspace</b> = unregister all · <b>T</b> = keyboard rider · <b>F</b> = fullscreen",
     "source": "Free software (AGPL-3.0) · source code",
-    "safety": "⚠️ Leave enough space, clear away obstacles, keep the laptop out of reach – an adult keeps an eye on it."
+    "safety": "⚠️ Leave enough space, clear away obstacles, keep the laptop out of reach – an adult keeps an eye on it.",
+    "imprint": "Legal notice",
+    "privacy": "Privacy"
   },
   "course": {
     "jumps_zero": "no jumps",

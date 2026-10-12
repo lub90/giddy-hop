@@ -9,6 +9,7 @@ export const CONFIG = {
   /**
    * Where the source code of this version is. The game is licensed under the
    * AGPL-3.0: if you run a modified version for others, point this to your code.
+   * The start screen also links to its sections #impressum and #datenschutzhinweise.
    */
   sourceUrl: 'https://github.com/lub90/giddy-hop',
   maxPlayers: 4,

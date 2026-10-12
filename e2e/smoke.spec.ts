@@ -380,6 +380,10 @@ test('the game never contacts an external server; the pose model ships with it',
   // Camera and pose model started without a problem (the model comes from the game's own files).
   await expect(page.locator('#overlay .hint.err')).toHaveCount(0);
   await expect(page.locator('.camera-slot canvas')).toBeVisible();
+  // Source code (AGPL-3.0), Impressum and Datenschutzhinweise are linked from the start screen.
+  await expect(page.locator('.reg-keys a[href$="giddy-hop"]')).toHaveText(/Quellcode/);
+  await expect(page.locator('.reg-keys a[href$="#impressum"]')).toHaveText('Impressum');
+  await expect(page.locator('.reg-keys a[href$="#datenschutzhinweise"]')).toHaveText('Datenschutz');
   // Let the detection loop run for a moment.
   await page.waitForTimeout(3_000);
   expect(external).toEqual([]);

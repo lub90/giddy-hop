@@ -150,7 +150,9 @@ export class Screens {
          </aside>
        </div>
        <p class="hint small reg-keys">${t('register.keys')} ·
-         <a class="reg-source" href="${escapeHtml(CONFIG.sourceUrl)}" target="_blank" rel="noopener" tabindex="-1">${t('register.source')}</a></p>`,
+         <a class="reg-source" href="${escapeHtml(CONFIG.sourceUrl)}" target="_blank" rel="noopener" tabindex="-1">${t('register.source')}</a> ·
+         <a class="reg-source" href="${escapeHtml(CONFIG.sourceUrl)}#impressum" target="_blank" rel="noopener" tabindex="-1">${t('register.imprint')}</a> ·
+         <a class="reg-source" href="${escapeHtml(CONFIG.sourceUrl)}#datenschutzhinweise" target="_blank" rel="noopener" tabindex="-1">${t('register.privacy')}</a></p>`,
       'overlay register-screen',
     );
     this.slotsEl = this.root.querySelector('.slots');

@@ -55,7 +55,8 @@ The game is provided as is, without any warranty (see [License](#license)).
 leaves it – nothing is sent, recorded or stored, and the game collects no
 data at all (no accounts, no tracking, no cookies). Settings and own sounds
 are kept only in this browser on this device. The game does not even contact
-any server after loading: everything it needs comes with it.
+any server after loading: everything it needs comes with it. Details:
+[Datenschutzhinweise](#datenschutzhinweise), [Impressum](#impressum).
 
 How to play is explained below – the short version: raise one arm to join,
 raise it again when ready, then bounce to gallop, lean to steer and jump to
@@ -334,3 +335,79 @@ In short:
   licenses: [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md).
 
 Contributions: see [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## Impressum
+
+*In English: Giddy Hop! is a private, non-commercial hobby project. Contact via
+GitHub.*
+
+Giddy Hop! ist ein privates, nicht-kommerzielles Hobbyprojekt. Es wird
+kostenlos, ohne Werbung und ohne Gewinnerzielungsabsicht angeboten. Für ein
+solches rein privates Angebot besteht nach unserem Verständnis keine
+Impressumspflicht nach § 5 DDG; die folgenden Angaben dienen der Transparenz.
+
+- **Projekt:** Giddy Hop! – <https://github.com/lub90/giddy-hop>
+- **Verantwortlich:** GitHub-Nutzer *lub90* (<https://github.com/lub90>)
+- **Kontakt:** über die Issues des Projekts:
+  <https://github.com/lub90/giddy-hop/issues>
+- **Hosting:** GitHub Pages (GitHub, Inc.), siehe Datenschutzhinweise.
+
+Für die Inhalte verlinkter externer Seiten sind ausschließlich deren Betreiber
+verantwortlich.
+
+## Datenschutzhinweise
+
+*In English: the camera picture is analysed only in your browser and never
+leaves your device. The game uses no cookies, no tracking and no external
+servers. Settings, own sounds and the offline copy of the game are stored only
+in your browser. When the game is loaded, GitHub (the host) processes the usual
+technical connection data.*
+
+**Kurz gesagt:** Das Kamerabild wird ausschließlich in deinem Browser
+ausgewertet und verlässt dein Gerät nie. Das Spiel setzt keine Cookies, nutzt
+kein Tracking und keine Analysedienste und lädt nichts von fremden Servern.
+Wir selbst erhalten keinerlei Daten von dir.
+
+**1. Verantwortlicher.** GitHub-Nutzer *lub90*, Kontakt über
+<https://github.com/lub90/giddy-hop/issues> (siehe Impressum).
+
+**2. Hosting bei GitHub Pages.** Die Spieldateien werden von GitHub Pages
+ausgeliefert, einem Dienst der GitHub, Inc., 88 Colton Street, San Francisco,
+CA 94107, USA. Beim Aufruf überträgt dein Browser technisch notwendige Daten an
+GitHub, insbesondere IP-Adresse, Datum und Uhrzeit, die angeforderte Datei und
+die Browserkennung. GitHub verarbeitet diese Daten, um die Seite auszuliefern
+und den Dienst abzusichern (z. B. gegen Angriffe); wir haben darauf keinen
+Zugriff. Rechtsgrundlage ist unser berechtigtes Interesse an einer sicheren und
+zuverlässigen Bereitstellung (Art. 6 Abs. 1 lit. f DSGVO). Dabei können Daten
+in die USA übermittelt werden; GitHub ist nach dem EU-US Data Privacy Framework
+zertifiziert. Einzelheiten:
+<https://docs.github.com/de/site-policy/privacy-policies/github-general-privacy-statement>.
+
+**3. Kamera.** Das Spiel nutzt die Kamera nur, wenn du es im Browser erlaubst.
+Das Bild wird direkt im Browser ausgewertet, um die Körperhaltung der
+Spielerinnen und Spieler zu erkennen. Es wird weder gespeichert noch
+übertragen. Die Fotos der Kinder auf dem Siegerpodest entstehen aus diesem Bild,
+liegen nur im Arbeitsspeicher und werden beim Zurückkehren zur Anmeldung
+verworfen.
+
+**4. Speicherung auf deinem Gerät.** Damit das Spiel wie gewünscht funktioniert,
+speichert es im Browser:
+
+- Einstellungen (Strecke, Sprache, Kamera, Hütchen/Karotten, Feineinstellungen
+  aus dem Debug-Menü) im *localStorage*,
+- selbst gewählte Sounds in der *IndexedDB*,
+- die Spieldateien für das Offline-Spielen im *Cache Storage* (Service Worker).
+
+Diese Daten bleiben auf deinem Gerät und werden nicht übertragen. Die
+Speicherung ist für die von dir genutzten Funktionen unbedingt erforderlich
+(§ 25 Abs. 2 Nr. 2 TDDDG). Du kannst sie jederzeit löschen: eigene Sounds über
+*Eigene Sounds → Alle zurücksetzen*, alles zusammen über die
+Browser-Einstellungen (Websitedaten löschen).
+
+**5. Deine Rechte.** Du hast das Recht auf Auskunft, Berichtigung, Löschung,
+Einschränkung der Verarbeitung, Datenübertragbarkeit und Widerspruch
+(Art. 15–21 DSGVO) sowie das Recht, dich bei einer Datenschutz-Aufsichtsbehörde
+zu beschweren (Art. 77 DSGVO). Da wir selbst keine Daten von dir erhalten,
+betreffen solche Anfragen in der Regel die Verbindungsdaten bei GitHub.
+
+*Stand: Oktober 2026*
