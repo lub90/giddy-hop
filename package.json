@@ -2,6 +2,12 @@
   "name": "giddy-hop",
   "private": true,
   "version": "0.1.0",
+  "description": "Webcam horse race for up to four children – ride with your whole body.",
+  "license": "AGPL-3.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lub90/giddy-hop.git"
+  },
   "type": "module",
   "scripts": {
     "dev": "vite",

@@ -1,3 +1,4 @@
+import { CONFIG } from '../config';
 import { courseStats, type CourseInfo, type CourseOptions } from '../game/courseFormat';
 import type { RaceResult } from '../game/race';
 import { currentLanguage, LANGUAGE_NAMES, LANGUAGES, localized, t } from '../i18n';
@@ -147,7 +148,8 @@ export class Screens {
            <button class="fullscreen-btn" data-action="fullscreen" tabindex="-1">${t('register.fullscreen')}</button>
          </aside>
        </div>
-       <p class="hint small reg-keys">${t('register.keys')}</p>`,
+       <p class="hint small reg-keys">${t('register.keys')}</p>
+       <p class="hint small reg-source"><a href="${escapeHtml(CONFIG.sourceUrl)}" target="_blank" rel="noopener" tabindex="-1">${t('register.source')}</a></p>`,
       'overlay register-screen',
     );
     this.slotsEl = this.root.querySelector('.slots');

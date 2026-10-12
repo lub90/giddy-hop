@@ -299,3 +299,28 @@ the jump zone clears fences, scoring/ranking, game phases and split-screen layou
 `pose-detection` also imports `@mediapipe/pose` and the WebGPU backend; both are
 replaced by tiny stubs in [src/vendor/](src/vendor/) via aliases in
 [vite.config.ts](vite.config.ts) because only MoveNet on WebGL is used.
+
+## License
+
+Copyright (C) 2026 lub90 and contributors
+
+Giddy Hop! is free software: you can redistribute it and/or modify it under the
+terms of the **GNU Affero General Public License** as published by the Free
+Software Foundation, either version 3 of the License, or (at your option) any
+later version ([LICENSE](LICENSE)). It is distributed in the hope that it will
+be useful, but **without any warranty**; without even the implied warranty of
+merchantability or fitness for a particular purpose – see the license for
+details, including the limitation of liability.
+
+In short:
+
+- Everyone may play, use (also professionally, e.g. as a children's
+  entertainer), study, change and pass on the game.
+- Whoever passes on the game or a changed version – or runs a changed version
+  for others on a web server – must provide its source code under the same
+  license. So the game can be sold, but every buyer receives it as free
+  software and may give it away.
+- The libraries and the pose model used by the game keep their own (permissive)
+  licenses: [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md).
+
+Contributions: see [CONTRIBUTING.md](CONTRIBUTING.md).

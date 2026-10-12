@@ -959,3 +959,8 @@ h2 {
     justify-content: flex-start;
   }
 }
+
+/* Source code link (AGPL-3.0) at the bottom of the start screen. */
+.reg-source a {
+  color: inherit;
+}

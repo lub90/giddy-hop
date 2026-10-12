@@ -6,6 +6,11 @@
  * copied back into this file via "Copy config" in the panel.
  */
 export const CONFIG = {
+  /**
+   * Where the source code of this version is. The game is licensed under the
+   * AGPL-3.0: if you run a modified version for others, point this to your code.
+   */
+  sourceUrl: 'https://github.com/lub90/giddy-hop',
   maxPlayers: 4,
   /** Saddle cloth color per player number. */
   playerColors: ['#ff4f81', '#3fa9f5', '#ffc93c', '#7bd34f'],
