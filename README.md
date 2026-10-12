@@ -41,6 +41,16 @@ of the camera.
    A whole set can also be loaded at once as a `.zip` file whose file names
    start with `whinny`, `snort` or `hoof`.
 
+**Safety:** the children jump, bounce and lean – so make room before playing:
+
+- Leave at least 1 m of free space around and between the players; move
+  tables, chairs and anything breakable or sharp out of the way.
+- Play on a non-slippery floor (no socks on smooth floors).
+- Put the laptop or screen out of the players' reach, cables away from their feet.
+- An adult supervises, especially with several or very young children.
+
+The game is provided as is, without any warranty (see [License](#license)).
+
 **Privacy:** the camera picture is analysed only on your device and never
 leaves it – nothing is sent, recorded or stored, and the game collects no
 data at all (no accounts, no tracking, no cookies). Settings and own sounds

@@ -237,7 +237,7 @@ h2 {
  * no black bars and the picture is never squeezed.
  */
 .camera-slot {
-  width: min(100%, calc(clamp(260px, 45vh, 720px) * var(--camera-aspect, 1.7778)));
+  width: min(100%, calc(clamp(260px, 40vh, 720px) * var(--camera-aspect, 1.7778)));
   min-height: 260px;
   aspect-ratio: var(--camera-aspect, 1.7778);
   border: 3px solid var(--accent);
@@ -961,6 +961,13 @@ h2 {
 }
 
 /* Source code link (AGPL-3.0) at the bottom of the start screen. */
-.reg-source a {
+.reg-source {
   color: inherit;
+  white-space: nowrap;
+}
+
+/* Safety hint below the positioning hint on the start screen. */
+.reg-players .safety {
+  margin-top: -6px;
+  color: #ffd27a;
 }

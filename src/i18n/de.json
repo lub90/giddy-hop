@@ -31,7 +31,8 @@
     "carrots": "🥕 Karotten",
     "fullscreen": "⛶ Vollbild (Esc = beenden)",
     "keys": "<b>Leertaste</b> = alle bereit · <b>Rücktaste</b> = alle abmelden · <b>T</b> = Tastatur-Reiter · <b>F</b> = Vollbild",
-    "source": "Freie Software (AGPL-3.0) · Quellcode"
+    "source": "Freie Software (AGPL-3.0) · Quellcode",
+    "safety": "⚠️ Genug Platz lassen, Hindernisse wegräumen, Laptop außer Reichweite – ein Erwachsener passt auf."
   },
   "course": {
     "jumps_zero": "keine Sprünge",

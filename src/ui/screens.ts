@@ -125,6 +125,7 @@ export class Screens {
        <div class="reg-main">
          <section class="reg-players">
            <p class="hint">${t('register.position')}</p>
+           <p class="hint small safety">${t('register.safety')}</p>
            ${cameraProblem ? `<p class="hint err">${escapeHtml(cameraProblem)}</p>` : '<div class="camera-slot"></div>'}
            <ul class="gestures">
              <li>${t('register.gestureJoin')}</li>
@@ -148,8 +149,8 @@ export class Screens {
            <button class="fullscreen-btn" data-action="fullscreen" tabindex="-1">${t('register.fullscreen')}</button>
          </aside>
        </div>
-       <p class="hint small reg-keys">${t('register.keys')}</p>
-       <p class="hint small reg-source"><a href="${escapeHtml(CONFIG.sourceUrl)}" target="_blank" rel="noopener" tabindex="-1">${t('register.source')}</a></p>`,
+       <p class="hint small reg-keys">${t('register.keys')} ·
+         <a class="reg-source" href="${escapeHtml(CONFIG.sourceUrl)}" target="_blank" rel="noopener" tabindex="-1">${t('register.source')}</a></p>`,
       'overlay register-screen',
     );
     this.slotsEl = this.root.querySelector('.slots');
